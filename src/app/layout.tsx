@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ラーメン記録",
+  title: "Nooodle",
   description: "ラーメン記録・共有プラットフォーム",
 };
 
