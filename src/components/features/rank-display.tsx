@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X, ChevronRight, Check } from "lucide-react";
 import { getRankByShopCount, getNextRank, RANKS, type Rank } from "@/lib/constants/ranks";
+import { RankIcon } from "./rank-icon";
+import { cn } from "@/lib/utils/cn";
 
 interface RankDisplayProps {
   shopCount: number;
@@ -29,18 +31,11 @@ export function RankDisplay({ shopCount }: RankDisplayProps) {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-              style={{
-                background: currentRank.gradient || currentRank.color,
-              }}
-            >
-              {currentRank.level}
-            </div>
+            <RankIcon rank={currentRank} size="md" />
             <div>
               <h3 className="font-bold text-gray-900">{currentRank.name}</h3>
               <p className="text-sm text-gray-500">
-                {shopCount}店舗訪問
+                {shopCount}店舗制覇
               </p>
             </div>
           </div>
@@ -144,7 +139,7 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListM
 
           <div className="flex-1 overflow-auto p-4">
             <p className="text-sm text-gray-500 mb-4">
-              店舗数に応じてランクが上がります。たくさんのお店を訪問してランクアップを目指しましょう！
+              店舗数に応じてランクが上がります。たくさんのお店を巡ってランクアップを目指しましょう！
             </p>
 
             <div className="space-y-2">
@@ -155,22 +150,16 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListM
                 return (
                   <div
                     key={rank.level}
-                    className={`flex items-center gap-3 p-3 rounded-lg ${
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg",
                       isCurrent
                         ? "bg-orange-50 border-2 border-orange-300"
                         : isAchieved
                         ? "bg-gray-50"
                         : "bg-gray-50 opacity-60"
-                    }`}
+                    )}
                   >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                      style={{
-                        background: rank.gradient || rank.color,
-                      }}
-                    >
-                      {rank.level}
-                    </div>
+                    <RankIcon rank={rank} size="sm" animate={isCurrent} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-900">
@@ -191,12 +180,15 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListM
                           : `${rank.requiredShops}店舗以上`}
                       </p>
                     </div>
-                    <div
-                      className="w-6 h-6 rounded-full flex-shrink-0"
-                      style={{
-                        background: rank.gradient || rank.color,
-                      }}
-                    />
+                    {/* アイコン詳細 */}
+                    <div className="text-xs text-gray-400 text-right">
+                      <span>丼×{rank.bowlCount}</span>
+                      {rank.hasSteam && <span className="ml-1">湯気</span>}
+                      {rank.hasChopsticks && <span className="ml-1">箸</span>}
+                      {rank.hasSpoon && <span className="ml-1">レンゲ</span>}
+                      {rank.hasGoldBorder && <span className="ml-1">金縁</span>}
+                      {rank.hasCrown && <span className="ml-1">王冠</span>}
+                    </div>
                   </div>
                 );
               })}

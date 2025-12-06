@@ -15,7 +15,9 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils/cn";
 import { BADGES, type BadgeCode } from "@/lib/constants/badges";
+import { getRankByShopCount, type Rank } from "@/lib/constants/ranks";
 import { NewBadgeModal } from "./badge-display";
+import { RankUpModal } from "./rank-up-modal";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
@@ -55,13 +57,26 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [newBadge, setNewBadge] = useState<(typeof BADGES)[BadgeCode] | null>(
     null
   );
+  const [rankUpInfo, setRankUpInfo] = useState<{ from: Rank; to: Rank } | null>(
+    null
+  );
+  const prevShopCountRef = useRef<number | null>(null);
 
   const shops = useQuery(api.shops.search, { searchText: shopSearch });
+  const userNoodles = useQuery(
+    api.noodles.getByUser,
+    user?._id ? { userId: user._id } : "skip"
+  );
   const getOrCreateShop = useMutation(api.shops.getOrCreate);
   const createNoodle = useMutation(api.noodles.create);
   const updateNoodle = useMutation(api.noodles.update);
   const checkBadges = useMutation(api.badges.checkAndAward);
   const generateUploadUrl = useMutation(api.noodles.generateUploadUrl);
+
+  // 現在のshopCountを計算
+  const currentShopCount = userNoodles
+    ? new Set(userNoodles.map((n) => n.shopId)).size
+    : 0;
 
   // 画像選択
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,6 +113,9 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !shopName || !ramenName || genres.length === 0) return;
+
+    // 投稿前のランクを保存
+    prevShopCountRef.current = currentShopCount;
 
     setIsSubmitting(true);
     try {
@@ -145,6 +163,19 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           imageId,
         });
 
+        // ランクアップ判定（新しい店舗の場合のみ）
+        const isNewShop = !userNoodles?.some((n) => n.shopId === shopId);
+        if (isNewShop && prevShopCountRef.current !== null) {
+          const newShopCount = prevShopCountRef.current + 1;
+          const prevRank = getRankByShopCount(prevShopCountRef.current);
+          const newRank = getRankByShopCount(newShopCount);
+
+          if (newRank.level > prevRank.level) {
+            setRankUpInfo({ from: prevRank, to: newRank });
+            return;
+          }
+        }
+
         // Check for new badges
         const newBadges = await checkBadges({ userId: user._id });
         if (newBadges.length > 0) {
@@ -166,6 +197,11 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   const handleBadgeModalClose = () => {
     setNewBadge(null);
+    router.push("/noodles");
+  };
+
+  const handleRankUpModalClose = () => {
+    setRankUpInfo(null);
     router.push("/noodles");
   };
 
@@ -350,6 +386,11 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       </form>
 
       <NewBadgeModal badge={newBadge} onClose={handleBadgeModalClose} />
+      <RankUpModal
+        fromRank={rankUpInfo?.from ?? null}
+        toRank={rankUpInfo?.to ?? null}
+        onClose={handleRankUpModalClose}
+      />
     </>
   );
 }

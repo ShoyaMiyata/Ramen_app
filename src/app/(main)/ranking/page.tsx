@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage, Loading } from "@/components/ui/loading";
 import { getRankByShopCount } from "@/lib/constants/ranks";
+import { RankIcon } from "@/components/features/rank-icon";
 import { Trophy, Store, FileText, Heart } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -176,12 +177,15 @@ export default function RankingPage() {
                         {item.user?.name || "ユーザー"}
                       </p>
                       {rankingType === "shops" && (
-                        <p
-                          className="text-xs font-medium"
-                          style={{ color: rank.color }}
-                        >
-                          {rank.name}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <RankIcon rank={rank} size="sm" animate={false} />
+                          <span
+                            className="text-xs font-medium"
+                            style={{ color: rank.color }}
+                          >
+                            {rank.name}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
