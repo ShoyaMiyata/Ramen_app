@@ -30,9 +30,12 @@ export default defineSchema({
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
     imageId: v.optional(v.id("_storage")),
+    createdAt: v.optional(v.number()), // 作成日時（ソート用）
   })
     .index("by_userId", ["userId"])
-    .index("by_shopId", ["shopId"]),
+    .index("by_shopId", ["shopId"])
+    .index("by_evaluation", ["evaluation"])
+    .index("by_visitDate", ["visitDate"]),
 
   likes: defineTable({
     userId: v.id("users"),
@@ -90,7 +93,7 @@ export default defineSchema({
   // 通知
   notifications: defineTable({
     userId: v.id("users"), // 通知を受け取るユーザー
-    type: v.string(), // "follow", "like" など
+    type: v.string(), // "follow", "like", "comment", "message" など
     fromUserId: v.id("users"), // 通知を発生させたユーザー
     targetId: v.optional(v.string()), // 対象のID（noodleIdなど）
     isRead: v.boolean(),
@@ -98,4 +101,34 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_isRead", ["userId", "isRead"]),
+
+  // 投稿へのコメント
+  comments: defineTable({
+    noodleId: v.id("noodles"), // 投稿ID
+    userId: v.id("users"), // コメントしたユーザー
+    content: v.string(), // コメント内容
+    createdAt: v.number(),
+  })
+    .index("by_noodleId", ["noodleId"])
+    .index("by_userId", ["userId"]),
+
+  // チャットルーム（1対1）
+  chatRooms: defineTable({
+    participants: v.array(v.id("users")), // 参加者2名
+    lastMessageAt: v.optional(v.number()), // 最終メッセージ日時
+    createdAt: v.number(),
+  })
+    .index("by_lastMessageAt", ["lastMessageAt"]),
+
+  // チャットメッセージ
+  chatMessages: defineTable({
+    roomId: v.id("chatRooms"), // チャットルームID
+    senderId: v.id("users"), // 送信者
+    content: v.string(), // メッセージ内容
+    isRead: v.boolean(), // 既読フラグ
+    createdAt: v.number(),
+  })
+    .index("by_roomId", ["roomId"])
+    .index("by_roomId_createdAt", ["roomId", "createdAt"])
+    .index("by_roomId_isRead", ["roomId", "isRead"]),
 });

@@ -8,8 +8,13 @@ export const list = query({
     sortBy: v.optional(
       v.union(v.literal("newest"), v.literal("rating"), v.literal("visitDate"))
     ),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const offset = args.offset ?? 0;
+
     let noodles = await ctx.db.query("noodles").order("desc").collect();
 
     // Filter by genres
@@ -41,14 +46,21 @@ export const list = query({
       noodles.sort((a, b) => (b.visitDate || 0) - (a.visitDate || 0));
     }
 
+    // Total count before pagination
+    const totalCount = noodles.length;
+
+    // Apply pagination
+    const paginatedNoodles = noodles.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
+
     // Enrich with user and shop data and image URLs
     const users = await ctx.db.query("users").collect();
     const shops = await ctx.db.query("shops").collect();
     const userMap = new Map(users.map((u) => [u._id, u]));
     const shopMap = new Map(shops.map((s) => [s._id, s]));
 
-    const results = await Promise.all(
-      noodles.map(async (noodle) => {
+    const items = await Promise.all(
+      paginatedNoodles.map(async (noodle) => {
         const imageUrl = noodle.imageId
           ? await ctx.storage.getUrl(noodle.imageId)
           : null;
@@ -61,7 +73,12 @@ export const list = query({
       })
     );
 
-    return results;
+    return {
+      items,
+      totalCount,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
+    };
   },
 });
 
@@ -166,6 +183,7 @@ export const create = mutation({
       comment: args.comment,
       evaluation: args.evaluation,
       imageId: args.imageId,
+      createdAt: Date.now(), // 作成日時を追加
     });
   },
 });

@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -104,7 +104,13 @@ export function Header() {
                         notifications.map((notification) => (
                           <Link
                             key={notification._id}
-                            href={`/users/${notification.fromUserId}`}
+                            href={
+                              notification.type === "message"
+                                ? `/chat/${notification.targetId}`
+                                : notification.type === "comment"
+                                  ? `/noodles/${notification.targetId}`
+                                  : `/users/${notification.fromUserId}`
+                            }
                             onClick={() => setIsNotificationOpen(false)}
                             className={cn(
                               "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0",
@@ -121,6 +127,10 @@ export function Header() {
                                   alt=""
                                   className="w-10 h-10 rounded-full object-cover"
                                 />
+                              ) : notification.type === "message" ? (
+                                <MessageSquare className="w-5 h-5" style={{ color: themeColor }} />
+                              ) : notification.type === "comment" ? (
+                                <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
                               ) : (
                                 <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
                               )}
@@ -133,6 +143,16 @@ export function Header() {
                                 {notification.type === "follow" && (
                                   <span className="text-gray-600">
                                     さんがあなたをフォローしました
+                                  </span>
+                                )}
+                                {notification.type === "comment" && (
+                                  <span className="text-gray-600">
+                                    さんがあなたの投稿にコメントしました
+                                  </span>
+                                )}
+                                {notification.type === "message" && (
+                                  <span className="text-gray-600">
+                                    さんからメッセージが届きました
                                   </span>
                                 )}
                               </p>

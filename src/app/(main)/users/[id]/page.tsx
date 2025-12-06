@@ -14,7 +14,8 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 
 type ViewMode = "list" | "gallery";
@@ -27,9 +28,12 @@ export default function UserProfilePage({
   const { id } = use(params);
   const userId = id as Id<"users">;
 
+  const router = useRouter();
   const { user: currentUser, isLoaded } = useCurrentUser();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
   const profileUser = useQuery(api.users.getById, { id: userId });
   const noodles = useQuery(api.noodles.getByUser, { userId });
@@ -79,6 +83,19 @@ export default function UserProfilePage({
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleStartChat = async () => {
+    if (!currentUser) return;
+    try {
+      const roomId = await getOrCreateRoom({
+        userId1: currentUser._id,
+        userId2: userId,
+      });
+      router.push(`/chat/${roomId}`);
+    } catch (error) {
+      console.error("Failed to start chat:", error);
     }
   };
 
@@ -158,16 +175,24 @@ export default function UserProfilePage({
           </div>
         )}
 
-        {/* Follow Button */}
+        {/* Follow Button & Message Button */}
         {!isOwnProfile && currentUser && (
-          <div className="mt-4">
+          <div className="mt-4 flex gap-2">
             <Button
               variant={isFollowing ? "outline" : "default"}
-              className="w-full"
+              className="flex-1"
               onClick={handleFollowToggle}
               disabled={isSubmitting || isFollowing === undefined}
             >
               {isFollowing ? "フォロー中" : "フォローする"}
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              onClick={handleStartChat}
+            >
+              <MessageCircle className="w-4 h-4" />
+              メッセージ
             </Button>
           </div>
         )}

@@ -11,6 +11,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Loading } from "@/components/ui/loading";
 import { GENRES } from "@/lib/constants/genres";
 import { formatDateInput, parseDateInput, getTodayDateInput } from "@/lib/utils/date";
+import { compressImage, formatFileSize } from "@/lib/utils/image";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils/cn";
@@ -78,18 +79,55 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     ? new Set(userNoodles.map((n) => n.shopId)).size
     : 0;
 
-  // 画像選択
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<string | null>(null);
+
+  // 画像選択と圧縮
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // プレビュー表示
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    setImageFile(file);
+    setIsCompressing(true);
+    setCompressionInfo(null);
+
+    try {
+      const originalSize = file.size;
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8,
+      });
+
+      const compressedSize = compressedFile.size;
+      const savedPercent = Math.round(
+        ((originalSize - compressedSize) / originalSize) * 100
+      );
+
+      if (savedPercent > 0) {
+        setCompressionInfo(
+          `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)} (${savedPercent}%削減)`
+        );
+      }
+
+      // プレビュー表示
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+      setImageFile(compressedFile);
+    } catch (error) {
+      console.error("Image compression failed:", error);
+      // 圧縮失敗時は元のファイルを使用
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      setImageFile(file);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   // 画像削除
@@ -97,6 +135,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     setImageFile(null);
     setImagePreview(null);
     setExistingImageId(null);
+    setCompressionInfo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -234,6 +273,16 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
               >
                 <X className="w-4 h-4" />
               </button>
+              {compressionInfo && (
+                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded text-white text-xs">
+                  {compressionInfo}
+                </div>
+              )}
+            </div>
+          ) : isCompressing ? (
+            <div className="w-full h-32 border-2 border-dashed border-orange-300 rounded-lg flex flex-col items-center justify-center gap-2 text-orange-400">
+              <Loading size="sm" />
+              <span className="text-sm">画像を圧縮中...</span>
             </div>
           ) : (
             <button

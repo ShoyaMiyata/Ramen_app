@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
-import { ArrowLeft, Edit, Trash2, Heart } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function NoodleDetailPage({
   params,
@@ -23,12 +24,30 @@ export default function NoodleDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const { user, isLoaded } = useCurrentUser();
+  const { themeColor } = useTheme();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [allComments, setAllComments] = useState<any[]>([]);
+
+  const noodleId = id as Id<"noodles">;
 
   const noodle = useQuery(api.noodles.getById, {
-    id: id as Id<"noodles">,
+    id: noodleId,
   });
+
+  const commentsData = useQuery(api.comments.getByNoodle, { noodleId, limit: 20 });
+  const commentCount = useQuery(api.comments.getCount, { noodleId });
+  const createComment = useMutation(api.comments.create);
+  const removeComment = useMutation(api.comments.remove);
+
+  // コメントデータを状態にセット
+  useEffect(() => {
+    if (commentsData?.items) {
+      setAllComments(commentsData.items);
+    }
+  }, [commentsData]);
 
   const isLiked = useQuery(
     api.likes.isLiked,
@@ -72,6 +91,45 @@ export default function NoodleDetailPage({
       console.error("Failed to delete:", error);
       setIsDeleting(false);
     }
+  };
+
+  const handleCommentSubmit = async () => {
+    if (!user || !commentText.trim()) return;
+    setIsSubmittingComment(true);
+    try {
+      await createComment({
+        noodleId,
+        userId: user._id,
+        content: commentText.trim(),
+      });
+      setCommentText("");
+    } catch (error) {
+      console.error("Failed to post comment:", error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: Id<"comments">) => {
+    if (!user) return;
+    try {
+      await removeComment({ commentId, userId: user._id });
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+    }
+  };
+
+  const formatTimeAgo = (timestamp: number) => {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "たった今";
+    if (minutes < 60) return `${minutes}分前`;
+    if (hours < 24) return `${hours}時間前`;
+    if (days < 7) return `${days}日前`;
+    return formatDate(timestamp);
   };
 
   return (
@@ -215,6 +273,119 @@ export default function NoodleDetailPage({
             {isLiked ? "いいね済み" : "いいね"}
           </Button>
         )}
+      </div>
+
+      {/* Comments Section */}
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
+          <h2 className="font-bold text-gray-900">
+            コメント {commentCount !== undefined && commentCount > 0 && `(${commentCount})`}
+          </h2>
+        </div>
+
+        {/* Comment Input */}
+        {user && (
+          <div className="flex gap-2 mb-4">
+            {user.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt=""
+                className="w-8 h-8 rounded-full flex-shrink-0"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+            )}
+            <div className="flex-1 flex gap-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="コメントを入力..."
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleCommentSubmit();
+                  }
+                }}
+              />
+              <button
+                onClick={handleCommentSubmit}
+                disabled={!commentText.trim() || isSubmittingComment}
+                className="p-2 rounded-lg transition-colors disabled:opacity-50"
+                style={{ backgroundColor: themeColor, color: "white" }}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Comments List */}
+        <div className="space-y-3">
+          {commentsData === undefined ? (
+            <div className="py-4 text-center">
+              <Loading size="sm" />
+            </div>
+          ) : allComments.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              まだコメントはありません
+            </p>
+          ) : (
+            allComments.map((comment) => (
+              <div key={comment._id} className="flex gap-2 group">
+                <Link href={`/users/${comment.userId}`}>
+                  {comment.user?.imageUrl ? (
+                    <img
+                      src={comment.user.imageUrl}
+                      alt=""
+                      className="w-8 h-8 rounded-full flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                  )}
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <div className="bg-gray-50 rounded-lg px-3 py-2">
+                    <Link
+                      href={`/users/${comment.userId}`}
+                      className="text-sm font-medium text-gray-900 hover:underline"
+                    >
+                      {comment.user?.name || "ユーザー"}
+                    </Link>
+                    <p className="text-sm text-gray-700 break-words">
+                      {comment.content}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 px-1">
+                    <span className="text-xs text-gray-400">
+                      {formatTimeAgo(comment.createdAt)}
+                    </span>
+                    {user?._id === comment.userId && (
+                      <button
+                        onClick={() => handleDeleteComment(comment._id)}
+                        className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        削除
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          {/* Load More Button */}
+          {commentsData?.hasMore && (
+            <button
+              onClick={() => {/* TODO: Load more comments */}}
+              className="text-sm text-center w-full py-2 hover:text-gray-600"
+              style={{ color: themeColor }}
+            >
+              さらに表示
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage, Loading } from "@/components/ui/loading";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type SortOption = "newest" | "rating" | "visitDate";
+const ITEMS_PER_PAGE = 10;
 
 export default function NoodlesPage() {
   const { user, isLoaded } = useCurrentUser();
@@ -23,12 +25,66 @@ export default function NoodlesPage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const parentRef = useRef<HTMLDivElement>(null);
 
-  const noodles = useQuery(api.noodles.list, {
+  const noodlesData = useQuery(api.noodles.list, {
     genres: selectedGenres.length > 0 ? selectedGenres : undefined,
     searchText: searchText || undefined,
     sortBy,
+    limit: ITEMS_PER_PAGE,
+    offset,
   });
+
+  // フィルター変更時にリセット
+  useEffect(() => {
+    setOffset(0);
+    setAllItems([]);
+  }, [searchText, selectedGenres, sortBy]);
+
+  // データが来たら追加
+  useEffect(() => {
+    if (noodlesData?.items) {
+      if (offset === 0) {
+        setAllItems(noodlesData.items);
+      } else {
+        setAllItems((prev) => {
+          const existingIds = new Set(prev.map((item) => item._id));
+          const newItems = noodlesData.items.filter(
+            (item) => !existingIds.has(item._id)
+          );
+          return [...prev, ...newItems];
+        });
+      }
+    }
+  }, [noodlesData, offset]);
+
+  // 無限スクロール
+  const handleLoadMore = useCallback(() => {
+    if (noodlesData?.hasMore) {
+      setOffset((prev) => prev + ITEMS_PER_PAGE);
+    }
+  }, [noodlesData?.hasMore]);
+
+  // 仮想スクロール設定
+  const virtualizer = useVirtualizer({
+    count: allItems.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 280, // NoodleCardの概算高さ
+    overscan: 5,
+    getItemKey: (index) => allItems[index]?._id || index,
+  });
+
+  // 最後のアイテムが表示されたら次を読み込む
+  useEffect(() => {
+    const lastItem = virtualizer.getVirtualItems().at(-1);
+    if (!lastItem || !noodlesData?.hasMore) return;
+
+    if (lastItem.index >= allItems.length - 3) {
+      handleLoadMore();
+    }
+  }, [virtualizer.getVirtualItems(), allItems.length, handleLoadMore, noodlesData?.hasMore]);
 
   if (!isLoaded) {
     return <LoadingPage />;
@@ -152,9 +208,9 @@ export default function NoodlesPage() {
       )}
 
       {/* Results */}
-      {noodles === undefined ? (
+      {noodlesData === undefined && allItems.length === 0 ? (
         <Loading className="py-8" />
-      ) : noodles.length === 0 ? (
+      ) : allItems.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
           <p className="text-gray-500">
             {hasFilters
@@ -163,10 +219,53 @@ export default function NoodlesPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {noodles.map((noodle) => (
-            <NoodleCard key={noodle._id} noodle={noodle} currentUserId={user?._id} />
-          ))}
+        <div
+          ref={parentRef}
+          className="overflow-auto"
+          style={{ height: "calc(100vh - 260px)", contain: "strict" }}
+        >
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const noodle = allItems[virtualItem.index];
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start}px)`,
+                    paddingBottom: "12px",
+                  }}
+                >
+                  <NoodleCard noodle={noodle} currentUserId={user?._id} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Load More Indicator */}
+          {noodlesData?.hasMore && (
+            <div className="py-4 text-center">
+              <Loading size="sm" />
+            </div>
+          )}
+
+          {/* Total Count */}
+          {noodlesData?.totalCount !== undefined && (
+            <p className="text-xs text-gray-400 text-center pb-2">
+              全{noodlesData.totalCount}件中 {allItems.length}件表示
+            </p>
+          )}
         </div>
       )}
     </div>

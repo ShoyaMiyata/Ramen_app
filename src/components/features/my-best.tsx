@@ -21,8 +21,12 @@ const BEST_CATEGORIES = [
   { code: "tonkotsu", label: "とんこつ部門", genreFilter: "とんこつ" },
   { code: "iekei", label: "家系部門", genreFilter: "家系" },
   { code: "jiro", label: "二郎系部門", genreFilter: "二郎系" },
+  { code: "gyokai", label: "魚介部門", genreFilter: "魚介" },
+  { code: "niboshi", label: "煮干し部門", genreFilter: "煮干し" },
   { code: "tsukemen", label: "つけ麺部門", genreFilter: "つけ麺" },
   { code: "tantan", label: "担々麺部門", genreFilter: "担々麺" },
+  { code: "toripaitan", label: "鶏白湯部門", genreFilter: "鶏白湯" },
+  { code: "other", label: "その他部門", genreFilter: "その他" },
 ];
 
 interface MyBestDisplayProps {

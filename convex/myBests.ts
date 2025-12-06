@@ -10,8 +10,12 @@ export const BEST_CATEGORIES = [
   { code: "tonkotsu", label: "とんこつ部門" },
   { code: "iekei", label: "家系部門" },
   { code: "jiro", label: "二郎系部門" },
+  { code: "gyokai", label: "魚介部門" },
+  { code: "niboshi", label: "煮干し部門" },
   { code: "tsukemen", label: "つけ麺部門" },
   { code: "tantan", label: "担々麺部門" },
+  { code: "toripaitan", label: "鶏白湯部門" },
+  { code: "other", label: "その他部門" },
 ] as const;
 
 export const getByUser = query({

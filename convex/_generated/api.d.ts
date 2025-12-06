@@ -9,6 +9,8 @@
  */
 
 import type * as badges from "../badges.js";
+import type * as chat from "../chat.js";
+import type * as comments from "../comments.js";
 import type * as feedbacks from "../feedbacks.js";
 import type * as follows from "../follows.js";
 import type * as likes from "../likes.js";
@@ -28,6 +30,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   badges: typeof badges;
+  chat: typeof chat;
+  comments: typeof comments;
   feedbacks: typeof feedbacks;
   follows: typeof follows;
   likes: typeof likes;

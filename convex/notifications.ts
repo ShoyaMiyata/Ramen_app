@@ -11,16 +11,16 @@ export const getByUser = query({
       .order("desc")
       .take(50);
 
-    // fromUserの情報を取得
-    const notificationsWithUser = await Promise.all(
-      notifications.map(async (notification) => {
-        const fromUser = await ctx.db.get(notification.fromUserId);
-        return {
-          ...notification,
-          fromUser,
-        };
-      })
-    );
+    // fromUserIdを収集してバッチ取得（N+1対策）
+    const fromUserIds = [...new Set(notifications.map((n) => n.fromUserId))];
+    const fromUsers = await Promise.all(fromUserIds.map((id) => ctx.db.get(id)));
+    const userMap = new Map(fromUserIds.map((id, i) => [id, fromUsers[i]]));
+
+    // 通知にユーザー情報をマッピング
+    const notificationsWithUser = notifications.map((notification) => ({
+      ...notification,
+      fromUser: userMap.get(notification.fromUserId) ?? null,
+    }));
 
     return notificationsWithUser;
   },
