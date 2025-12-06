@@ -8,7 +8,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage, Loading } from "@/components/ui/loading";
 import { getRankByShopCount } from "@/lib/constants/ranks";
 import { RankIcon } from "@/components/features/rank-icon";
-import { Trophy, Store, FileText, Heart, Soup } from "lucide-react";
+import { Trophy, Store, FileText, Heart, Soup, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -118,7 +118,7 @@ export default function RankingPage() {
                 : "text-gray-500"
             )}
           >
-            <Heart className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" />
             人気者
           </Tabs.Trigger>
         </Tabs.List>
@@ -148,6 +148,7 @@ export default function RankingPage() {
           ranking={popularUsersRanking}
           valueKey="likeCount"
           label="いいね"
+          isMenfluencer
         />
       )}
     </div>
@@ -159,9 +160,10 @@ interface UserRankingListProps {
   valueKey: string;
   label: string;
   showRank?: boolean;
+  isMenfluencer?: boolean;
 }
 
-function UserRankingList({ ranking, valueKey, label, showRank }: UserRankingListProps) {
+function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: UserRankingListProps) {
   if (ranking === undefined) {
     return <Loading className="py-8" />;
   }
@@ -183,10 +185,11 @@ function UserRankingList({ ranking, valueKey, label, showRank }: UserRankingList
         const rank = showRank ? getRankByShopCount(shopCount) : null;
 
         return (
-          <div
+          <Link
             key={item.user?._id || index}
+            href={`/users/${item.user?._id}`}
             className={cn(
-              "bg-white rounded-xl p-4 flex items-center gap-4",
+              "bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors",
               index < 3 && "ring-2",
               index === 0 && "ring-yellow-400",
               index === 1 && "ring-gray-300",
@@ -215,10 +218,29 @@ function UserRankingList({ ranking, valueKey, label, showRank }: UserRankingList
                   />
                 )}
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {item.user?.name || "ユーザー"}
-                  </p>
-                  {showRank && rank && (
+                  <div className="flex items-center gap-1">
+                    <p className="font-medium text-gray-900 truncate">
+                      {item.user?.name || "ユーザー"}
+                    </p>
+                    {isMenfluencer && index === 0 && (
+                      <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                    )}
+                  </div>
+                  {isMenfluencer && index === 0 ? (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-purple-500" />
+                      <span className="text-xs font-medium text-purple-500">
+                        麺バサダー
+                      </span>
+                    </div>
+                  ) : isMenfluencer ? (
+                    <div className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-pink-400" />
+                      <span className="text-xs font-medium text-pink-400">
+                        麺フルエンサー
+                      </span>
+                    </div>
+                  ) : showRank && rank ? (
                     <div className="flex items-center gap-1">
                       <RankIcon rank={rank} size="sm" animate={false} />
                       <span
@@ -228,7 +250,7 @@ function UserRankingList({ ranking, valueKey, label, showRank }: UserRankingList
                         {rank.name}
                       </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -237,7 +259,7 @@ function UserRankingList({ ranking, valueKey, label, showRank }: UserRankingList
               <p className="font-bold text-gray-900">{item[valueKey]}</p>
               <p className="text-xs text-gray-400">{label}</p>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>

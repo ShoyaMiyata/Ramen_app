@@ -218,3 +218,49 @@ export const getPopularUsers = query({
     }));
   },
 });
+
+// ユーザーの麺フルエンサーランクを取得（総合のみ）
+export const getMenfluencerRank = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const noodles = await ctx.db.query("noodles").collect();
+    const noodleUserMap = new Map(noodles.map((n) => [n._id, n.userId]));
+
+    const likes = await ctx.db.query("likes").collect();
+
+    // Count likes per user (post owner)
+    const userLikes: Map<string, number> = new Map();
+    for (const like of likes) {
+      const postOwner = noodleUserMap.get(like.noodleId);
+      if (postOwner) {
+        userLikes.set(postOwner, (userLikes.get(postOwner) || 0) + 1);
+      }
+    }
+
+    const users = await ctx.db.query("users").collect();
+    const activeUsers = users.filter((u) => !u.deletedAt);
+
+    const ranking = Array.from(userLikes.entries())
+      .map(([userId, count]) => ({
+        userId,
+        likeCount: count,
+      }))
+      .filter((r) => activeUsers.some((u) => u._id === r.userId))
+      .sort((a, b) => b.likeCount - a.likeCount);
+
+    const userRankIndex = ranking.findIndex((r) => r.userId === args.userId);
+
+    if (userRankIndex === -1) {
+      return null; // ランキングに入っていない
+    }
+
+    return {
+      rank: userRankIndex + 1,
+      likeCount: ranking[userRankIndex].likeCount,
+      isMenbassador: userRankIndex === 0, // 1位は麺バサダー
+      isMenfluencer: userRankIndex >= 0, // ランキングに入っていれば麺フルエンサー
+    };
+  },
+});

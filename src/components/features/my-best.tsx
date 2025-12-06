@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -64,9 +65,10 @@ export function MyBestDisplay({ userId, editable = false }: MyBestDisplayProps) 
             if (!best) return null;
 
             return (
-              <div
+              <Link
                 key={cat.code}
-                className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg"
+                href={`/noodles/${best.noodle._id}`}
+                className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 {best.noodle.imageUrl && (
                   <img
@@ -89,7 +91,7 @@ export function MyBestDisplay({ userId, editable = false }: MyBestDisplayProps) 
                 {best.noodle.evaluation && (
                   <StarRating value={best.noodle.evaluation} readonly size="sm" />
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type ViewMode = "list" | "gallery";
@@ -45,6 +45,7 @@ export default function UserProfilePage({
 
   const follow = useMutation(api.follows.follow);
   const unfollow = useMutation(api.follows.unfollow);
+  const menfluencerRank = useQuery(api.ranking.getMenfluencerRank, { userId });
 
   if (!isLoaded || profileUser === undefined) {
     return <LoadingPage />;
@@ -106,10 +107,30 @@ export default function UserProfilePage({
             </div>
           )}
           <div className="flex-1">
-            <h2 className="font-bold text-xl text-gray-900">
-              {profileUser.name || "ユーザー"}
-            </h2>
+            <div className="flex items-center gap-1">
+              <h2 className="font-bold text-xl text-gray-900">
+                {profileUser.name || "ユーザー"}
+              </h2>
+              {menfluencerRank?.isMenbassador && (
+                <Crown className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+              )}
+            </div>
             <p className="text-sm text-gray-500">{noodles?.length || 0}件の記録</p>
+            {menfluencerRank?.isMenbassador ? (
+              <div className="flex items-center gap-1 mt-1">
+                <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                <span className="text-xs font-medium text-purple-500">
+                  麺バサダー
+                </span>
+              </div>
+            ) : menfluencerRank?.isMenfluencer ? (
+              <div className="flex items-center gap-1 mt-1">
+                <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                <span className="text-xs font-medium text-pink-400">
+                  麺フルエンサー
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
 
