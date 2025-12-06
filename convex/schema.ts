@@ -86,4 +86,16 @@ export default defineSchema({
   })
     .index("by_feedbackId", ["feedbackId"])
     .index("by_userId_feedbackId", ["userId", "feedbackId"]),
+
+  // 通知
+  notifications: defineTable({
+    userId: v.id("users"), // 通知を受け取るユーザー
+    type: v.string(), // "follow", "like" など
+    fromUserId: v.id("users"), // 通知を発生させたユーザー
+    targetId: v.optional(v.string()), // 対象のID（noodleIdなど）
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_isRead", ["userId", "isRead"]),
 });

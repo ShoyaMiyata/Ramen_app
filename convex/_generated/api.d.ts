@@ -14,6 +14,7 @@ import type * as follows from "../follows.js";
 import type * as likes from "../likes.js";
 import type * as myBests from "../myBests.js";
 import type * as noodles from "../noodles.js";
+import type * as notifications from "../notifications.js";
 import type * as ranking from "../ranking.js";
 import type * as seed from "../seed.js";
 import type * as shops from "../shops.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   likes: typeof likes;
   myBests: typeof myBests;
   noodles: typeof noodles;
+  notifications: typeof notifications;
   ranking: typeof ranking;
   seed: typeof seed;
   shops: typeof shops;

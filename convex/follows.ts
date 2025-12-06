@@ -26,11 +26,22 @@ export const follow = mutation({
     }
 
     // フォロー作成
-    return await ctx.db.insert("follows", {
+    const followId = await ctx.db.insert("follows", {
       followerId: args.followerId,
       followingId: args.followingId,
       createdAt: Date.now(),
     });
+
+    // 通知を作成（フォローされた人に通知）
+    await ctx.db.insert("notifications", {
+      userId: args.followingId,
+      type: "follow",
+      fromUserId: args.followerId,
+      isRead: false,
+      createdAt: Date.now(),
+    });
+
+    return followId;
   },
 });
 
