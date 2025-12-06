@@ -20,9 +20,10 @@ export function ThemedLayout({ children }: { children: React.ReactNode }) {
   }
 
   const currentRank = rank || RANKS[0];
+  const selectedThemeLevel = user?.selectedThemeLevel;
 
   return (
-    <ThemeProvider rank={currentRank}>
+    <ThemeProvider rank={currentRank} selectedThemeLevel={selectedThemeLevel}>
       <div className="min-h-screen bg-gray-50 pb-20">
         <Header />
         <main className="max-w-md mx-auto px-4 py-4">{children}</main>

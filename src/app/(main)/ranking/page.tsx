@@ -10,6 +10,7 @@ import { getRankByShopCount } from "@/lib/constants/ranks";
 import { RankIcon } from "@/components/features/rank-icon";
 import { Trophy, Store, FileText, Heart, Soup } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useTheme } from "@/contexts/ThemeContext";
 import * as Tabs from "@radix-ui/react-tabs";
 
 type Period = "weekly" | "monthly" | "all";
@@ -17,6 +18,7 @@ type RankingType = "shops" | "posts" | "popularPosts" | "popularUsers";
 
 export default function RankingPage() {
   const { isLoaded } = useCurrentUser();
+  const { themeColor } = useTheme();
   const [period, setPeriod] = useState<Period>("all");
   const [rankingType, setRankingType] = useState<RankingType>("shops");
 
@@ -38,7 +40,7 @@ export default function RankingPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Trophy className="w-5 h-5 text-orange-500" />
+        <Trophy className="w-5 h-5" style={{ color: themeColor }} />
         <h1 className="font-bold text-xl text-gray-900">ランキング</h1>
       </div>
 
@@ -55,9 +57,10 @@ export default function RankingPage() {
             className={cn(
               "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
               period === option.value
-                ? "bg-orange-500 text-white"
+                ? "text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             )}
+            style={period === option.value ? { backgroundColor: themeColor } : undefined}
           >
             {option.label}
           </button>

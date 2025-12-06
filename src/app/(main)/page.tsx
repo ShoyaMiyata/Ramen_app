@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Users } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -82,7 +82,17 @@ export default function HomePage() {
           )}
           <div>
             <h1 className="font-bold text-xl text-gray-900">{user.name || "ユーザー"}</h1>
-            <p className="text-sm text-gray-500">{postCount}杯を制覇</p>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>{postCount}杯を制覇</span>
+              <span className="text-gray-300">|</span>
+              <Link
+                href="/mymen"
+                className="hover:underline"
+                style={{ color: themeColor }}
+              >
+                マイメン {followingCount?.followingCount ?? 0}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -136,30 +146,8 @@ export default function HomePage() {
         </Dialog.Portal>
       </Dialog.Root>
 
-      {/* My Men Link */}
-      <Link
-        href="/mymen"
-        className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${themeColor}20` }}
-          >
-            <Users className="w-5 h-5" style={{ color: themeColor }} />
-          </div>
-          <div>
-            <p className="font-medium text-gray-900">マイメン</p>
-            <p className="text-sm text-gray-500">
-              {followingCount?.followingCount ?? 0}人をフォロー中
-            </p>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-gray-400" />
-      </Link>
-
       {/* Rank Display */}
-      <RankDisplay shopCount={shopCount} />
+      <RankDisplay shopCount={shopCount} userId={user._id} />
 
       {/* My Best */}
       <MyBestDisplay userId={user._id} editable />
@@ -174,7 +162,10 @@ export default function HomePage() {
 
       {/* New Record Button */}
       <Link href="/noodles/new">
-        <Button className="w-full gap-2">
+        <Button
+          className="w-full gap-2 text-white"
+          style={{ backgroundColor: themeColor }}
+        >
           <Plus className="w-5 h-5" />
           一杯を記録する
         </Button>
@@ -192,9 +183,10 @@ export default function HomePage() {
                 className={cn(
                   "p-1.5 rounded",
                   viewMode === "gallery"
-                    ? "bg-white text-orange-500 shadow-sm"
+                    ? "bg-white shadow-sm"
                     : "text-gray-400"
                 )}
+                style={viewMode === "gallery" ? { color: themeColor } : undefined}
               >
                 <Grid3X3 className="w-4 h-4" />
               </button>
@@ -203,9 +195,10 @@ export default function HomePage() {
                 className={cn(
                   "p-1.5 rounded",
                   viewMode === "list"
-                    ? "bg-white text-orange-500 shadow-sm"
+                    ? "bg-white shadow-sm"
                     : "text-gray-400"
                 )}
+                style={viewMode === "list" ? { color: themeColor } : undefined}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -213,7 +206,8 @@ export default function HomePage() {
             {myNoodles && myNoodles.length > 5 && viewMode === "list" && (
               <Link
                 href="/noodles"
-                className="text-sm text-orange-500 flex items-center gap-1"
+                className="text-sm flex items-center gap-1"
+                style={{ color: themeColor }}
               >
                 すべて
                 <ChevronRight className="w-4 h-4" />

@@ -2,19 +2,25 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useMutation } from "convex/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronRight, Check } from "lucide-react";
+import { X, ChevronRight, Check, Palette } from "lucide-react";
 import { getRankByShopCount, getNextRank, RANKS, type Rank } from "@/lib/constants/ranks";
 import { RankIcon } from "./rank-icon";
 import { cn } from "@/lib/utils/cn";
+import { api } from "../../../convex/_generated/api";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Id } from "../../../convex/_generated/dataModel";
 
 interface RankDisplayProps {
   shopCount: number;
+  userId?: Id<"users">;
 }
 
-export function RankDisplay({ shopCount }: RankDisplayProps) {
+export function RankDisplay({ shopCount, userId }: RankDisplayProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const currentRank = getRankByShopCount(shopCount);
+  const { selectedThemeRank } = useTheme();
   const nextRank = getNextRank(currentRank);
 
   const progress = nextRank
@@ -108,6 +114,8 @@ export function RankDisplay({ shopCount }: RankDisplayProps) {
         onOpenChange={setIsModalOpen}
         currentRank={currentRank}
         shopCount={shopCount}
+        userId={userId}
+        selectedThemeRank={selectedThemeRank}
       />
     </>
   );
@@ -118,9 +126,18 @@ interface RankListModalProps {
   onOpenChange: (open: boolean) => void;
   currentRank: Rank;
   shopCount: number;
+  userId?: Id<"users">;
+  selectedThemeRank: Rank;
 }
 
-function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListModalProps) {
+function RankListModal({ open, onOpenChange, currentRank, shopCount, userId, selectedThemeRank }: RankListModalProps) {
+  const updateThemeLevel = useMutation(api.users.updateThemeLevel);
+
+  const handleSelectTheme = async (rank: Rank) => {
+    if (!userId) return;
+    await updateThemeLevel({ userId, themeLevel: rank.level });
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -139,24 +156,27 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListM
 
           <div className="flex-1 overflow-auto p-4">
             <p className="text-sm text-gray-500 mb-4">
-              店舗数に応じてランクが上がります。たくさんのお店を巡ってランクアップを目指しましょう！
+              店舗数に応じてランクが上がります。取得済みのランクをタップするとテーマカラーを変更できます。
             </p>
 
             <div className="space-y-2">
               {RANKS.map((rank) => {
                 const isAchieved = shopCount >= rank.requiredShops;
                 const isCurrent = rank.level === currentRank.level;
+                const isSelectedTheme = rank.level === selectedThemeRank.level;
 
                 return (
-                  <div
+                  <button
                     key={rank.level}
+                    onClick={() => isAchieved && handleSelectTheme(rank)}
+                    disabled={!isAchieved}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg",
+                      "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
                       isCurrent
                         ? "bg-orange-50 border-2 border-orange-300"
                         : isAchieved
-                        ? "bg-gray-50"
-                        : "bg-gray-50 opacity-60"
+                        ? "bg-gray-50 hover:bg-gray-100"
+                        : "bg-gray-50 opacity-60 cursor-not-allowed"
                     )}
                   >
                     <RankIcon rank={rank} size="sm" animate={isCurrent} />
@@ -180,16 +200,23 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount }: RankListM
                           : `${rank.requiredShops}店舗以上`}
                       </p>
                     </div>
-                    {/* アイコン詳細 */}
-                    <div className="text-xs text-gray-400 text-right">
-                      <span>丼×{rank.bowlCount}</span>
-                      {rank.hasSteam && <span className="ml-1">湯気</span>}
-                      {rank.hasChopsticks && <span className="ml-1">箸</span>}
-                      {rank.hasSpoon && <span className="ml-1">レンゲ</span>}
-                      {rank.hasGoldBorder && <span className="ml-1">金縁</span>}
-                      {rank.hasCrown && <span className="ml-1">王冠</span>}
-                    </div>
-                  </div>
+                    {/* テーマカラー選択インジケーター */}
+                    {isAchieved && (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded-full border-2"
+                          style={{
+                            backgroundColor: rank.themeColor,
+                            borderColor: isSelectedTheme ? rank.themeColor : "transparent",
+                            boxShadow: isSelectedTheme ? `0 0 0 2px white, 0 0 0 4px ${rank.themeColor}` : undefined,
+                          }}
+                        />
+                        {isSelectedTheme && (
+                          <Palette className="w-4 h-4" style={{ color: rank.themeColor }} />
+                        )}
+                      </div>
+                    )}
+                  </button>
                 );
               })}
             </div>

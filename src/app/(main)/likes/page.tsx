@@ -6,9 +6,11 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage, Loading } from "@/components/ui/loading";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { Heart } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function LikesPage() {
   const { user, isLoaded } = useCurrentUser();
+  const { themeColor } = useTheme();
 
   const likes = useQuery(
     api.likes.getByUser,
@@ -22,7 +24,7 @@ export default function LikesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Heart className="w-5 h-5 text-orange-500" />
+        <Heart className="w-5 h-5" style={{ color: themeColor }} />
         <h1 className="font-bold text-xl text-gray-900">いいねした一杯</h1>
       </div>
 

@@ -9,6 +9,7 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     deletedAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
+    selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
   })
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"]),

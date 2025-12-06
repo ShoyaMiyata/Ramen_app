@@ -12,11 +12,13 @@ import { NoodleCard } from "@/components/features/noodle-card";
 import { GENRES } from "@/lib/constants/genres";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type SortOption = "newest" | "rating" | "visitDate";
 
 export default function NoodlesPage() {
   const { user, isLoaded } = useCurrentUser();
+  const { themeColor } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -53,7 +55,7 @@ export default function NoodlesPage() {
       <div className="flex items-center justify-between">
         <h1 className="font-bold text-xl text-gray-900">みんなの一杯</h1>
         <Link href="/noodles/new">
-          <Button size="icon">
+          <Button size="icon" style={{ backgroundColor: themeColor }}>
             <Plus className="w-5 h-5" />
           </Button>
         </Link>
@@ -71,10 +73,8 @@ export default function NoodlesPage() {
         <button
           type="button"
           onClick={() => setShowFilters(!showFilters)}
-          className={cn(
-            "absolute right-3 top-1/2 -translate-y-1/2",
-            showFilters && "text-orange-500"
-          )}
+          className="absolute right-3 top-1/2 -translate-y-1/2"
+          style={showFilters ? { color: themeColor } : undefined}
         >
           <SlidersHorizontal className="w-4 h-4" />
         </button>
@@ -101,9 +101,10 @@ export default function NoodlesPage() {
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                     sortBy === option.value
-                      ? "bg-orange-500 text-white"
+                      ? "text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   )}
+                  style={sortBy === option.value ? { backgroundColor: themeColor } : undefined}
                 >
                   {option.label}
                 </button>
@@ -125,9 +126,10 @@ export default function NoodlesPage() {
                   className={cn(
                     "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
                     selectedGenres.includes(genre.code)
-                      ? "bg-orange-500 text-white"
+                      ? "text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   )}
+                  style={selectedGenres.includes(genre.code) ? { backgroundColor: themeColor } : undefined}
                 >
                   {genre.label}
                 </button>

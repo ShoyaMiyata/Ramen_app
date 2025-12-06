@@ -131,6 +131,24 @@ export const updateName = mutation({
   },
 });
 
+// テーマカラーのランクレベルを更新
+export const updateThemeLevel = mutation({
+  args: {
+    userId: v.id("users"),
+    themeLevel: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(args.userId, {
+      selectedThemeLevel: args.themeLevel,
+    });
+
+    return args.userId;
+  },
+});
+
 // 開発用：最初のユーザーを取得またはモックユーザーを作成
 export const getDevUser = query({
   args: {},
