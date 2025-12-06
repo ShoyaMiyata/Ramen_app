@@ -51,7 +51,7 @@ export default function NoodlesPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="font-bold text-xl text-gray-900">ラーメン記録一覧</h1>
+        <h1 className="font-bold text-xl text-gray-900">みんなの一杯</h1>
         <Link href="/noodles/new">
           <Button size="icon">
             <Plus className="w-5 h-5" />
@@ -65,7 +65,7 @@ export default function NoodlesPage() {
         <Input
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          placeholder="店名・商品名で検索"
+          placeholder="店名・メニュー名で検索"
           className="pl-9 pr-10"
         />
         <button
@@ -156,8 +156,8 @@ export default function NoodlesPage() {
         <div className="bg-white rounded-xl p-8 text-center">
           <p className="text-gray-500">
             {hasFilters
-              ? "条件に一致する記録がありません"
-              : "まだ記録がありません"}
+              ? "条件に一致する投稿がありません"
+              : "まだ投稿がありません"}
           </p>
         </div>
       ) : (

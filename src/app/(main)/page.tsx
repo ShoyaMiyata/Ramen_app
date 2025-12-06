@@ -76,7 +76,7 @@ export default function HomePage() {
           )}
           <div>
             <h1 className="font-bold text-xl text-gray-900">{user.name || "ユーザー"}</h1>
-            <p className="text-sm text-gray-500">{postCount}件の記録</p>
+            <p className="text-sm text-gray-500">{postCount}杯を制覇</p>
           </div>
         </div>
       </div>
@@ -148,14 +148,14 @@ export default function HomePage() {
       <Link href="/noodles/new">
         <Button className="w-full gap-2">
           <Plus className="w-5 h-5" />
-          新しい記録を追加
+          一杯を記録する
         </Button>
       </Link>
 
       {/* Records */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900">マイ記録</h2>
+          <h2 className="font-bold text-gray-900">啜ったラーメン</h2>
           <div className="flex items-center gap-2">
             {/* View Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
@@ -202,7 +202,7 @@ export default function HomePage() {
           <div className="bg-white rounded-xl p-8 text-center">
             <p className="text-gray-500 mb-4">まだ記録がありません</p>
             <Link href="/noodles/new">
-              <Button size="sm">最初の記録を追加</Button>
+              <Button size="sm">最初の一杯を記録</Button>
             </Link>
           </div>
         ) : (

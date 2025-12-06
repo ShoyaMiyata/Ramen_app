@@ -33,7 +33,7 @@ export default function LikesPage() {
           <Heart className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500">お気に入りはまだありません</p>
           <p className="text-sm text-gray-400 mt-1">
-            気になる記録をお気に入りに追加しましょう
+            気になった一杯にハートをつけてみよう
           </p>
         </div>
       ) : (

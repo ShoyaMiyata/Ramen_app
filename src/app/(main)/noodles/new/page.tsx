@@ -24,7 +24,7 @@ export default function NewNoodlePage() {
         <span className="text-sm">戻る</span>
       </button>
 
-      <h1 className="font-bold text-xl text-gray-900">新しい記録</h1>
+      <h1 className="font-bold text-xl text-gray-900">今日の一杯を記録</h1>
 
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <NoodleForm />

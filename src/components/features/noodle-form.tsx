@@ -16,7 +16,7 @@ import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils/cn";
 import { BADGES, type BadgeCode } from "@/lib/constants/badges";
 import { NewBadgeModal } from "./badge-display";
-import { Link2, Camera, X, Loader2 } from "lucide-react";
+import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
   noodle?: Doc<"noodles"> & { shop?: Doc<"shops"> | null; imageUrl?: string | null };
@@ -26,11 +26,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // URL入力
-  const [shopUrl, setShopUrl] = useState("");
-  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
-  const [urlError, setUrlError] = useState("");
 
   const [shopName, setShopName] = useState(noodle?.shop?.name || "");
   const [shopAddress, setShopAddress] = useState(noodle?.shop?.address || "");
@@ -67,40 +62,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const updateNoodle = useMutation(api.noodles.update);
   const checkBadges = useMutation(api.badges.checkAndAward);
   const generateUploadUrl = useMutation(api.noodles.generateUploadUrl);
-
-  // URLから店舗情報を取得
-  const handleFetchUrl = async () => {
-    if (!shopUrl) return;
-
-    setIsLoadingUrl(true);
-    setUrlError("");
-
-    try {
-      const response = await fetch("/api/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: shopUrl }),
-      });
-
-      if (!response.ok) {
-        throw new Error("URLの取得に失敗しました");
-      }
-
-      const data = await response.json();
-
-      if (data.shopName) {
-        setShopName(data.shopName);
-        setShopSearch(data.shopName);
-      }
-      if (data.address) {
-        setShopAddress(data.address);
-      }
-    } catch (error) {
-      setUrlError("URLから情報を取得できませんでした");
-    } finally {
-      setIsLoadingUrl(false);
-    }
-  };
 
   // 画像選択
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +118,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       const shopId = await getOrCreateShop({
         name: shopName,
         address: shopAddress || undefined,
-        url: shopUrl || undefined,
       });
 
       if (noodle) {
@@ -212,39 +172,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* URL入力 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            お店のURL（食べログ、Google Maps等）
-          </label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                value={shopUrl}
-                onChange={(e) => setShopUrl(e.target.value)}
-                placeholder="URLを貼り付けると店舗情報を自動取得"
-                className="pl-9"
-              />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleFetchUrl}
-              disabled={!shopUrl || isLoadingUrl}
-            >
-              {isLoadingUrl ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "取得"
-              )}
-            </Button>
-          </div>
-          {urlError && (
-            <p className="text-xs text-red-500 mt-1">{urlError}</p>
-          )}
-        </div>
-
         {/* 写真 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -327,7 +254,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         {/* Ramen Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            商品名 <span className="text-red-500">*</span>
+            メニュー名 <span className="text-red-500">*</span>
           </label>
           <Input
             value={ramenName}
@@ -396,7 +323,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="感想やメモを入力"
+            placeholder="味の感想やこだわりポイントなど"
             maxLength={1000}
           />
           <p className="text-xs text-gray-400 mt-1 text-right">
@@ -417,7 +344,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           ) : noodle ? (
             "更新する"
           ) : (
-            "記録する"
+            "この一杯を記録"
           )}
         </Button>
       </form>

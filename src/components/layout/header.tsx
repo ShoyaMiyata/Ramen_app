@@ -15,7 +15,7 @@ export function Header() {
       <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Soup className="w-6 h-6 text-orange-500" />
-          <span className="font-bold text-lg">ラーメン記録</span>
+          <span className="font-bold text-lg">麺ログ</span>
         </Link>
 
         <div className="flex items-center gap-2">
@@ -52,14 +52,14 @@ export function BottomNav() {
           className="flex flex-col items-center gap-1 text-gray-500 hover:text-orange-500"
         >
           <Soup className="w-5 h-5" />
-          <span className="text-xs">記録一覧</span>
+          <span className="text-xs">タイムライン</span>
         </Link>
         <Link
           href="/users"
           className="flex flex-col items-center gap-1 text-gray-500 hover:text-orange-500"
         >
           <Users className="w-5 h-5" />
-          <span className="text-xs">ユーザー</span>
+          <span className="text-xs">みんな</span>
         </Link>
         <Link
           href="/likes"

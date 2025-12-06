@@ -31,7 +31,7 @@ export default function UsersPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Users className="w-6 h-6 text-orange-500" />
-        <h1 className="text-xl font-bold text-gray-900">ユーザー</h1>
+        <h1 className="text-xl font-bold text-gray-900">ラーメン友達</h1>
       </div>
 
       {/* 検索 */}
@@ -40,7 +40,7 @@ export default function UsersPage() {
         <Input
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          placeholder="ユーザー名で検索"
+          placeholder="友達を探す"
           className="pl-9"
         />
       </div>
@@ -51,7 +51,7 @@ export default function UsersPage() {
           <div className="text-center py-8 text-gray-400">読み込み中...</div>
         ) : displayUsers.length === 0 ? (
           <div className="text-center py-8 text-gray-400">
-            {searchText ? "ユーザーが見つかりません" : "ユーザーがいません"}
+            {searchText ? "該当するユーザーがいません" : "まだ友達がいません"}
           </div>
         ) : (
           displayUsers

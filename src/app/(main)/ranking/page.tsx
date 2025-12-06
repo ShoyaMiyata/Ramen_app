@@ -43,8 +43,8 @@ export default function RankingPage() {
   };
 
   const getCountLabel = () => {
-    if (rankingType === "shops") return "店舗";
-    if (rankingType === "posts") return "投稿";
+    if (rankingType === "shops") return "店舗制覇";
+    if (rankingType === "posts") return "杯";
     return "いいね";
   };
 
@@ -105,7 +105,7 @@ export default function RankingPage() {
             )}
           >
             <FileText className="w-4 h-4" />
-            投稿数
+            杯数
           </Tabs.Trigger>
           <Tabs.Trigger
             value="popular"
@@ -128,7 +128,8 @@ export default function RankingPage() {
       ) : currentRanking.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
           <Trophy className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500">まだランキングがありません</p>
+          <p className="text-gray-500">まだランキングデータがありません</p>
+          <p className="text-sm text-gray-400 mt-1">一杯を記録してランクインしよう</p>
         </div>
       ) : (
         <div className="space-y-2">
