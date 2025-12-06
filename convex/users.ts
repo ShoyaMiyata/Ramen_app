@@ -177,3 +177,70 @@ export const createDevUser = mutation({
     });
   },
 });
+
+// 画像アップロード用URL生成
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+// プロフィール画像を更新
+export const updateProfileImage = mutation({
+  args: {
+    userId: v.id("users"),
+    imageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // 古い画像があれば削除
+    if (user.customImageId) {
+      await ctx.storage.delete(user.customImageId);
+    }
+
+    await ctx.db.patch(args.userId, {
+      customImageId: args.imageId,
+    });
+
+    return args.userId;
+  },
+});
+
+// プロフィール画像を削除（Clerk画像に戻す）
+export const removeProfileImage = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // 画像があれば削除
+    if (user.customImageId) {
+      await ctx.storage.delete(user.customImageId);
+    }
+
+    await ctx.db.patch(args.userId, {
+      customImageId: undefined,
+    });
+
+    return args.userId;
+  },
+});
+
+// ユーザーのプロフィール画像URLを取得
+export const getProfileImageUrl = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+
+    // カスタム画像があればそれを優先
+    if (user.customImageId) {
+      return await ctx.storage.getUrl(user.customImageId);
+    }
+
+    // なければClerkの画像URL
+    return user.imageUrl || null;
+  },
+});

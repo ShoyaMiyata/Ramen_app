@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -32,6 +32,19 @@ export default function HomePage() {
   const [editName, setEditName] = useState("");
 
   const updateName = useMutation(api.users.updateName);
+  const generateUploadUrl = useMutation(api.users.generateUploadUrl);
+  const updateProfileImage = useMutation(api.users.updateProfileImage);
+  const removeProfileImage = useMutation(api.users.removeProfileImage);
+  const profileImageUrl = useQuery(
+    api.users.getProfileImageUrl,
+    user?._id ? { userId: user._id } : "skip"
+  );
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const followingCount = useQuery(
     api.follows.getCounts,
     user?._id ? { userId: user._id } : "skip"
@@ -62,24 +75,28 @@ export default function HomePage() {
       {/* User Info */}
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-4">
-          {user.imageUrl && (
-            <button
-              onClick={() => {
-                setEditName(user.name || "");
-                setIsEditNameOpen(true);
-              }}
-              className="relative group"
-            >
+          <button
+            onClick={() => {
+              setEditName(user.name || "");
+              setIsEditNameOpen(true);
+            }}
+            className="relative group"
+          >
+            {profileImageUrl ? (
               <img
-                src={user.imageUrl}
+                src={profileImageUrl}
                 alt={user.name || ""}
-                className="w-16 h-16 rounded-full"
+                className="w-16 h-16 rounded-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Pencil className="w-5 h-5 text-white" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
               </div>
-            </button>
-          )}
+            )}
+            <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+          </button>
           <div>
             <h1 className="font-bold text-xl text-gray-900">{user.name || "ユーザー"}</h1>
             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -97,48 +114,154 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Edit Name Dialog */}
-      <Dialog.Root open={isEditNameOpen} onOpenChange={setIsEditNameOpen}>
+      {/* Edit Profile Dialog */}
+      <Dialog.Root
+        open={isEditNameOpen}
+        onOpenChange={(open) => {
+          setIsEditNameOpen(open);
+          if (!open) {
+            setPreviewImage(null);
+            setSelectedFile(null);
+          }
+        }}
+      >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
           <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-50 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <Dialog.Title className="text-lg font-bold text-gray-900">
-                名前を編集
+                プロフィールを編集
               </Dialog.Title>
               <Dialog.Close className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </Dialog.Close>
             </div>
             <div className="space-y-4">
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="名前を入力"
-                className="w-full"
-              />
+              {/* Profile Image */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {previewImage || profileImageUrl ? (
+                    <img
+                      src={previewImage || profileImageUrl || ""}
+                      alt="プロフィール画像"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                    style={{ color: themeColor }}
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setPreviewImage(ev.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                {(profileImageUrl || previewImage) && (
+                  <button
+                    onClick={async () => {
+                      if (previewImage) {
+                        setPreviewImage(null);
+                        setSelectedFile(null);
+                      } else if (user._id) {
+                        setIsUploadingImage(true);
+                        try {
+                          await removeProfileImage({ userId: user._id });
+                        } finally {
+                          setIsUploadingImage(false);
+                        }
+                      }
+                    }}
+                    className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    画像を削除
+                  </button>
+                )}
+              </div>
+
+              {/* Name Input */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  名前
+                </label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="名前を入力"
+                  className="w-full"
+                />
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => setIsEditNameOpen(false)}
+                  onClick={() => {
+                    setIsEditNameOpen(false);
+                    setPreviewImage(null);
+                    setSelectedFile(null);
+                  }}
                 >
                   キャンセル
                 </Button>
                 <Button
                   className="flex-1"
+                  disabled={!editName.trim() || isUploadingImage}
                   onClick={async () => {
-                    if (user._id && editName.trim()) {
+                    if (!user._id || !editName.trim()) return;
+
+                    setIsUploadingImage(true);
+                    try {
+                      // 名前を更新
                       await updateName({
                         userId: user._id,
                         name: editName.trim(),
                       });
+
+                      // 画像がある場合はアップロード
+                      if (selectedFile) {
+                        const uploadUrl = await generateUploadUrl();
+                        const result = await fetch(uploadUrl, {
+                          method: "POST",
+                          headers: { "Content-Type": selectedFile.type },
+                          body: selectedFile,
+                        });
+                        const { storageId } = await result.json();
+                        await updateProfileImage({
+                          userId: user._id,
+                          imageId: storageId,
+                        });
+                      }
+
                       setIsEditNameOpen(false);
+                      setPreviewImage(null);
+                      setSelectedFile(null);
+                    } finally {
+                      setIsUploadingImage(false);
                     }
                   }}
-                  disabled={!editName.trim()}
                 >
-                  保存
+                  {isUploadingImage ? "保存中..." : "保存"}
                 </Button>
               </div>
             </div>

@@ -6,7 +6,8 @@ export default defineSchema({
     clerkId: v.string(),
     name: v.optional(v.string()),
     email: v.string(),
-    imageUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()), // Clerkからの画像URL
+    customImageId: v.optional(v.id("_storage")), // ユーザーがアップロードしたカスタム画像
     deletedAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
