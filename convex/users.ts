@@ -130,3 +130,32 @@ export const updateName = mutation({
     return args.userId;
   },
 });
+
+// 開発用：最初のユーザーを取得またはモックユーザーを作成
+export const getDevUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const activeUser = users.find((u) => !u.deletedAt);
+    return activeUser || null;
+  },
+});
+
+export const createDevUser = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", "dev_user"))
+      .first();
+
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("users", {
+      clerkId: "dev_user",
+      name: "開発ユーザー",
+      email: "dev@example.com",
+      imageUrl: undefined,
+    });
+  },
+});
