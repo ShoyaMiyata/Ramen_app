@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -235,6 +235,15 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* 麺テナンス Link */}
+      <Link
+        href="/mentenance"
+        className="flex items-center justify-center gap-2 py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <Wrench className="w-4 h-4" />
+        <span>麺テナンス（ご意見・ご要望）</span>
+      </Link>
     </div>
   );
 }

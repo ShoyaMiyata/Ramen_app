@@ -44,7 +44,7 @@ export function MyBestDisplay({ userId, editable = false }: MyBestDisplayProps) 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-yellow-500" />
-          <h2 className="font-bold text-gray-900">マイベスト</h2>
+          <h2 className="font-bold text-gray-900">推しメン</h2>
         </div>
         {editable && (
           <Button variant="ghost" size="sm" onClick={() => setIsEditOpen(true)}>
@@ -166,7 +166,7 @@ function MyBestEditDialog({ userId, open, onOpenChange }: MyBestEditDialogProps)
         <Dialog.Content className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-white rounded-xl max-h-[80vh] overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <Dialog.Title className="font-bold text-lg">
-              マイベストを編集
+              推しメンを編集
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="text-gray-400 hover:text-gray-600">

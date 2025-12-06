@@ -65,4 +65,24 @@ export default defineSchema({
     .index("by_followerId", ["followerId"])
     .index("by_followingId", ["followingId"])
     .index("by_follower_following", ["followerId", "followingId"]),
+
+  // 麺テナンス（改善要望）
+  feedbacks: defineTable({
+    userId: v.id("users"),
+    category: v.string(), // "feature", "bug", "improvement", "other"
+    message: v.string(),
+    heatLevel: v.number(), // 1-3 熱々度
+    steamCount: v.optional(v.number()), // 湯気ボタンの共感数
+    createdAt: v.number(),
+  }).index("by_createdAt", ["createdAt"]),
+
+  // 湯気（フィードバックへの共感）
+  feedbackSteams: defineTable({
+    feedbackId: v.id("feedbacks"),
+    userId: v.id("users"),
+    heatLevel: v.number(), // 1-3 熱々度
+    createdAt: v.number(),
+  })
+    .index("by_feedbackId", ["feedbackId"])
+    .index("by_userId_feedbackId", ["userId", "feedbackId"]),
 });

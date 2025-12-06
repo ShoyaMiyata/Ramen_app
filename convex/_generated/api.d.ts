@@ -9,6 +9,7 @@
  */
 
 import type * as badges from "../badges.js";
+import type * as feedbacks from "../feedbacks.js";
 import type * as follows from "../follows.js";
 import type * as likes from "../likes.js";
 import type * as myBests from "../myBests.js";
@@ -26,6 +27,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   badges: typeof badges;
+  feedbacks: typeof feedbacks;
   follows: typeof follows;
   likes: typeof likes;
   myBests: typeof myBests;
