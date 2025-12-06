@@ -135,7 +135,11 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount, userId, sel
 
   const handleSelectTheme = async (rank: Rank) => {
     if (!userId) return;
-    await updateThemeLevel({ userId, themeLevel: rank.level });
+    try {
+      await updateThemeLevel({ userId, themeLevel: rank.level });
+    } catch (error) {
+      console.error("Failed to update theme level:", error);
+    }
   };
 
   return (

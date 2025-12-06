@@ -18,7 +18,7 @@ export function Header() {
       <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Soup className="w-6 h-6" style={{ color: themeColor }} />
-          <span className="font-bold text-lg">麺ログ</span>
+          <span className="font-bold text-lg">Nooodle</span>
         </Link>
 
         <div className="flex items-center gap-2">
