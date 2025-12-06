@@ -14,8 +14,9 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Users } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
 
 type ViewMode = "list" | "gallery";
@@ -25,11 +26,16 @@ export default function HomePage() {
   const { shopCount, postCount, badges, isLoading: statsLoading } = useUserStats(
     user?._id
   );
+  const { themeColor } = useTheme();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isEditNameOpen, setIsEditNameOpen] = useState(false);
   const [editName, setEditName] = useState("");
 
   const updateName = useMutation(api.users.updateName);
+  const followingCount = useQuery(
+    api.follows.getCounts,
+    user?._id ? { userId: user._id } : "skip"
+  );
 
   const myNoodles = useQuery(
     api.noodles.getByUser,
@@ -129,6 +135,28 @@ export default function HomePage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      {/* My Men Link */}
+      <Link
+        href="/mymen"
+        className="flex items-center justify-between bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: `${themeColor}20` }}
+          >
+            <Users className="w-5 h-5" style={{ color: themeColor }} />
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">マイメン</p>
+            <p className="text-sm text-gray-500">
+              {followingCount?.followingCount ?? 0}人をフォロー中
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-gray-400" />
+      </Link>
 
       {/* Rank Display */}
       <RankDisplay shopCount={shopCount} />

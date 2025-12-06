@@ -7,11 +7,13 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
 import { UserCard } from "@/components/features/user-card";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function UsersPage() {
   const { user, isLoaded } = useCurrentUser();
+  const { themeColor } = useTheme();
   const [searchText, setSearchText] = useState("");
 
   const searchResults = useQuery(
@@ -30,8 +32,8 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Users className="w-6 h-6 text-orange-500" />
-        <h1 className="text-xl font-bold text-gray-900">ラーメン友達</h1>
+        <Search className="w-6 h-6" style={{ color: themeColor }} />
+        <h1 className="text-xl font-bold text-gray-900">友達を探す</h1>
       </div>
 
       {/* 検索 */}

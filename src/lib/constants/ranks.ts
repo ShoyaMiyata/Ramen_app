@@ -11,6 +11,10 @@ export interface Rank {
   hasGoldBorder: boolean;
   hasCrown: boolean;
   specialEffect?: "gold" | "rainbow";
+  // テーマカラー
+  themeColor: string;
+  themeBgColor: string;
+  themeAccentColor: string;
 }
 
 export const RANKS: Rank[] = [
@@ -25,6 +29,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#F97316", // デフォルトオレンジ
+    themeBgColor: "#FFF7ED",
+    themeAccentColor: "#EA580C",
   },
   {
     level: 2,
@@ -37,6 +44,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#8D6E63", // ブラウン
+    themeBgColor: "#EFEBE9",
+    themeAccentColor: "#6D4C41",
   },
   {
     level: 3,
@@ -49,6 +59,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#66BB6A", // グリーン
+    themeBgColor: "#E8F5E9",
+    themeAccentColor: "#43A047",
   },
   {
     level: 4,
@@ -61,6 +74,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#42A5F5", // ブルー
+    themeBgColor: "#E3F2FD",
+    themeAccentColor: "#1E88E5",
   },
   {
     level: 5,
@@ -73,6 +89,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#AB47BC", // パープル
+    themeBgColor: "#F3E5F5",
+    themeAccentColor: "#8E24AA",
   },
   {
     level: 6,
@@ -85,6 +104,9 @@ export const RANKS: Rank[] = [
     hasSpoon: true,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#FFA726", // アンバー
+    themeBgColor: "#FFF3E0",
+    themeAccentColor: "#FB8C00",
   },
   {
     level: 7,
@@ -97,6 +119,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#EF5350", // レッド
+    themeBgColor: "#FFEBEE",
+    themeAccentColor: "#E53935",
   },
   {
     level: 8,
@@ -109,6 +134,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: true,
     hasCrown: false,
+    themeColor: "#78909C", // シルバー
+    themeBgColor: "#ECEFF1",
+    themeAccentColor: "#546E7A",
   },
   {
     level: 9,
@@ -121,6 +149,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: false,
+    themeColor: "#FFD54F", // イエロー
+    themeBgColor: "#FFFDE7",
+    themeAccentColor: "#FFC107",
   },
   {
     level: 10,
@@ -134,6 +165,9 @@ export const RANKS: Rank[] = [
     hasSpoon: false,
     hasGoldBorder: false,
     hasCrown: true,
+    themeColor: "#9E9E9E", // プラチナ
+    themeBgColor: "#FAFAFA",
+    themeAccentColor: "#757575",
   },
   {
     level: 11,
@@ -148,6 +182,9 @@ export const RANKS: Rank[] = [
     hasGoldBorder: true,
     hasCrown: true,
     specialEffect: "gold",
+    themeColor: "#FFD700", // ゴールド
+    themeBgColor: "#FFFBEB",
+    themeAccentColor: "#D97706",
   },
   {
     level: 12,
@@ -162,6 +199,9 @@ export const RANKS: Rank[] = [
     hasGoldBorder: true,
     hasCrown: true,
     specialEffect: "rainbow",
+    themeColor: "#EC4899", // レインボー（ピンクベース）
+    themeBgColor: "#FDF2F8",
+    themeAccentColor: "#DB2777",
   },
 ];
 
