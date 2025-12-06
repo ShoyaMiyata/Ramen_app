@@ -105,6 +105,66 @@ export const getPostCounts = query({
   },
 });
 
+export const getPopularPosts = query({
+  args: {
+    period: v.optional(
+      v.union(v.literal("weekly"), v.literal("monthly"), v.literal("all"))
+    ),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+    const period = args.period || "all";
+
+    let likes = await ctx.db.query("likes").collect();
+
+    const now = Date.now();
+    if (period === "weekly") {
+      const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+      likes = likes.filter((l) => l._creationTime >= weekAgo);
+    } else if (period === "monthly") {
+      const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+      likes = likes.filter((l) => l._creationTime >= monthAgo);
+    }
+
+    // Count likes per noodle
+    const noodleLikes: Map<string, number> = new Map();
+    for (const like of likes) {
+      const noodleId = like.noodleId;
+      noodleLikes.set(noodleId, (noodleLikes.get(noodleId) || 0) + 1);
+    }
+
+    const noodles = await ctx.db.query("noodles").collect();
+    const noodleMap = new Map(noodles.map((n) => [n._id, n]));
+    const users = await ctx.db.query("users").collect();
+    const userMap = new Map(users.map((u) => [u._id, u]));
+    const shops = await ctx.db.query("shops").collect();
+    const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+    const ranking = Array.from(noodleLikes.entries())
+      .map(([noodleId, count]) => {
+        const noodle = noodleMap.get(noodleId as any);
+        return {
+          noodle,
+          user: noodle ? userMap.get(noodle.userId) : undefined,
+          shop: noodle ? shopMap.get(noodle.shopId) : undefined,
+          likeCount: count,
+        };
+      })
+      .filter((r) => r.noodle && r.user && !r.user.deletedAt)
+      .sort((a, b) => b.likeCount - a.likeCount)
+      .slice(0, limit);
+
+    return ranking.map((r, index) => ({
+      rank: index + 1,
+      noodle: r.noodle,
+      user: r.user,
+      shop: r.shop,
+      likeCount: r.likeCount,
+    }));
+  },
+});
+
 export const getPopularUsers = query({
   args: {
     period: v.optional(

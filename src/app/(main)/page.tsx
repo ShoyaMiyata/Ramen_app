@@ -208,7 +208,7 @@ export default function HomePage() {
         ) : (
           <div className="space-y-3">
             {recentNoodles.map((noodle) => (
-              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} />
+              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={user._id} />
             ))}
           </div>
         )}

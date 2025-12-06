@@ -44,6 +44,48 @@ export const isLiked = query({
   },
 });
 
+export const getCount = query({
+  args: { noodleId: v.id("noodles") },
+  handler: async (ctx, args) => {
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_noodleId", (q) => q.eq("noodleId", args.noodleId))
+      .collect();
+    return likes.length;
+  },
+});
+
+export const getCountBatch = query({
+  args: { noodleIds: v.array(v.id("noodles")) },
+  handler: async (ctx, args) => {
+    const allLikes = await ctx.db.query("likes").collect();
+    const counts: Record<string, number> = {};
+    for (const noodleId of args.noodleIds) {
+      counts[noodleId] = allLikes.filter((l) => l.noodleId === noodleId).length;
+    }
+    return counts;
+  },
+});
+
+export const isLikedBatch = query({
+  args: {
+    userId: v.id("users"),
+    noodleIds: v.array(v.id("noodles")),
+  },
+  handler: async (ctx, args) => {
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    const likedNoodleIds = new Set(likes.map((l) => l.noodleId));
+    const result: Record<string, boolean> = {};
+    for (const noodleId of args.noodleIds) {
+      result[noodleId] = likedNoodleIds.has(noodleId);
+    }
+    return result;
+  },
+});
+
 export const toggle = mutation({
   args: {
     userId: v.id("users"),

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils/cn";
 type SortOption = "newest" | "rating" | "visitDate";
 
 export default function NoodlesPage() {
-  const { isLoaded } = useCurrentUser();
+  const { user, isLoaded } = useCurrentUser();
   const [searchText, setSearchText] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
@@ -163,7 +163,7 @@ export default function NoodlesPage() {
       ) : (
         <div className="space-y-3">
           {noodles.map((noodle) => (
-            <NoodleCard key={noodle._id} noodle={noodle} />
+            <NoodleCard key={noodle._id} noodle={noodle} currentUserId={user?._id} />
           ))}
         </div>
       )}

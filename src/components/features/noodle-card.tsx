@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { StarRating } from "@/components/ui/star-rating";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils/date";
-import { Doc } from "../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
+import { Heart } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 interface NoodleCardProps {
   noodle: Doc<"noodles"> & {
@@ -13,9 +17,28 @@ interface NoodleCardProps {
     imageUrl?: string | null;
   };
   showUser?: boolean;
+  currentUserId?: Id<"users">;
 }
 
-export function NoodleCard({ noodle, showUser = true }: NoodleCardProps) {
+export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCardProps) {
+  const isLiked = useQuery(
+    api.likes.isLiked,
+    currentUserId ? { userId: currentUserId, noodleId: noodle._id } : "skip"
+  );
+
+  const likeCount = useQuery(api.likes.getCount, { noodleId: noodle._id });
+
+  const toggleLike = useMutation(api.likes.toggle);
+
+  const isOwner = currentUserId === noodle.userId;
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentUserId || isOwner) return;
+    await toggleLike({ userId: currentUserId, noodleId: noodle._id });
+  };
+
   return (
     <Link
       href={`/noodles/${noodle._id}`}
@@ -58,11 +81,41 @@ export function NoodleCard({ noodle, showUser = true }: NoodleCardProps) {
         )}
 
         <div className="flex items-center justify-between text-xs text-gray-400">
-          {showUser && noodle.user && (
-            <span>{noodle.user.name}</span>
+          <div className="flex items-center gap-3">
+            {showUser && noodle.user && (
+              <span>{noodle.user.name}</span>
+            )}
+            {noodle.visitDate && (
+              <span>{formatDate(noodle.visitDate)}</span>
+            )}
+          </div>
+
+          {/* いいねボタン */}
+          {currentUserId && !isOwner && (
+            <button
+              onClick={handleLike}
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full transition-colors",
+                isLiked
+                  ? "text-red-500 bg-red-50"
+                  : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+              )}
+            >
+              <Heart
+                className={cn("w-4 h-4", isLiked && "fill-current")}
+              />
+              {likeCount !== undefined && likeCount > 0 && (
+                <span className="text-xs font-medium">{likeCount}</span>
+              )}
+            </button>
           )}
-          {noodle.visitDate && (
-            <span>{formatDate(noodle.visitDate)}</span>
+
+          {/* 自分の投稿の場合はいいね数のみ表示 */}
+          {currentUserId && isOwner && likeCount !== undefined && likeCount > 0 && (
+            <div className="flex items-center gap-1 text-gray-400">
+              <Heart className="w-4 h-4" />
+              <span className="text-xs font-medium">{likeCount}</span>
+            </div>
           )}
         </div>
       </div>

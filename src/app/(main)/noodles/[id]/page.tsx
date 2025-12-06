@@ -212,7 +212,7 @@ export default function NoodleDetailPage({
             <Heart
               className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`}
             />
-            {isLiked ? "お気に入り済み" : "お気に入りに追加"}
+            {isLiked ? "いいね済み" : "いいね"}
           </Button>
         )}
       </div>

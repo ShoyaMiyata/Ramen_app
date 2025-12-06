@@ -171,7 +171,7 @@ export const BADGES = {
   CONNOISSEUR_EYE: {
     code: "CONNOISSEUR_EYE",
     name: "目利き",
-    description: "お気に入りされた数10回",
+    description: "いいねを10回もらった",
     icon: "Eye",
     rarity: "rare" as const,
     conditionType: "received_likes" as const,
@@ -180,7 +180,7 @@ export const BADGES = {
   INFLUENCER: {
     code: "INFLUENCER",
     name: "インフルエンサー",
-    description: "お気に入りされた数50回",
+    description: "いいねを50回もらった",
     icon: "Star",
     rarity: "epic" as const,
     conditionType: "received_likes" as const,

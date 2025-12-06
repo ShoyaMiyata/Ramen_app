@@ -203,7 +203,7 @@ export default function UserProfilePage({
         ) : noodles && noodles.length > 0 ? (
           <div className="space-y-3">
             {noodles.map((noodle) => (
-              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} />
+              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={currentUser?._id} />
             ))}
           </div>
         ) : (

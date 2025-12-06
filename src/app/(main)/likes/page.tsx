@@ -23,7 +23,7 @@ export default function LikesPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Heart className="w-5 h-5 text-orange-500" />
-        <h1 className="font-bold text-xl text-gray-900">お気に入り</h1>
+        <h1 className="font-bold text-xl text-gray-900">いいねした一杯</h1>
       </div>
 
       {likes === undefined ? (
@@ -31,15 +31,15 @@ export default function LikesPage() {
       ) : likes.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
           <Heart className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500">お気に入りはまだありません</p>
+          <p className="text-gray-500">いいねした一杯はまだありません</p>
           <p className="text-sm text-gray-400 mt-1">
-            気になった一杯にハートをつけてみよう
+            気になった一杯にいいねしてみよう
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           {likes.map((noodle) => (
-            <NoodleCard key={noodle._id} noodle={noodle} />
+            <NoodleCard key={noodle._id} noodle={noodle} currentUserId={user?._id} />
           ))}
         </div>
       )}

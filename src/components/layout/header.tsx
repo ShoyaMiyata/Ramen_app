@@ -66,7 +66,7 @@ export function BottomNav() {
           className="flex flex-col items-center gap-1 text-gray-500 hover:text-orange-500"
         >
           <Heart className="w-5 h-5" />
-          <span className="text-xs">お気に入り</span>
+          <span className="text-xs">いいね</span>
         </Link>
         <Link
           href="/ranking"
