@@ -267,15 +267,28 @@ export const update = mutation({
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
     imageId: v.optional(v.id("_storage")),
+    removeImage: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Record not found");
     if (existing.userId !== args.userId) throw new Error("Unauthorized");
 
-    // 古い画像を削除（新しい画像がある場合）
-    if (existing.imageId && args.imageId && existing.imageId !== args.imageId) {
-      await ctx.storage.delete(existing.imageId);
+    // 画像の処理
+    let newImageId: typeof existing.imageId = existing.imageId;
+
+    if (args.removeImage) {
+      // 画像削除の場合
+      if (existing.imageId) {
+        await ctx.storage.delete(existing.imageId);
+      }
+      newImageId = undefined;
+    } else if (args.imageId && args.imageId !== existing.imageId) {
+      // 新しい画像にアップロードした場合、古い画像を削除
+      if (existing.imageId) {
+        await ctx.storage.delete(existing.imageId);
+      }
+      newImageId = args.imageId;
     }
 
     await ctx.db.patch(args.id, {
@@ -285,7 +298,7 @@ export const update = mutation({
       visitDate: args.visitDate,
       comment: args.comment,
       evaluation: args.evaluation,
-      imageId: args.imageId,
+      imageId: newImageId,
     });
 
     return args.id;

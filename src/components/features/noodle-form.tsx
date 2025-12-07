@@ -58,6 +58,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [existingImageId, setExistingImageId] = useState<Id<"_storage"> | null>(
     noodle?.imageId || null
   );
+  const [imageRemoved, setImageRemoved] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newBadge, setNewBadge] = useState<(typeof BADGES)[BadgeCode] | null>(
@@ -121,6 +122,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       };
       reader.readAsDataURL(compressedFile);
       setImageFile(compressedFile);
+      setImageRemoved(false);
     } catch (error) {
       console.error("Image compression failed:", error);
       // 圧縮失敗時は元のファイルを使用
@@ -130,6 +132,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       };
       reader.readAsDataURL(file);
       setImageFile(file);
+      setImageRemoved(false);
     } finally {
       setIsCompressing(false);
     }
@@ -141,6 +144,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     setImagePreview(null);
     setExistingImageId(null);
     setCompressionInfo(null);
+    setImageRemoved(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -194,6 +198,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
           imageId,
+          removeImage: imageRemoved && !imageFile,
         });
         router.push(`/noodles/${noodle._id}`);
       } else {
