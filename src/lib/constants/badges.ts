@@ -107,7 +107,7 @@ export const BADGES = {
   },
   NATIONAL_CONQUEST: {
     code: "NATIONAL_CONQUEST",
-    name: "全国制覇",
+    name: "百店踏破",
     description: "100店舗訪問",
     icon: "Trophy",
     rarity: "epic" as const,
