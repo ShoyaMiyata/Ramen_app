@@ -156,21 +156,24 @@ export default function AdminPage() {
 
     try {
       if (bulkDeleteTarget.type === "users") {
+        const userIds = Array.from(selectedUsers) as Id<"users">[];
         await bulkSoftDeleteUsers({
           adminUserId: user._id,
-          targetUserIds: Array.from(selectedUsers) as Id<"users">[],
+          targetUserIds: userIds,
         });
         setSelectedUsers(new Set());
       } else if (bulkDeleteTarget.type === "noodles") {
+        const noodleIds = Array.from(selectedNoodles) as Id<"noodles">[];
         await bulkDeleteNoodles({
           adminUserId: user._id,
-          noodleIds: Array.from(selectedNoodles) as Id<"noodles">[],
+          noodleIds: noodleIds,
         });
         setSelectedNoodles(new Set());
       } else if (bulkDeleteTarget.type === "feedbacks") {
+        const feedbackIds = Array.from(selectedFeedbacks) as Id<"feedbacks">[];
         await bulkDeleteFeedbacks({
           adminUserId: user._id,
-          feedbackIds: Array.from(selectedFeedbacks) as Id<"feedbacks">[],
+          feedbackIds: feedbackIds,
         });
         setSelectedFeedbacks(new Set());
       }
