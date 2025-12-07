@@ -10,10 +10,10 @@ interface CompressOptions {
 }
 
 const DEFAULT_OPTIONS: Required<CompressOptions> = {
-  maxWidth: 1200,
-  maxHeight: 1200,
-  quality: 0.8,
-  mimeType: "image/jpeg",
+  maxWidth: 800,
+  maxHeight: 800,
+  quality: 0.6,
+  mimeType: "image/webp",
 };
 
 /**
@@ -46,8 +46,8 @@ export async function compressImage(
     opts.maxHeight
   );
 
-  // リサイズ不要かつ小さい画像はそのまま返す
-  if (width === img.width && height === img.height && file.size < 500 * 1024) {
+  // リサイズ不要かつ非常に小さい画像はそのまま返す (100KB未満)
+  if (width === img.width && height === img.height && file.size < 100 * 1024) {
     return file;
   }
 

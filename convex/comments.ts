@@ -66,6 +66,19 @@ export const getCount = query({
   },
 });
 
+// コメント数をバッチで取得
+export const getCountBatch = query({
+  args: { noodleIds: v.array(v.id("noodles")) },
+  handler: async (ctx, args) => {
+    const allComments = await ctx.db.query("comments").collect();
+    const counts: Record<string, number> = {};
+    for (const noodleId of args.noodleIds) {
+      counts[noodleId] = allComments.filter((c) => c.noodleId === noodleId).length;
+    }
+    return counts;
+  },
+});
+
 // コメントを投稿
 export const create = mutation({
   args: {

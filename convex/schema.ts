@@ -33,7 +33,8 @@ export default defineSchema({
     visitDate: v.optional(v.number()),
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
-    imageId: v.optional(v.id("_storage")),
+    imageId: v.optional(v.id("_storage")), // 単一画像（後方互換）
+    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（最大5枚）
     createdAt: v.optional(v.number()), // 作成日時（ソート用）
   })
     .index("by_userId", ["userId"])

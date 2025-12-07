@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { RankDisplay } from "@/components/features/rank-display";
-import { BadgeDisplay } from "@/components/features/badge-display";
+import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
 import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield } from "lucide-react";
@@ -30,6 +30,7 @@ export default function HomePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isEditNameOpen, setIsEditNameOpen] = useState(false);
   const [editName, setEditName] = useState("");
+  const [isBadgeListOpen, setIsBadgeListOpen] = useState(false);
 
   const updateName = useMutation(api.users.updateName);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
@@ -276,12 +277,26 @@ export default function HomePage() {
       <MyBestDisplay userId={user._id} editable />
 
       {/* Badges */}
-      {badges.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-3">獲得バッジ</h2>
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <button
+          onClick={() => setIsBadgeListOpen(true)}
+          className="w-full flex items-center justify-between mb-3"
+        >
+          <h2 className="font-bold text-gray-900">獲得バッジ</h2>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+        </button>
+        {badges.length > 0 ? (
           <BadgeDisplay userBadges={badges} />
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-gray-400">まだバッジがありません</p>
+        )}
+      </div>
+
+      <BadgeListModal
+        open={isBadgeListOpen}
+        onOpenChange={setIsBadgeListOpen}
+        earnedBadgeCodes={badges.map((b) => b.badgeCode)}
+      />
 
       {/* New Record Button */}
       <Link href="/noodles/new">

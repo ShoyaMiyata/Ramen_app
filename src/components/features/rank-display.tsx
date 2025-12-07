@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation } from "convex/react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, ChevronRight, Check, Palette } from "lucide-react";
+import { X, ChevronRight, Check, Palette, HelpCircle } from "lucide-react";
 import { getRankByShopCount, getNextRank, RANKS, type Rank } from "@/lib/constants/ranks";
 import { RankIcon } from "./rank-icon";
 import { cn } from "@/lib/utils/cn";
@@ -25,15 +25,15 @@ export function RankDisplay({ shopCount, userId }: RankDisplayProps) {
 
   const progress = nextRank
     ? ((shopCount - currentRank.requiredShops) /
-        (nextRank.requiredShops - currentRank.requiredShops)) *
-      100
+      (nextRank.requiredShops - currentRank.requiredShops)) *
+    100
     : 100;
 
   return (
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className="w-full bg-white rounded-xl p-4 shadow-sm text-left hover:bg-gray-50 transition-colors"
+        className="relative z-0 w-full bg-white rounded-xl p-4 shadow-sm text-left hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
@@ -145,8 +145,8 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount, userId, sel
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-white rounded-xl max-h-[80vh] overflow-hidden flex flex-col">
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+        <Dialog.Content className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-white rounded-xl max-h-[80vh] overflow-hidden flex flex-col z-50">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <Dialog.Title className="font-bold text-lg">
               ランク一覧
@@ -168,6 +168,25 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount, userId, sel
                 const isAchieved = shopCount >= rank.requiredShops;
                 const isCurrent = rank.level === currentRank.level;
                 const isSelectedTheme = rank.level === selectedThemeRank.level;
+                const isSecret = rank.level === 12 && !isAchieved; // 最高ランクで未達成の場合はシークレット
+
+                // シークレットランクの場合
+                if (isSecret) {
+                  return (
+                    <div
+                      key={rank.level}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-100"
+                    >
+                      <div className="w-8 h-8 flex items-center justify-center text-gray-400">
+                        <HelpCircle className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-gray-400">???</span>
+                        <p className="text-sm text-gray-400">シークレット</p>
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <button
@@ -179,11 +198,12 @@ function RankListModal({ open, onOpenChange, currentRank, shopCount, userId, sel
                       isCurrent
                         ? "bg-orange-50 border-2 border-orange-300"
                         : isAchieved
-                        ? "bg-gray-50 hover:bg-gray-100"
-                        : "bg-gray-50 opacity-60 cursor-not-allowed"
+                          ? "bg-gray-50 hover:bg-gray-100"
+                          : "bg-gray-50 opacity-60 cursor-not-allowed"
                     )}
                   >
-                    <RankIcon rank={rank} size="sm" animate={isCurrent} />
+                    {/* アニメーションは一覧では無効化 */}
+                    <RankIcon rank={rank} size="sm" animate={false} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-900">

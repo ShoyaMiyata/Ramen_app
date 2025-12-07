@@ -34,7 +34,15 @@ export const checkAndAward = mutation({
       .collect();
 
     const postCount = noodles.length;
-    const uniqueShops = new Set(noodles.map((n) => n.shopId)).size;
+    const uniqueShopIds = [...new Set(noodles.map((n) => n.shopId))];
+    const uniqueShops = uniqueShopIds.length;
+
+    // Get shops for prefecture counting
+    const shops = await Promise.all(uniqueShopIds.map((id) => ctx.db.get(id)));
+    const uniquePrefectures = new Set(
+      shops.filter((s) => s?.prefecture).map((s) => s!.prefecture)
+    );
+    const prefectureCount = uniquePrefectures.size;
 
     // Count genres
     const genreCounts: Record<string, number> = {};
@@ -44,10 +52,33 @@ export const checkAndAward = mutation({
       }
     }
 
+    // Count high ratings (★5)
+    const highRatingCount = noodles.filter((n) => n.evaluation === 5).length;
+
     // Count received likes
     const allLikes = await ctx.db.query("likes").collect();
     const noodleIds = new Set(noodles.map((n) => n._id));
     const receivedLikes = allLikes.filter((l) => noodleIds.has(l.noodleId)).length;
+
+    // Count comments made by user
+    const userComments = await ctx.db
+      .query("comments")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    const commentCount = userComments.length;
+
+    // Count following/followers
+    const following = await ctx.db
+      .query("follows")
+      .withIndex("by_followerId", (q) => q.eq("followerId", args.userId))
+      .collect();
+    const followingCount = following.length;
+
+    const followers = await ctx.db
+      .query("follows")
+      .withIndex("by_followingId", (q) => q.eq("followingId", args.userId))
+      .collect();
+    const followerCount = followers.length;
 
     const newBadges: string[] = [];
 
@@ -89,6 +120,25 @@ export const checkAndAward = mutation({
           break;
         case "received_likes":
           shouldAward = receivedLikes >= badge.conditionValue;
+          break;
+        case "prefecture_count":
+          shouldAward = prefectureCount >= badge.conditionValue;
+          break;
+        case "prefecture_complete":
+          // 47都道府県すべてで食べた
+          shouldAward = prefectureCount >= 47;
+          break;
+        case "high_rating_count":
+          shouldAward = highRatingCount >= badge.conditionValue;
+          break;
+        case "comment_count":
+          shouldAward = commentCount >= badge.conditionValue;
+          break;
+        case "following_count":
+          shouldAward = followingCount >= badge.conditionValue;
+          break;
+        case "follower_count":
+          shouldAward = followerCount >= badge.conditionValue;
           break;
       }
 

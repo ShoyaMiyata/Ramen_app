@@ -67,6 +67,38 @@ export const getCountBatch = query({
   },
 });
 
+// いいねしたユーザー一覧を取得
+export const getLikeUsers = query({
+  args: { noodleId: v.id("noodles") },
+  handler: async (ctx, args) => {
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_noodleId", (q) => q.eq("noodleId", args.noodleId))
+      .collect();
+
+    const users = await Promise.all(
+      likes.map(async (like) => {
+        const user = await ctx.db.get(like.userId);
+        if (!user) return null;
+
+        // プロフィール画像URLを取得
+        let imageUrl: string | null = null;
+        if (user.profileImageId) {
+          imageUrl = await ctx.storage.getUrl(user.profileImageId);
+        }
+
+        return {
+          _id: user._id,
+          name: user.name,
+          imageUrl,
+        };
+      })
+    );
+
+    return users.filter((u) => u !== null);
+  },
+});
+
 export const isLikedBatch = query({
   args: {
     userId: v.id("users"),

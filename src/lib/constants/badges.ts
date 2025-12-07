@@ -6,7 +6,17 @@ export type BadgeConditionType =
   | "genre_count"
   | "all_genres"
   | "received_likes"
-  | "streak_days";
+  | "streak_days"
+  | "prefecture_count"
+  | "prefecture_complete"
+  | "high_rating_count"
+  | "comment_count"
+  | "following_count"
+  | "follower_count"
+  | "total_days"
+  | "weekly_posts"
+  | "monthly_posts"
+  | "yearly_posts";
 
 export interface Badge {
   code: string;
@@ -66,6 +76,15 @@ export const BADGES = {
     conditionType: "post_count" as const,
     conditionValue: 500,
   },
+  MYTHICAL: {
+    code: "MYTHICAL",
+    name: "神話級",
+    description: "1000投稿達成",
+    icon: "Zap",
+    rarity: "legendary" as const,
+    conditionType: "post_count" as const,
+    conditionValue: 1000,
+  },
 
   // Exploration badges
   ADVENTURER: {
@@ -94,6 +113,24 @@ export const BADGES = {
     rarity: "epic" as const,
     conditionType: "shop_count" as const,
     conditionValue: 100,
+  },
+  EXPLORER_KING: {
+    code: "EXPLORER_KING",
+    name: "探検王",
+    description: "200店舗訪問",
+    icon: "Mountain",
+    rarity: "legendary" as const,
+    conditionType: "shop_count" as const,
+    conditionValue: 200,
+  },
+  FIRST_SHOP: {
+    code: "FIRST_SHOP",
+    name: "はじめの一歩",
+    description: "初めての店舗訪問",
+    icon: "Footprints",
+    rarity: "common" as const,
+    conditionType: "shop_count" as const,
+    conditionValue: 1,
   },
 
   // Genre badges
@@ -166,6 +203,37 @@ export const BADGES = {
     conditionType: "all_genres" as const,
     conditionValue: 1,
   },
+  // 追加のジャンルバッジ
+  TSUKEMEN_MASTER: {
+    code: "TSUKEMEN_MASTER",
+    name: "つけ麺マニア",
+    description: "つけ麺20杯",
+    icon: "Utensils",
+    rarity: "epic" as const,
+    conditionType: "genre_count" as const,
+    conditionValue: 20,
+    conditionGenre: "つけ麺",
+  },
+  TANTANMEN_MASTER: {
+    code: "TANTANMEN_MASTER",
+    name: "担々麺愛好家",
+    description: "担々麺20杯",
+    icon: "Pepper",
+    rarity: "epic" as const,
+    conditionType: "genre_count" as const,
+    conditionValue: 20,
+    conditionGenre: "担々麺",
+  },
+  CHICKEN_MASTER: {
+    code: "CHICKEN_MASTER",
+    name: "鶏白湯マスター",
+    description: "鶏白湯20杯",
+    icon: "Bird",
+    rarity: "epic" as const,
+    conditionType: "genre_count" as const,
+    conditionValue: 20,
+    conditionGenre: "鶏白湯",
+  },
 
   // Special badges
   CONNOISSEUR_EYE: {
@@ -185,6 +253,333 @@ export const BADGES = {
     rarity: "epic" as const,
     conditionType: "received_likes" as const,
     conditionValue: 50,
+  },
+  SUPERSTAR: {
+    code: "SUPERSTAR",
+    name: "スーパースター",
+    description: "いいねを200回もらった",
+    icon: "Stars",
+    rarity: "legendary" as const,
+    conditionType: "received_likes" as const,
+    conditionValue: 200,
+  },
+  FIRST_LIKE: {
+    code: "FIRST_LIKE",
+    name: "はじめてのいいね",
+    description: "いいねを1回もらった",
+    icon: "ThumbsUp",
+    rarity: "common" as const,
+    conditionType: "received_likes" as const,
+    conditionValue: 1,
+  },
+
+  // Prefecture badges - 都道府県制覇
+  REGIONAL_EXPLORER: {
+    code: "REGIONAL_EXPLORER",
+    name: "地域探検家",
+    description: "5つの都道府県で食べた",
+    icon: "MapPin",
+    rarity: "uncommon" as const,
+    conditionType: "prefecture_count" as const,
+    conditionValue: 5,
+  },
+  NATIONWIDE_TRAVELER: {
+    code: "NATIONWIDE_TRAVELER",
+    name: "全国行脚",
+    description: "15の都道府県で食べた",
+    icon: "Plane",
+    rarity: "rare" as const,
+    conditionType: "prefecture_count" as const,
+    conditionValue: 15,
+  },
+  JAPAN_MASTER: {
+    code: "JAPAN_MASTER",
+    name: "日本制覇",
+    description: "全47都道府県で食べた",
+    icon: "Globe",
+    rarity: "legendary" as const,
+    conditionType: "prefecture_complete" as const,
+    conditionValue: 47,
+  },
+  HALF_JAPAN: {
+    code: "HALF_JAPAN",
+    name: "半分制覇",
+    description: "25の都道府県で食べた",
+    icon: "Map",
+    rarity: "epic" as const,
+    conditionType: "prefecture_count" as const,
+    conditionValue: 25,
+  },
+
+  // Quality badges - 高評価
+  QUALITY_HUNTER: {
+    code: "QUALITY_HUNTER",
+    name: "美食家",
+    description: "★5評価を10回つけた",
+    icon: "Award",
+    rarity: "uncommon" as const,
+    conditionType: "high_rating_count" as const,
+    conditionValue: 10,
+  },
+  CRITICAL_TASTER: {
+    code: "CRITICAL_TASTER",
+    name: "辛口評論家",
+    description: "★5評価を50回つけた",
+    icon: "Medal",
+    rarity: "rare" as const,
+    conditionType: "high_rating_count" as const,
+    conditionValue: 50,
+  },
+  PERFECTIONIST: {
+    code: "PERFECTIONIST",
+    name: "完璧主義者",
+    description: "★5評価を100回つけた",
+    icon: "Target",
+    rarity: "epic" as const,
+    conditionType: "high_rating_count" as const,
+    conditionValue: 100,
+  },
+
+  // Social badges - ソーシャル
+  COMMENTATOR: {
+    code: "COMMENTATOR",
+    name: "コメンテーター",
+    description: "コメントを10回した",
+    icon: "MessageSquare",
+    rarity: "common" as const,
+    conditionType: "comment_count" as const,
+    conditionValue: 10,
+  },
+  ACTIVE_MEMBER: {
+    code: "ACTIVE_MEMBER",
+    name: "アクティブメンバー",
+    description: "コメントを50回した",
+    icon: "MessagesSquare",
+    rarity: "uncommon" as const,
+    conditionType: "comment_count" as const,
+    conditionValue: 50,
+  },
+  SOCIAL_BUTTERFLY: {
+    code: "SOCIAL_BUTTERFLY",
+    name: "社交家",
+    description: "10人をフォロー",
+    icon: "Users",
+    rarity: "common" as const,
+    conditionType: "following_count" as const,
+    conditionValue: 10,
+  },
+  POPULAR_MEMBER: {
+    code: "POPULAR_MEMBER",
+    name: "人気者",
+    description: "10人からフォローされた",
+    icon: "Heart",
+    rarity: "uncommon" as const,
+    conditionType: "follower_count" as const,
+    conditionValue: 10,
+  },
+  RAMEN_CELEBRITY: {
+    code: "RAMEN_CELEBRITY",
+    name: "ラーメン界の有名人",
+    description: "50人からフォローされた",
+    icon: "Sparkle",
+    rarity: "epic" as const,
+    conditionType: "follower_count" as const,
+    conditionValue: 50,
+  },
+  RAMEN_LEGEND: {
+    code: "RAMEN_LEGEND",
+    name: "麺界の伝説",
+    description: "100人からフォローされた",
+    icon: "Award",
+    rarity: "legendary" as const,
+    conditionType: "follower_count" as const,
+    conditionValue: 100,
+  },
+  NETWORKING_PRO: {
+    code: "NETWORKING_PRO",
+    name: "ネットワーカー",
+    description: "50人をフォロー",
+    icon: "Network",
+    rarity: "rare" as const,
+    conditionType: "following_count" as const,
+    conditionValue: 50,
+  },
+  DISCUSSION_LEADER: {
+    code: "DISCUSSION_LEADER",
+    name: "議論リーダー",
+    description: "コメントを100回した",
+    icon: "MessageCircle",
+    rarity: "rare" as const,
+    conditionType: "comment_count" as const,
+    conditionValue: 100,
+  },
+
+  // Milestone badges - マイルストーン（連続投稿）
+  THREE_DAY_STREAK: {
+    code: "THREE_DAY_STREAK",
+    name: "三日坊主突破",
+    description: "3日連続で投稿した",
+    icon: "Zap",
+    rarity: "common" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 3,
+  },
+  FIRST_WEEK: {
+    code: "FIRST_WEEK",
+    name: "はじめの一週間",
+    description: "7日連続で投稿した",
+    icon: "Calendar",
+    rarity: "rare" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 7,
+  },
+  TWO_WEEK_STREAK: {
+    code: "TWO_WEEK_STREAK",
+    name: "二週間の挑戦",
+    description: "14日連続で投稿した",
+    icon: "CalendarDays",
+    rarity: "rare" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 14,
+  },
+  DEDICATED_EATER: {
+    code: "DEDICATED_EATER",
+    name: "本気の啜り手",
+    description: "30日連続で投稿した",
+    icon: "Flame",
+    rarity: "epic" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 30,
+  },
+  IRON_STOMACH: {
+    code: "IRON_STOMACH",
+    name: "鉄の胃袋",
+    description: "60日連続で投稿した",
+    icon: "Shield",
+    rarity: "epic" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 60,
+  },
+  RAMEN_MARATHON: {
+    code: "RAMEN_MARATHON",
+    name: "ラーメンマラソン",
+    description: "100日連続で投稿した",
+    icon: "Timer",
+    rarity: "legendary" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 100,
+  },
+  YEARLY_STREAK: {
+    code: "YEARLY_STREAK",
+    name: "年間無休",
+    description: "365日連続で投稿した",
+    icon: "Trophy",
+    rarity: "legendary" as const,
+    conditionType: "streak_days" as const,
+    conditionValue: 365,
+  },
+
+  // アニバーサリーバッジ（アプリ利用期間）
+  ONE_MONTH_MEMBER: {
+    code: "ONE_MONTH_MEMBER",
+    name: "1ヶ月記念",
+    description: "アプリ利用開始から1ヶ月",
+    icon: "Gift",
+    rarity: "common" as const,
+    conditionType: "total_days" as const,
+    conditionValue: 30,
+  },
+  THREE_MONTH_MEMBER: {
+    code: "THREE_MONTH_MEMBER",
+    name: "3ヶ月記念",
+    description: "アプリ利用開始から3ヶ月",
+    icon: "PartyPopper",
+    rarity: "uncommon" as const,
+    conditionType: "total_days" as const,
+    conditionValue: 90,
+  },
+  HALF_YEAR_MEMBER: {
+    code: "HALF_YEAR_MEMBER",
+    name: "半年記念",
+    description: "アプリ利用開始から6ヶ月",
+    icon: "Cake",
+    rarity: "rare" as const,
+    conditionType: "total_days" as const,
+    conditionValue: 180,
+  },
+  ONE_YEAR_MEMBER: {
+    code: "ONE_YEAR_MEMBER",
+    name: "1周年記念",
+    description: "アプリ利用開始から1年",
+    icon: "Star",
+    rarity: "epic" as const,
+    conditionType: "total_days" as const,
+    conditionValue: 365,
+  },
+  TWO_YEAR_MEMBER: {
+    code: "TWO_YEAR_MEMBER",
+    name: "2周年記念",
+    description: "アプリ利用開始から2年",
+    icon: "Stars",
+    rarity: "legendary" as const,
+    conditionType: "total_days" as const,
+    conditionValue: 730,
+  },
+
+  // 週間・月間チャレンジバッジ
+  WEEKLY_CHALLENGER: {
+    code: "WEEKLY_CHALLENGER",
+    name: "週間チャレンジャー",
+    description: "1週間で7杯食べた",
+    icon: "Rocket",
+    rarity: "rare" as const,
+    conditionType: "weekly_posts" as const,
+    conditionValue: 7,
+  },
+  WEEKLY_CHAMPION: {
+    code: "WEEKLY_CHAMPION",
+    name: "週間チャンピオン",
+    description: "1週間で10杯食べた",
+    icon: "Medal",
+    rarity: "epic" as const,
+    conditionType: "weekly_posts" as const,
+    conditionValue: 10,
+  },
+  MONTHLY_REGULAR: {
+    code: "MONTHLY_REGULAR",
+    name: "月間常連",
+    description: "1ヶ月で20杯食べた",
+    icon: "CalendarCheck",
+    rarity: "rare" as const,
+    conditionType: "monthly_posts" as const,
+    conditionValue: 20,
+  },
+  MONTHLY_MASTER: {
+    code: "MONTHLY_MASTER",
+    name: "月間マスター",
+    description: "1ヶ月で30杯食べた",
+    icon: "Crown",
+    rarity: "epic" as const,
+    conditionType: "monthly_posts" as const,
+    conditionValue: 30,
+  },
+  YEARLY_CENTURION: {
+    code: "YEARLY_CENTURION",
+    name: "年間100杯",
+    description: "1年で100杯食べた",
+    icon: "Award",
+    rarity: "epic" as const,
+    conditionType: "yearly_posts" as const,
+    conditionValue: 100,
+  },
+  YEARLY_LEGEND: {
+    code: "YEARLY_LEGEND",
+    name: "年間200杯",
+    description: "1年で200杯食べた",
+    icon: "Gem",
+    rarity: "legendary" as const,
+    conditionType: "yearly_posts" as const,
+    conditionValue: 200,
   },
 } as const;
 

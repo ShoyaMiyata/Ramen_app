@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -11,7 +11,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Loading } from "@/components/ui/loading";
 import { GENRES } from "@/lib/constants/genres";
 import { formatDateInput, parseDateInput, getTodayDateInput } from "@/lib/utils/date";
-import { compressImage, formatFileSize } from "@/lib/utils/image";
+import { compressImage } from "@/lib/utils/image";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils/cn";
@@ -20,7 +20,6 @@ import { getRankByShopCount, type Rank } from "@/lib/constants/ranks";
 import { NewBadgeModal } from "./badge-display";
 import { RankUpModal } from "./rank-up-modal";
 import { PrefectureSelect } from "@/components/ui/prefecture-select";
-import { getPrefectureByCode } from "@/lib/constants/prefectures";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
@@ -40,8 +39,9 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [shopSearch, setShopSearch] = useState("");
   const [showShopDropdown, setShowShopDropdown] = useState(false);
   const [ramenName, setRamenName] = useState(noodle?.ramenName || "");
+  const [ramenNameSearch, setRamenNameSearch] = useState("");
+  const [showRamenNameDropdown, setShowRamenNameDropdown] = useState(false);
   const [genres, setGenres] = useState<string[]>(noodle?.genres || []);
-  // 新規の場合は今日の日付をデフォルトに
   const [visitDate, setVisitDate] = useState(
     noodle ? formatDateInput(noodle.visitDate) : getTodayDateInput()
   );
@@ -50,26 +50,21 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     noodle?.evaluation ?? null
   );
 
-  // 画像
+  // 単一画像
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    noodle?.imageUrl || null
-  );
-  const [existingImageId, setExistingImageId] = useState<Id<"_storage"> | null>(
-    noodle?.imageId || null
-  );
+  const [imagePreview, setImagePreview] = useState<string | null>(noodle?.imageUrl || null);
+  const [existingImageId] = useState<Id<"_storage"> | null>(noodle?.imageId || null);
   const [imageRemoved, setImageRemoved] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newBadge, setNewBadge] = useState<(typeof BADGES)[BadgeCode] | null>(
-    null
-  );
-  const [rankUpInfo, setRankUpInfo] = useState<{ from: Rank; to: Rank } | null>(
-    null
-  );
+  const [newBadge, setNewBadge] = useState<(typeof BADGES)[BadgeCode] | null>(null);
+  const [rankUpInfo, setRankUpInfo] = useState<{ from: Rank; to: Rank } | null>(null);
   const prevShopCountRef = useRef<number | null>(null);
 
   const shops = useQuery(api.shops.search, { searchText: shopSearch });
+  const ramenNameSuggestions = useQuery(api.noodles.getRamenNameSuggestions, {
+    searchText: ramenNameSearch,
+  });
   const userNoodles = useQuery(
     api.noodles.getByUser,
     user?._id ? { userId: user._id } : "skip"
@@ -80,13 +75,11 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const checkBadges = useMutation(api.badges.checkAndAward);
   const generateUploadUrl = useMutation(api.noodles.generateUploadUrl);
 
-  // 現在のshopCountを計算
   const currentShopCount = userNoodles
     ? new Set(userNoodles.map((n) => n.shopId)).size
     : 0;
 
   const [isCompressing, setIsCompressing] = useState(false);
-  const [compressionInfo, setCompressionInfo] = useState<string | null>(null);
 
   // 画像選択と圧縮
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,47 +87,32 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     if (!file) return;
 
     setIsCompressing(true);
-    setCompressionInfo(null);
 
     try {
-      const originalSize = file.size;
-      const compressedFile = await compressImage(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.8,
-      });
+      const compressedFile = await compressImage(file);
 
-      const compressedSize = compressedFile.size;
-      const savedPercent = Math.round(
-        ((originalSize - compressedSize) / originalSize) * 100
-      );
-
-      if (savedPercent > 0) {
-        setCompressionInfo(
-          `${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)} (${savedPercent}%削減)`
-        );
-      }
-
-      // プレビュー表示
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onload = (ev) => {
+        setImagePreview(ev.target?.result as string);
       };
       reader.readAsDataURL(compressedFile);
+
       setImageFile(compressedFile);
       setImageRemoved(false);
-    } catch (error) {
-      console.error("Image compression failed:", error);
+    } catch {
       // 圧縮失敗時は元のファイルを使用
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onload = (ev) => {
+        setImagePreview(ev.target?.result as string);
       };
       reader.readAsDataURL(file);
       setImageFile(file);
       setImageRemoved(false);
     } finally {
       setIsCompressing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -142,12 +120,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setExistingImageId(null);
-    setCompressionInfo(null);
     setImageRemoved(true);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const toggleGenre = (genre: string) => {
@@ -162,13 +135,12 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     e.preventDefault();
     if (!user || !shopName || !ramenName || genres.length === 0) return;
 
-    // 投稿前のランクを保存
     prevShopCountRef.current = currentShopCount;
 
     setIsSubmitting(true);
     try {
       // 画像アップロード
-      let imageId: Id<"_storage"> | undefined = existingImageId || undefined;
+      let imageId: Id<"_storage"> | undefined;
 
       if (imageFile) {
         const uploadUrl = await generateUploadUrl();
@@ -179,6 +151,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         });
         const { storageId } = await uploadResponse.json();
         imageId = storageId;
+      } else if (existingImageId && !imageRemoved) {
+        imageId = existingImageId;
       }
 
       const shopId = await getOrCreateShop({
@@ -198,7 +172,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
           imageId,
-          removeImage: imageRemoved && !imageFile,
+          removeImage: imageRemoved,
         });
         router.push(`/noodles/${noodle._id}`);
       } else {
@@ -215,7 +189,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
         const noodleId = result.noodleId;
 
-        // ランクアップ判定（新しい店舗の場合のみ）
+        // ランクアップ判定
         const isNewShop = !userNoodles?.some((n) => n.shopId === shopId);
         if (isNewShop && prevShopCountRef.current !== null) {
           const newShopCount = prevShopCountRef.current + 1;
@@ -228,7 +202,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           }
         }
 
-        // Check for new badges
+        // バッジチェック
         const newBadges = await checkBadges({ userId: user._id });
         if (newBadges.length > 0) {
           const badge = BADGES[newBadges[0] as BadgeCode];
@@ -272,38 +246,38 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
             onChange={handleImageSelect}
             className="hidden"
           />
-          {imagePreview ? (
-            <div className="relative">
+
+          {/* 画像プレビュー */}
+          {imagePreview && (
+            <div className="relative aspect-video mb-2 rounded-lg overflow-hidden">
               <img
                 src={imagePreview}
                 alt="プレビュー"
-                className="w-full h-48 object-cover rounded-lg"
+                className="w-full h-full object-cover"
               />
               <button
                 type="button"
                 onClick={handleRemoveImage}
-                className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white hover:bg-black/70"
               >
                 <X className="w-4 h-4" />
               </button>
-              {compressionInfo && (
-                <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded text-white text-xs">
-                  {compressionInfo}
-                </div>
-              )}
             </div>
-          ) : isCompressing ? (
+          )}
+
+          {/* 追加ボタン */}
+          {isCompressing ? (
             <div className="w-full h-32 border-2 border-dashed border-orange-300 rounded-lg flex flex-col items-center justify-center gap-2 text-orange-400">
               <Loading size="sm" />
               <span className="text-sm">画像を圧縮中...</span>
             </div>
-          ) : (
+          ) : !imagePreview && (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
             >
-              <Camera className="w-8 h-8" />
+              <Camera className="w-6 h-6" />
               <span className="text-sm">タップして写真を追加</span>
             </button>
           )}
@@ -363,16 +337,41 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         </div>
 
         {/* Ramen Name */}
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             メニュー名 <span className="text-red-500">*</span>
           </label>
           <Input
             value={ramenName}
-            onChange={(e) => setRamenName(e.target.value)}
+            onChange={(e) => {
+              setRamenName(e.target.value);
+              setRamenNameSearch(e.target.value);
+              setShowRamenNameDropdown(true);
+            }}
+            onFocus={() => setShowRamenNameDropdown(true)}
+            onBlur={() => setTimeout(() => setShowRamenNameDropdown(false), 200)}
             placeholder="例: 特製醤油らーめん"
             required
           />
+          {showRamenNameDropdown && ramenNameSuggestions && ramenNameSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+              {ramenNameSuggestions
+                .filter((name) => name !== ramenName)
+                .map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 text-sm"
+                    onClick={() => {
+                      setRamenName(name);
+                      setShowRamenNameDropdown(false);
+                    }}
+                  >
+                    {name}
+                  </button>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* Genres */}

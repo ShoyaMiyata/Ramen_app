@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { StarRating } from "@/components/ui/star-rating";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils/date";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
-import { Heart } from "lucide-react";
+import { Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 interface NoodleCardProps {
@@ -28,6 +29,8 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
 
   const likeCount = useQuery(api.likes.getCount, { noodleId: noodle._id });
 
+  const commentCount = useQuery(api.comments.getCount, { noodleId: noodle._id });
+
   const toggleLike = useMutation(api.likes.toggle);
 
   const isOwner = currentUserId === noodle.userId;
@@ -46,11 +49,14 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
     >
       {/* 画像がある場合は表示 */}
       {noodle.imageUrl && (
-        <div className="aspect-video w-full overflow-hidden">
-          <img
+        <div className="aspect-video w-full overflow-hidden relative">
+          <Image
             src={noodle.imageUrl}
             alt={noodle.ramenName}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover"
+            loading="lazy"
           />
         </div>
       )}
@@ -90,33 +96,43 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
             )}
           </div>
 
-          {/* いいねボタン */}
-          {currentUserId && !isOwner && (
-            <button
-              onClick={handleLike}
-              className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full transition-colors",
-                isLiked
-                  ? "text-red-500 bg-red-50"
-                  : "text-gray-400 hover:text-red-500 hover:bg-red-50"
-              )}
-            >
-              <Heart
-                className={cn("w-4 h-4", isLiked && "fill-current")}
-              />
-              {likeCount !== undefined && likeCount > 0 && (
-                <span className="text-xs font-medium">{likeCount}</span>
-              )}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* コメント数 */}
+            {commentCount !== undefined && commentCount > 0 && (
+              <div className="flex items-center gap-1 text-gray-400">
+                <MessageCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">{commentCount}</span>
+              </div>
+            )}
 
-          {/* 自分の投稿の場合はいいね数のみ表示 */}
-          {currentUserId && isOwner && likeCount !== undefined && likeCount > 0 && (
-            <div className="flex items-center gap-1 text-gray-400">
-              <Heart className="w-4 h-4" />
-              <span className="text-xs font-medium">{likeCount}</span>
-            </div>
-          )}
+            {/* いいねボタン */}
+            {currentUserId && !isOwner && (
+              <button
+                onClick={handleLike}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full transition-colors",
+                  isLiked
+                    ? "text-red-500 bg-red-50"
+                    : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+                )}
+              >
+                <Heart
+                  className={cn("w-4 h-4", isLiked && "fill-current")}
+                />
+                {likeCount !== undefined && likeCount > 0 && (
+                  <span className="text-xs font-medium">{likeCount}</span>
+                )}
+              </button>
+            )}
+
+            {/* 自分の投稿の場合はいいね数のみ表示 */}
+            {currentUserId && isOwner && likeCount !== undefined && likeCount > 0 && (
+              <div className="flex items-center gap-1 text-gray-400">
+                <Heart className="w-4 h-4" />
+                <span className="text-xs font-medium">{likeCount}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Link>

@@ -20,16 +20,16 @@ export const create = mutation({
   },
 });
 
-// フィードバック一覧取得（投稿日の降順）
+// フィードバック一覧取得（投稿日の降順、対応中・新規のみ）
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
     const feedbacks = await ctx.db.query("feedbacks").collect();
 
-    // 投稿日でソート（新しい順）
-    const sorted = feedbacks.sort(
-      (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
-    );
+    // 対応中・新規のみをフィルタし、投稿日でソート（新しい順）
+    const sorted = feedbacks
+      .filter((f) => !f.status || f.status === "new" || f.status === "in_progress")
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     return sorted;
   },

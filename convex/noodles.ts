@@ -61,14 +61,27 @@ export const list = query({
 
     const items = await Promise.all(
       paginatedNoodles.map(async (noodle) => {
-        const imageUrl = noodle.imageId
-          ? await ctx.storage.getUrl(noodle.imageId)
-          : null;
+        // 複数画像を優先、なければ単一画像にフォールバック
+        let imageUrl: string | null = null;
+        let imageUrls: string[] = [];
+
+        if (noodle.imageIds && noodle.imageIds.length > 0) {
+          const urls = await Promise.all(
+            noodle.imageIds.map((id) => ctx.storage.getUrl(id))
+          );
+          imageUrls = urls.filter((url): url is string => url !== null);
+          imageUrl = imageUrls[0] || null;
+        } else if (noodle.imageId) {
+          imageUrl = await ctx.storage.getUrl(noodle.imageId);
+          if (imageUrl) imageUrls = [imageUrl];
+        }
+
         return {
           ...noodle,
           user: userMap.get(noodle.userId),
           shop: shopMap.get(noodle.shopId),
           imageUrl,
+          imageUrls,
         };
       })
     );
@@ -90,15 +103,28 @@ export const getById = query({
 
     const user = await ctx.db.get(noodle.userId);
     const shop = await ctx.db.get(noodle.shopId);
-    const imageUrl = noodle.imageId
-      ? await ctx.storage.getUrl(noodle.imageId)
-      : null;
+
+    // 複数画像を優先、なければ単一画像にフォールバック
+    let imageUrl: string | null = null;
+    let imageUrls: string[] = [];
+
+    if (noodle.imageIds && noodle.imageIds.length > 0) {
+      const urls = await Promise.all(
+        noodle.imageIds.map((id) => ctx.storage.getUrl(id))
+      );
+      imageUrls = urls.filter((url): url is string => url !== null);
+      imageUrl = imageUrls[0] || null;
+    } else if (noodle.imageId) {
+      imageUrl = await ctx.storage.getUrl(noodle.imageId);
+      if (imageUrl) imageUrls = [imageUrl];
+    }
 
     return {
       ...noodle,
       user,
       shop,
       imageUrl,
+      imageUrls,
     };
   },
 });
@@ -117,13 +143,26 @@ export const getByUser = query({
 
     const results = await Promise.all(
       noodles.map(async (noodle) => {
-        const imageUrl = noodle.imageId
-          ? await ctx.storage.getUrl(noodle.imageId)
-          : null;
+        // 複数画像を優先、なければ単一画像にフォールバック
+        let imageUrl: string | null = null;
+        let imageUrls: string[] = [];
+
+        if (noodle.imageIds && noodle.imageIds.length > 0) {
+          const urls = await Promise.all(
+            noodle.imageIds.map((id) => ctx.storage.getUrl(id))
+          );
+          imageUrls = urls.filter((url): url is string => url !== null);
+          imageUrl = imageUrls[0] || null;
+        } else if (noodle.imageId) {
+          imageUrl = await ctx.storage.getUrl(noodle.imageId);
+          if (imageUrl) imageUrls = [imageUrl];
+        }
+
         return {
           ...noodle,
           shop: shopMap.get(noodle.shopId),
           imageUrl,
+          imageUrls,
         };
       })
     );
@@ -142,18 +181,33 @@ export const getGalleryByUser = query({
       .order("desc")
       .collect();
 
-    const withImages = noodles.filter((n) => n.imageId);
+    // 画像あり（imageIds または imageId）のみ
+    const withImages = noodles.filter((n) => (n.imageIds && n.imageIds.length > 0) || n.imageId);
 
     const shops = await ctx.db.query("shops").collect();
     const shopMap = new Map(shops.map((s) => [s._id, s]));
 
     const results = await Promise.all(
       withImages.map(async (noodle) => {
-        const imageUrl = await ctx.storage.getUrl(noodle.imageId!);
+        let imageUrl: string | null = null;
+        let imageUrls: string[] = [];
+
+        if (noodle.imageIds && noodle.imageIds.length > 0) {
+          const urls = await Promise.all(
+            noodle.imageIds.map((id) => ctx.storage.getUrl(id))
+          );
+          imageUrls = urls.filter((url): url is string => url !== null);
+          imageUrl = imageUrls[0] || null;
+        } else if (noodle.imageId) {
+          imageUrl = await ctx.storage.getUrl(noodle.imageId);
+          if (imageUrl) imageUrls = [imageUrl];
+        }
+
         return {
           ...noodle,
           shop: shopMap.get(noodle.shopId),
           imageUrl,
+          imageUrls,
         };
       })
     );
@@ -171,7 +225,8 @@ export const create = mutation({
     visitDate: v.optional(v.number()),
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
-    imageId: v.optional(v.id("_storage")),
+    imageId: v.optional(v.id("_storage")), // 後方互換用
+    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（最大5枚）
   },
   handler: async (ctx, args) => {
     // 投稿を作成
@@ -184,6 +239,7 @@ export const create = mutation({
       comment: args.comment,
       evaluation: args.evaluation,
       imageId: args.imageId,
+      imageIds: args.imageIds,
       createdAt: Date.now(),
     });
 
@@ -266,7 +322,8 @@ export const update = mutation({
     visitDate: v.optional(v.number()),
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
-    imageId: v.optional(v.id("_storage")),
+    imageId: v.optional(v.id("_storage")), // 後方互換用
+    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像
     removeImage: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -274,17 +331,40 @@ export const update = mutation({
     if (!existing) throw new Error("Record not found");
     if (existing.userId !== args.userId) throw new Error("Unauthorized");
 
-    // 画像の処理
+    // 画像の処理（複数画像対応）
+    let newImageIds: typeof existing.imageIds = existing.imageIds;
     let newImageId: typeof existing.imageId = existing.imageId;
 
     if (args.removeImage) {
-      // 画像削除の場合
+      // 画像全削除の場合
+      if (existing.imageIds) {
+        for (const id of existing.imageIds) {
+          await ctx.storage.delete(id);
+        }
+      }
       if (existing.imageId) {
         await ctx.storage.delete(existing.imageId);
       }
+      newImageIds = undefined;
       newImageId = undefined;
+    } else if (args.imageIds !== undefined) {
+      // 新しい複数画像が指定された場合
+      // 古い画像で新しいリストにないものを削除
+      const newIdSet = new Set(args.imageIds);
+      if (existing.imageIds) {
+        for (const id of existing.imageIds) {
+          if (!newIdSet.has(id)) {
+            await ctx.storage.delete(id);
+          }
+        }
+      }
+      if (existing.imageId && !newIdSet.has(existing.imageId)) {
+        await ctx.storage.delete(existing.imageId);
+      }
+      newImageIds = args.imageIds.length > 0 ? args.imageIds : undefined;
+      newImageId = undefined; // imageIds を使う場合は imageId は不要
     } else if (args.imageId && args.imageId !== existing.imageId) {
-      // 新しい画像にアップロードした場合、古い画像を削除
+      // 後方互換: 単一画像の場合
       if (existing.imageId) {
         await ctx.storage.delete(existing.imageId);
       }
@@ -299,6 +379,7 @@ export const update = mutation({
       comment: args.comment,
       evaluation: args.evaluation,
       imageId: newImageId,
+      imageIds: newImageIds,
     });
 
     return args.id;
@@ -315,7 +396,12 @@ export const remove = mutation({
     if (!existing) throw new Error("Record not found");
     if (existing.userId !== args.userId) throw new Error("Unauthorized");
 
-    // Delete image if exists
+    // Delete images if exist
+    if (existing.imageIds) {
+      for (const id of existing.imageIds) {
+        await ctx.storage.delete(id);
+      }
+    }
     if (existing.imageId) {
       await ctx.storage.delete(existing.imageId);
     }
@@ -346,4 +432,35 @@ export const remove = mutation({
 // 画像アップロード用URL生成
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
+});
+
+// ラーメン名の履歴を取得（サジェスト用）
+export const getRamenNameSuggestions = query({
+  args: {
+    searchText: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const noodles = await ctx.db.query("noodles").collect();
+
+    // ユニークなラーメン名を取得
+    const ramenNames = [...new Set(noodles.map((n) => n.ramenName))];
+
+    // 検索テキストでフィルタ
+    if (args.searchText && args.searchText.length > 0) {
+      const searchLower = args.searchText.toLowerCase();
+      return ramenNames
+        .filter((name) => name.toLowerCase().includes(searchLower))
+        .slice(0, 10);
+    }
+
+    // 最近使われたものを優先（出現回数でソート）
+    const nameCounts = new Map<string, number>();
+    for (const noodle of noodles) {
+      nameCounts.set(noodle.ramenName, (nameCounts.get(noodle.ramenName) || 0) + 1);
+    }
+
+    return ramenNames
+      .sort((a, b) => (nameCounts.get(b) || 0) - (nameCounts.get(a) || 0))
+      .slice(0, 10);
+  },
 });

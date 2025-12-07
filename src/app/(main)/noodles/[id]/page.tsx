@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -12,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
-import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTheme } from "@/contexts/ThemeContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function NoodleDetailPage({
   params,
@@ -30,6 +32,7 @@ export default function NoodleDetailPage({
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [allComments, setAllComments] = useState<any[]>([]);
+  const [showLikeUsersModal, setShowLikeUsersModal] = useState(false);
 
   const noodleId = id as Id<"noodles">;
 
@@ -54,6 +57,13 @@ export default function NoodleDetailPage({
     user && noodle
       ? { userId: user._id, noodleId: noodle._id }
       : "skip"
+  );
+
+  const likeCount = useQuery(api.likes.getCount, { noodleId });
+
+  const likeUsers = useQuery(
+    api.likes.getLikeUsers,
+    showLikeUsersModal ? { noodleId } : "skip"
   );
 
   const toggleLike = useMutation(api.likes.toggle);
@@ -145,11 +155,14 @@ export default function NoodleDetailPage({
 
       {/* Image */}
       {noodle.imageUrl && (
-        <div className="rounded-xl overflow-hidden shadow-sm">
-          <img
+        <div className="rounded-xl overflow-hidden shadow-sm relative aspect-video">
+          <Image
             src={noodle.imageUrl}
             alt={noodle.ramenName}
-            className="w-full aspect-video object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 640px"
+            className="object-cover"
+            priority
           />
         </div>
       )}
@@ -274,6 +287,85 @@ export default function NoodleDetailPage({
           </Button>
         )}
       </div>
+
+      {/* Like Count - クリックでいいねしたユーザー一覧表示 */}
+      {likeCount !== undefined && likeCount > 0 && (
+        <button
+          onClick={() => setShowLikeUsersModal(true)}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          <Heart className="w-4 h-4" style={{ color: themeColor }} />
+          <span>{likeCount}人がいいね</span>
+        </button>
+      )}
+
+      {/* Like Users Modal */}
+      <AnimatePresence>
+        {showLikeUsersModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowLikeUsersModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-sm w-full max-h-[60vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="font-bold text-lg">いいねした人</h2>
+                <button
+                  onClick={() => setShowLikeUsersModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-4">
+                {likeUsers === undefined ? (
+                  <div className="flex justify-center py-8">
+                    <Loading size="sm" />
+                  </div>
+                ) : likeUsers.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    まだいいねがありません
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {likeUsers.map((likeUser) => (
+                      <Link
+                        key={likeUser._id}
+                        href={`/users/${likeUser._id}`}
+                        onClick={() => setShowLikeUsersModal(false)}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+                      >
+                        {likeUser.imageUrl ? (
+                          <img
+                            src={likeUser.imageUrl}
+                            alt={likeUser.name || ""}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                        <span className="font-medium text-gray-900">
+                          {likeUser.name || "ユーザー"}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Comments Section */}
       <div className="bg-white rounded-xl p-4 shadow-sm">
