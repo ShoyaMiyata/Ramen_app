@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as badges from "../badges.js";
 import type * as chat from "../chat.js";
 import type * as comments from "../comments.js";
@@ -30,6 +31,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   badges: typeof badges;
   chat: typeof chat;
   comments: typeof comments;

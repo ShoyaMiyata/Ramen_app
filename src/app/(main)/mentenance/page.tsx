@@ -16,7 +16,9 @@ import {
   Flame,
   Soup,
   ClipboardList,
+  Home,
 } from "lucide-react";
+import Link from "next/link";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -106,13 +108,25 @@ export default function MentenancePage() {
             <br />
             サービス改善に活用させていただきます。
           </p>
-          <Button
-            onClick={() => setIsSubmitted(false)}
-            style={{ backgroundColor: themeColor }}
-            className="text-white"
-          >
-            続けて送信する
-          </Button>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => setIsSubmitted(false)}
+              style={{ backgroundColor: themeColor }}
+              className="text-white flex items-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              続けて送信する
+            </Button>
+            <Link href="/">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                マイページへ
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -150,11 +164,10 @@ export default function MentenancePage() {
               <button
                 key={cat.code}
                 onClick={() => setCategory(cat.code)}
-                className={`p-3 rounded-xl border-2 transition-all text-left ${
-                  isSelected
-                    ? "border-current scale-[1.02] shadow-md"
-                    : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
-                }`}
+                className={`p-3 rounded-xl border-2 transition-all text-left ${isSelected
+                  ? "border-current scale-[1.02] shadow-md"
+                  : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
+                  }`}
                 style={{
                   borderColor: isSelected ? cat.color : undefined,
                   backgroundColor: isSelected ? `${cat.color}10` : "#FAFAFA",
@@ -170,9 +183,8 @@ export default function MentenancePage() {
                   />
                 </div>
                 <p
-                  className={`text-sm font-medium ${
-                    isSelected ? "" : "text-gray-700"
-                  }`}
+                  className={`text-sm font-medium ${isSelected ? "" : "text-gray-700"
+                    }`}
                   style={{ color: isSelected ? cat.color : undefined }}
                 >
                   {cat.label}
@@ -187,7 +199,7 @@ export default function MentenancePage() {
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <h2 className="font-bold text-gray-900 mb-2">熱々度</h2>
         <p className="text-xs text-gray-500 mb-3">
-          共感できる場合は湯気ボタンで評価。熱いうちにそっと教えてください。
+          熱いうちにそっと教えてください。
         </p>
         <div className="flex gap-2">
           {HEAT_LEVELS.map((heat) => {
@@ -197,11 +209,10 @@ export default function MentenancePage() {
               <button
                 key={heat.level}
                 onClick={() => setHeatLevel(heat.level)}
-                className={`flex-1 p-3 rounded-xl border-2 transition-all text-center ${
-                  isSelected
-                    ? "scale-105 shadow-md"
-                    : "border-gray-100 hover:border-gray-200"
-                }`}
+                className={`flex-1 p-3 rounded-xl border-2 transition-all text-center ${isSelected
+                  ? "scale-105 shadow-md"
+                  : "border-gray-100 hover:border-gray-200"
+                  }`}
                 style={{
                   borderColor: isSelected ? flameColor : undefined,
                   backgroundColor: isSelected ? `${flameColor}10` : "#FAFAFA",
@@ -217,9 +228,8 @@ export default function MentenancePage() {
                   ))}
                 </div>
                 <p
-                  className={`text-xs font-medium ${
-                    isSelected ? "" : "text-gray-700"
-                  }`}
+                  className={`text-xs font-medium ${isSelected ? "" : "text-gray-700"
+                    }`}
                   style={{ color: isSelected ? flameColor : undefined }}
                 >
                   {heat.label}
@@ -271,7 +281,7 @@ export default function MentenancePage() {
             <h2 className="font-bold text-gray-900">みんなの麺テナンス</h2>
           </div>
           <p className="text-xs text-gray-500 mb-4">
-            共感したら湯気ボタンで応援しよう！
+            共感したら熱々ボタンで応援しよう！
           </p>
 
           <div className="space-y-3">
@@ -310,8 +320,8 @@ export default function MentenancePage() {
                                     flameCount === 1
                                       ? "#94A3B8"
                                       : flameCount === 2
-                                      ? "#F97316"
-                                      : "#EF4444",
+                                        ? "#F97316"
+                                        : "#EF4444",
                                 }}
                               />
                             ))}
@@ -331,11 +341,10 @@ export default function MentenancePage() {
                             <button
                               key={level}
                               onClick={() => handleSteam(feedback._id, level)}
-                              className={`p-1 rounded-lg transition-all ${
-                                isSelected
-                                  ? "scale-110 shadow-sm"
-                                  : "hover:bg-gray-100"
-                              }`}
+                              className={`p-1 rounded-lg transition-all ${isSelected
+                                ? "scale-110 shadow-sm"
+                                : "hover:bg-gray-100"
+                                }`}
                               style={{
                                 backgroundColor: isSelected ? `${flameColor}20` : undefined,
                               }}

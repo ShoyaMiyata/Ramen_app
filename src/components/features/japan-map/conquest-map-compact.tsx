@@ -53,7 +53,7 @@ export function ConquestMapCompact({
           <span className="font-bold" style={{ color: themeColor }}>
             {summary.total}
           </span>
-          <span className="text-gray-400">/47県</span>
+          <span className="text-gray-400">/47</span>
           {showLink && (
             <ChevronRight className="w-4 h-4 text-gray-400 ml-1" />
           )}

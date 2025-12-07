@@ -89,7 +89,7 @@ export function BadgeCollection({
         <Award className="w-5 h-5" style={{ color: themeColor }} />
         <span className="font-bold text-gray-900 text-lg">ご当地バッジ</span>
         <span className="text-sm text-gray-400 ml-auto">
-          {earnedCount}/{totalCount}県
+          {earnedCount}/{totalCount}
         </span>
       </div>
 

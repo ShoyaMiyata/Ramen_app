@@ -20,15 +20,15 @@ export const create = mutation({
   },
 });
 
-// フィードバック一覧取得（湯気数順）
+// フィードバック一覧取得（投稿日の降順）
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
     const feedbacks = await ctx.db.query("feedbacks").collect();
 
-    // 湯気数でソート（多い順）
+    // 投稿日でソート（新しい順）
     const sorted = feedbacks.sort(
-      (a, b) => (b.steamCount || 0) - (a.steamCount || 0)
+      (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
     );
 
     return sorted;

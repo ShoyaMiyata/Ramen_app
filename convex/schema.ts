@@ -11,6 +11,7 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
+    isAdmin: v.optional(v.boolean()), // 管理者フラグ
   })
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"]),
@@ -80,6 +81,7 @@ export default defineSchema({
     message: v.string(),
     heatLevel: v.number(), // 1-3 熱々度
     steamCount: v.optional(v.number()), // 湯気ボタンの共感数
+    status: v.optional(v.string()), // "new" | "in_progress" | "resolved" | "rejected"
     createdAt: v.number(),
   }).index("by_createdAt", ["createdAt"]),
 

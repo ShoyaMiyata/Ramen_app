@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -375,6 +375,18 @@ export default function HomePage() {
           <Wrench className="w-3 h-3" />
           <span>麺テナンス</span>
         </Link>
+        {user?.isAdmin && (
+          <>
+            <span>|</span>
+            <Link
+              href="/admin"
+              className="flex items-center gap-1 hover:text-gray-600 transition-colors text-purple-600"
+            >
+              <Shield className="w-3 h-3" />
+              <span>管理</span>
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );

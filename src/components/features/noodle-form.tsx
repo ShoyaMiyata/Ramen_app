@@ -197,7 +197,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         });
         router.push(`/noodles/${noodle._id}`);
       } else {
-        const noodleId = await createNoodle({
+        const result = await createNoodle({
           userId: user._id,
           shopId,
           ramenName,
@@ -207,6 +207,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           evaluation: evaluation ?? undefined,
           imageId,
         });
+
+        const noodleId = result.noodleId;
 
         // ランクアップ判定（新しい店舗の場合のみ）
         const isNewShop = !userNoodles?.some((n) => n.shopId === shopId);

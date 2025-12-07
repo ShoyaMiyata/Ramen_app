@@ -174,7 +174,8 @@ export const create = mutation({
     imageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("noodles", {
+    // 投稿を作成
+    const noodleId = await ctx.db.insert("noodles", {
       userId: args.userId,
       shopId: args.shopId,
       ramenName: args.ramenName,
@@ -183,8 +184,75 @@ export const create = mutation({
       comment: args.comment,
       evaluation: args.evaluation,
       imageId: args.imageId,
-      createdAt: Date.now(), // 作成日時を追加
+      createdAt: Date.now(),
     });
+
+    // 店舗の都道府県を取得してバッジチェック
+    const shop = await ctx.db.get(args.shopId);
+    let badgeResult = null;
+    if (shop?.prefecture) {
+      // インラインでバッジチェックを実行
+      const noodles = await ctx.db
+        .query("noodles")
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .collect();
+
+      const shopIds = [...new Set(noodles.map((n) => n.shopId))];
+      const shops = await Promise.all(shopIds.map((id) => ctx.db.get(id)));
+
+      const prefectureShopCount = shops.filter(
+        (s) => s?.prefecture === shop.prefecture
+      ).length;
+
+      const getTier = (count: number) => {
+        if (count >= 10) return "gold";
+        if (count >= 5) return "silver";
+        if (count >= 1) return "bronze";
+        return null;
+      };
+
+      const newTier = getTier(prefectureShopCount);
+      if (newTier) {
+        const prefecture = shop.prefecture;
+        const existingBadge = await ctx.db
+          .query("prefectureBadges")
+          .withIndex("by_userId_prefecture", (q) =>
+            q.eq("userId", args.userId).eq("prefecture", prefecture)
+          )
+          .first();
+
+        const now = Date.now();
+
+        if (existingBadge) {
+          const tierRank = { bronze: 1, silver: 2, gold: 3 };
+          if (tierRank[newTier as keyof typeof tierRank] > tierRank[existingBadge.tier as keyof typeof tierRank]) {
+            await ctx.db.patch(existingBadge._id, {
+              tier: newTier,
+              visitCount: prefectureShopCount,
+              updatedAt: now,
+            });
+            badgeResult = { type: "upgraded" as const, tier: newTier, prefecture: shop.prefecture };
+          } else {
+            await ctx.db.patch(existingBadge._id, {
+              visitCount: prefectureShopCount,
+              updatedAt: now,
+            });
+          }
+        } else {
+          await ctx.db.insert("prefectureBadges", {
+            userId: args.userId,
+            prefecture: shop.prefecture,
+            tier: newTier,
+            visitCount: prefectureShopCount,
+            earnedAt: now,
+            updatedAt: now,
+          });
+          badgeResult = { type: "new" as const, tier: newTier, prefecture: shop.prefecture };
+        }
+      }
+    }
+
+    return { noodleId, badgeResult };
   },
 });
 
