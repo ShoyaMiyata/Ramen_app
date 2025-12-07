@@ -83,8 +83,10 @@ export const getLikeUsers = query({
 
         // プロフィール画像URLを取得
         let imageUrl: string | null = null;
-        if (user.profileImageId) {
-          imageUrl = await ctx.storage.getUrl(user.profileImageId);
+        if (user.customImageId) {
+          imageUrl = await ctx.storage.getUrl(user.customImageId);
+        } else if (user.imageUrl) {
+          imageUrl = user.imageUrl;
         }
 
         return {
