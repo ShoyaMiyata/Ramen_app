@@ -19,7 +19,10 @@ export default defineSchema({
     name: v.string(),
     address: v.optional(v.string()),
     url: v.optional(v.string()),
-  }).index("by_name", ["name"]),
+    prefecture: v.optional(v.string()), // 都道府県コード ("tokyo", "osaka" など)
+  })
+    .index("by_name", ["name"])
+    .index("by_prefecture", ["prefecture"]),
 
   noodles: defineTable({
     userId: v.id("users"),
@@ -131,4 +134,16 @@ export default defineSchema({
     .index("by_roomId", ["roomId"])
     .index("by_roomId_createdAt", ["roomId", "createdAt"])
     .index("by_roomId_isRead", ["roomId", "isRead"]),
+
+  // 都道府県バッジ
+  prefectureBadges: defineTable({
+    userId: v.id("users"),
+    prefecture: v.string(), // "tokyo", "osaka" など
+    tier: v.string(), // "bronze" | "silver" | "gold"
+    visitCount: v.number(), // 訪問店舗数
+    earnedAt: v.number(), // 初回獲得日時
+    updatedAt: v.number(), // 更新日時
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_prefecture", ["userId", "prefecture"]),
 });

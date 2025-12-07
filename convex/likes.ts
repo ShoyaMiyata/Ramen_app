@@ -115,6 +115,18 @@ export const toggle = mutation({
       noodleId: args.noodleId,
     });
 
+    // 投稿者にいいね通知を送る
+    if (noodle) {
+      await ctx.db.insert("notifications", {
+        userId: noodle.userId,
+        type: "like",
+        fromUserId: args.userId,
+        targetId: args.noodleId,
+        isRead: false,
+        createdAt: Date.now(),
+      });
+    }
+
     return { liked: true };
   },
 });

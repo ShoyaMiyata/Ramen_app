@@ -19,6 +19,8 @@ import { BADGES, type BadgeCode } from "@/lib/constants/badges";
 import { getRankByShopCount, type Rank } from "@/lib/constants/ranks";
 import { NewBadgeModal } from "./badge-display";
 import { RankUpModal } from "./rank-up-modal";
+import { PrefectureSelect } from "@/components/ui/prefecture-select";
+import { getPrefectureByCode } from "@/lib/constants/prefectures";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
@@ -32,6 +34,9 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   const [shopName, setShopName] = useState(noodle?.shop?.name || "");
   const [shopAddress, setShopAddress] = useState(noodle?.shop?.address || "");
+  const [shopPrefecture, setShopPrefecture] = useState<string | undefined>(
+    noodle?.shop?.prefecture || undefined
+  );
   const [shopSearch, setShopSearch] = useState("");
   const [showShopDropdown, setShowShopDropdown] = useState(false);
   const [ramenName, setRamenName] = useState(noodle?.ramenName || "");
@@ -175,6 +180,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       const shopId = await getOrCreateShop({
         name: shopName,
         address: shopAddress || undefined,
+        prefecture: shopPrefecture,
       });
 
       if (noodle) {
@@ -323,6 +329,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
                   onClick={() => {
                     setShopName(shop.name);
                     setShopAddress(shop.address || "");
+                    setShopPrefecture(shop.prefecture || undefined);
                     setShowShopDropdown(false);
                   }}
                 >
@@ -334,6 +341,18 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Prefecture */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            都道府県
+          </label>
+          <PrefectureSelect
+            value={shopPrefecture}
+            onChange={setShopPrefecture}
+            placeholder="都道府県を選択"
+          />
         </div>
 
         {/* Ramen Name */}

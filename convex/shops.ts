@@ -26,6 +26,7 @@ export const getOrCreate = mutation({
     name: v.string(),
     address: v.optional(v.string()),
     url: v.optional(v.string()),
+    prefecture: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -35,10 +36,11 @@ export const getOrCreate = mutation({
 
     if (existing) {
       // 追加情報があれば更新
-      if (args.address || args.url) {
+      if (args.address || args.url || args.prefecture) {
         await ctx.db.patch(existing._id, {
           address: args.address || existing.address,
           url: args.url || existing.url,
+          prefecture: args.prefecture || existing.prefecture,
         });
       }
       return existing._id;
@@ -48,6 +50,7 @@ export const getOrCreate = mutation({
       name: args.name,
       address: args.address,
       url: args.url,
+      prefecture: args.prefecture,
     });
   },
 });

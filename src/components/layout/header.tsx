@@ -100,14 +100,27 @@ export function Header() {
                     </div>
 
                     <div className="max-h-72 overflow-y-auto">
-                      {notifications && notifications.length > 0 ? (
+                      {notifications === undefined ? (
+                        // ローディング状態（スケルトン）
+                        <div className="space-y-0">
+                          {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 border-b border-gray-50 animate-pulse">
+                              <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-3/4" />
+                                <div className="h-3 bg-gray-100 rounded w-1/3" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : notifications.length > 0 ? (
                         notifications.map((notification) => (
                           <Link
                             key={notification._id}
                             href={
                               notification.type === "message"
                                 ? `/chat/${notification.targetId}`
-                                : notification.type === "comment"
+                                : notification.type === "comment" || notification.type === "like"
                                   ? `/noodles/${notification.targetId}`
                                   : `/users/${notification.fromUserId}`
                             }
@@ -131,6 +144,8 @@ export function Header() {
                                 <MessageSquare className="w-5 h-5" style={{ color: themeColor }} />
                               ) : notification.type === "comment" ? (
                                 <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
+                              ) : notification.type === "like" ? (
+                                <Heart className="w-5 h-5" style={{ color: themeColor }} />
                               ) : (
                                 <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
                               )}
@@ -143,6 +158,11 @@ export function Header() {
                                 {notification.type === "follow" && (
                                   <span className="text-gray-600">
                                     さんがあなたをフォローしました
+                                  </span>
+                                )}
+                                {notification.type === "like" && (
+                                  <span className="text-gray-600">
+                                    さんがあなたの投稿にいいねしました
                                   </span>
                                 )}
                                 {notification.type === "comment" && (
@@ -172,6 +192,9 @@ export function Header() {
                         <div className="p-8 text-center">
                           <Bell className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                           <p className="text-sm text-gray-400">まだ通知はありません</p>
+                          <p className="text-xs text-gray-300 mt-1">
+                            フォローやコメントがあると通知されます
+                          </p>
                         </div>
                       )}
                     </div>
