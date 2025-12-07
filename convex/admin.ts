@@ -298,3 +298,111 @@ export const deleteFeedback = mutation({
     return { success: true };
   },
 });
+
+// 一括ユーザーソフトデリート
+export const bulkSoftDeleteUsers = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserIds: v.array(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    let deletedCount = 0;
+    for (const userId of args.targetUserIds) {
+      const user = await ctx.db.get(userId);
+      if (user && !user.isAdmin && !user.deletedAt) {
+        await ctx.db.patch(userId, { deletedAt: Date.now() });
+        deletedCount++;
+      }
+    }
+
+    return { success: true, deletedCount };
+  },
+});
+
+// 一括投稿削除
+export const bulkDeleteNoodles = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    noodleIds: v.array(v.id("noodles")),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    let deletedCount = 0;
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (!noodle) continue;
+
+      // 画像削除
+      if (noodle.imageId) {
+        await ctx.storage.delete(noodle.imageId);
+      }
+
+      // 関連するいいねを削除
+      const likes = await ctx.db
+        .query("likes")
+        .withIndex("by_noodleId", (q) => q.eq("noodleId", noodleId))
+        .collect();
+      for (const like of likes) {
+        await ctx.db.delete(like._id);
+      }
+
+      // 関連するコメントを削除
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_noodleId", (q) => q.eq("noodleId", noodleId))
+        .collect();
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+
+      // 関連するマイベストを削除
+      const myBests = await ctx.db.query("myBests").collect();
+      for (const myBest of myBests) {
+        if (myBest.noodleId === noodleId) {
+          await ctx.db.delete(myBest._id);
+        }
+      }
+
+      // 投稿を削除
+      await ctx.db.delete(noodleId);
+      deletedCount++;
+    }
+
+    return { success: true, deletedCount };
+  },
+});
+
+// 一括フィードバック削除
+export const bulkDeleteFeedbacks = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    feedbackIds: v.array(v.id("feedbacks")),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    let deletedCount = 0;
+    for (const feedbackId of args.feedbackIds) {
+      const feedback = await ctx.db.get(feedbackId);
+      if (!feedback) continue;
+
+      // 関連する湯気を削除
+      const steams = await ctx.db
+        .query("feedbackSteams")
+        .withIndex("by_feedbackId", (q) => q.eq("feedbackId", feedbackId))
+        .collect();
+      for (const steam of steams) {
+        await ctx.db.delete(steam._id);
+      }
+
+      // フィードバックを削除
+      await ctx.db.delete(feedbackId);
+      deletedCount++;
+    }
+
+    return { success: true, deletedCount };
+  },
+});
