@@ -201,6 +201,17 @@ export default function UserProfilePage({
       {/* Rank Display */}
       <RankDisplay shopCount={shopCount} />
 
+      {/* Conquest Map Link */}
+      <Link
+        href={`/users/${userId}/map`}
+        className="block bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-gray-700">制覇マップを見る</span>
+          <span className="text-gray-400">→</span>
+        </div>
+      </Link>
+
       {/* My Best */}
       <MyBestDisplay userId={userId} editable={isOwnProfile} />
 
