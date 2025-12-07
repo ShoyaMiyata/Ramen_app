@@ -12,6 +12,7 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
     selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
     isAdmin: v.optional(v.boolean()), // 管理者フラグ
+    onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
   })
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"]),

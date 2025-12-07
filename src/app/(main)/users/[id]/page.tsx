@@ -14,9 +14,11 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
+import * as Dialog from "@radix-ui/react-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 type ViewMode = "list" | "gallery";
 
@@ -32,6 +34,7 @@ export default function UserProfilePage({
   const { user: currentUser, isLoaded } = useCurrentUser();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
@@ -113,11 +116,16 @@ export default function UserProfilePage({
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-4">
           {profileUser.imageUrl ? (
-            <img
-              src={profileUser.imageUrl}
-              alt={profileUser.name || ""}
-              className="w-16 h-16 rounded-full object-cover"
-            />
+            <button
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
+            >
+              <img
+                src={profileUser.imageUrl}
+                alt={profileUser.name || ""}
+                className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+              />
+            </button>
           ) : (
             <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-2xl">
               {profileUser.name?.charAt(0) || "?"}
@@ -269,6 +277,54 @@ export default function UserProfilePage({
           </div>
         )}
       </div>
+
+      {/* Avatar Modal */}
+      <Dialog.Root open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <AnimatePresence>
+          {isAvatarModalOpen && (
+            <Dialog.Portal forceMount>
+              <Dialog.Overlay asChild>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/80 z-50"
+                />
+              </Dialog.Overlay>
+              <Dialog.Content asChild>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", duration: 0.3 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                  onClick={() => setIsAvatarModalOpen(false)}
+                >
+                  <Dialog.Close asChild>
+                    <button
+                      className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+                      aria-label="閉じる"
+                    >
+                      <X className="w-6 h-6 text-white" />
+                    </button>
+                  </Dialog.Close>
+                  {profileUser.imageUrl && (
+                    <motion.img
+                      src={profileUser.imageUrl}
+                      alt={profileUser.name || ""}
+                      className="max-w-full max-h-full rounded-lg object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", duration: 0.3 }}
+                    />
+                  )}
+                </motion.div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          )}
+        </AnimatePresence>
+      </Dialog.Root>
     </div>
   );
 }

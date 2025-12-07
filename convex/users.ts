@@ -244,3 +244,28 @@ export const getProfileImageUrl = query({
     return user.imageUrl || null;
   },
 });
+
+// オンボーディング完了（ニックネーム登録）
+export const completeOnboarding = mutation({
+  args: {
+    userId: v.id("users"),
+    nickname: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // ニックネームのバリデーション
+    const trimmedName = args.nickname.trim();
+    if (trimmedName.length < 1 || trimmedName.length > 20) {
+      throw new Error("ニックネームは1〜20文字で入力してください");
+    }
+
+    await ctx.db.patch(args.userId, {
+      name: trimmedName,
+      onboardingComplete: true,
+    });
+
+    return args.userId;
+  },
+});

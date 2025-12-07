@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -8,10 +10,27 @@ import { LoadingPage } from "@/components/ui/loading";
 import { RANKS } from "@/lib/constants/ranks";
 
 export function ThemedLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useCurrentUser();
+  const router = useRouter();
+  const { user, isLoaded, isSignedIn } = useCurrentUser();
   const { rank, isLoading } = useUserStats(user?._id);
 
+  // オンボーディング未完了時はリダイレクト
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user && !user.onboardingComplete) {
+      router.push("/onboarding");
+    }
+  }, [isLoaded, isSignedIn, user, router]);
+
   if (!isLoaded || isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <LoadingPage />
+      </div>
+    );
+  }
+
+  // オンボーディング未完了の場合はローディング表示（リダイレクト中）
+  if (isSignedIn && user && !user.onboardingComplete) {
     return (
       <div className="min-h-screen bg-gray-50">
         <LoadingPage />
