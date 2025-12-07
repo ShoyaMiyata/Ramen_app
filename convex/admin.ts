@@ -214,7 +214,7 @@ export const deleteNoodle = mutation({
   },
 });
 
-// フィードバック一覧
+// フィードバック一覧（対応中・新規のみ表示）
 export const listFeedbacks = query({
   args: { adminUserId: v.id("users") },
   handler: async (ctx, args) => {
@@ -222,9 +222,14 @@ export const listFeedbacks = query({
 
     const feedbacks = await ctx.db.query("feedbacks").collect();
 
+    // 対応中・新規のみをフィルタ
+    const filteredFeedbacks = feedbacks.filter(
+      (f) => !f.status || f.status === "new" || f.status === "in_progress"
+    );
+
     // ユーザー情報を付与
     const feedbacksWithUser = await Promise.all(
-      feedbacks.map(async (feedback) => {
+      filteredFeedbacks.map(async (feedback) => {
         const user = await ctx.db.get(feedback.userId);
         return {
           ...feedback,
