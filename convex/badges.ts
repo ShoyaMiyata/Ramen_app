@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { BADGES, type BadgeCode } from "../src/lib/constants/badges";
+import { BADGES, HIDDEN_BADGES, ALL_BADGES, type AllBadgeCode } from "../src/lib/constants/badges";
 
 export const getByUser = query({
   args: { userId: v.id("users") },
@@ -12,7 +12,7 @@ export const getByUser = query({
 
     return userBadges.map((ub) => ({
       ...ub,
-      badge: BADGES[ub.badgeCode as BadgeCode],
+      badge: ALL_BADGES[ub.badgeCode as AllBadgeCode],
     }));
   },
 });
@@ -82,7 +82,10 @@ export const checkAndAward = mutation({
 
     const newBadges: string[] = [];
 
-    // Check each badge condition
+    // 全ての麺名を取得（隠しバッジ判定用）
+    const allRamenNames = noodles.map((n) => n.ramenName.toLowerCase());
+
+    // Check each badge condition (通常バッジ)
     for (const [code, badge] of Object.entries(BADGES)) {
       if (existingCodes.has(code)) continue;
 
@@ -152,6 +155,64 @@ export const checkAndAward = mutation({
       }
     }
 
-    return newBadges;
+    // 隠しバッジのチェック
+    // 獲得済み隠しバッジ数をカウント（ramen_name_containsタイプのみ）
+    const existingHiddenBadgeCount = existingBadges.filter((b) => {
+      const badge = HIDDEN_BADGES[b.badgeCode as keyof typeof HIDDEN_BADGES];
+      return badge && badge.conditionType === "ramen_name_contains";
+    }).length;
+
+    let newHiddenBadgeCount = 0;
+    const newHiddenBadgeCodes: string[] = [];
+
+    for (const [code, badge] of Object.entries(HIDDEN_BADGES)) {
+      if (existingCodes.has(code)) continue;
+
+      let shouldAward = false;
+
+      if (badge.conditionType === "ramen_name_contains" && badge.keywords) {
+        // キーワードが麺名に含まれているかチェック
+        shouldAward = allRamenNames.some((name) =>
+          badge.keywords!.some((keyword) => name.includes(keyword.toLowerCase()))
+        );
+        if (shouldAward) {
+          newHiddenBadgeCount++;
+        }
+      } else if (badge.conditionType === "hidden_badge_count") {
+        // 隠しバッジ獲得数をチェック
+        const totalHiddenBadges = existingHiddenBadgeCount + newHiddenBadgeCount;
+        shouldAward = totalHiddenBadges >= badge.conditionValue;
+      }
+
+      if (shouldAward) {
+        await ctx.db.insert("userBadges", {
+          userId: args.userId,
+          badgeCode: code,
+          acquiredAt: Date.now(),
+        });
+        newBadges.push(code);
+        if (badge.conditionType === "ramen_name_contains") {
+          newHiddenBadgeCodes.push(code);
+        }
+        existingCodes.add(code); // 重複防止
+      }
+    }
+
+    // ramen_name_containsタイプの隠しバッジの総数
+    const totalBaseHiddenBadges = Object.values(HIDDEN_BADGES).filter(
+      (b) => b.conditionType === "ramen_name_contains"
+    ).length;
+
+    // 獲得済み隠しバッジの総数（新規獲得を含む）
+    const totalEarnedHiddenBadges = existingHiddenBadgeCount + newHiddenBadgeCount;
+
+    return {
+      newBadges,
+      hiddenBadgeInfo: {
+        newHiddenBadges: newHiddenBadgeCodes,
+        totalEarned: totalEarnedHiddenBadges,
+        totalAvailable: totalBaseHiddenBadges,
+      },
+    };
   },
 });

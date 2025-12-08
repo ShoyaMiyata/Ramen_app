@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { ALL_BADGES, type AllBadgeCode } from "../src/lib/constants/badges";
 
 // 管理者チェック用ヘルパー
 async function requireAdmin(ctx: QueryCtx | MutationCtx, userId: Id<"users">) {
@@ -601,5 +602,109 @@ export const sendAnnouncementToAll = mutation({
     }
 
     return { success: true, sentCount };
+  },
+});
+
+// ======================
+// バッジシミュレーション
+// ======================
+
+// ユーザーのバッジ一覧を取得
+export const getUserBadges = query({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const userBadges = await ctx.db
+      .query("userBadges")
+      .withIndex("by_userId", (q) => q.eq("userId", args.targetUserId))
+      .collect();
+
+    return userBadges.map((ub) => ({
+      ...ub,
+      badge: ALL_BADGES[ub.badgeCode as AllBadgeCode],
+    }));
+  },
+});
+
+// バッジを付与
+export const grantBadge = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserId: v.id("users"),
+    badgeCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    // バッジが存在するか確認
+    const badge = ALL_BADGES[args.badgeCode as AllBadgeCode];
+    if (!badge) {
+      throw new Error("無効なバッジコードです");
+    }
+
+    // すでに持っているか確認
+    const existing = await ctx.db
+      .query("userBadges")
+      .withIndex("by_userId", (q) => q.eq("userId", args.targetUserId))
+      .filter((q) => q.eq(q.field("badgeCode"), args.badgeCode))
+      .unique();
+
+    if (existing) {
+      throw new Error("このバッジはすでに獲得済みです");
+    }
+
+    await ctx.db.insert("userBadges", {
+      userId: args.targetUserId,
+      badgeCode: args.badgeCode,
+      acquiredAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// バッジを削除
+export const revokeBadge = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    badgeId: v.id("userBadges"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const badge = await ctx.db.get(args.badgeId);
+    if (!badge) {
+      throw new Error("バッジが見つかりません");
+    }
+
+    await ctx.db.delete(args.badgeId);
+
+    return { success: true };
+  },
+});
+
+// ユーザーの全バッジを削除
+export const revokeAllBadges = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const userBadges = await ctx.db
+      .query("userBadges")
+      .withIndex("by_userId", (q) => q.eq("userId", args.targetUserId))
+      .collect();
+
+    for (const badge of userBadges) {
+      await ctx.db.delete(badge._id);
+    }
+
+    return { success: true, deletedCount: userBadges.length };
   },
 });

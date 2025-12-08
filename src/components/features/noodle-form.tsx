@@ -15,9 +15,9 @@ import { compressImage } from "@/lib/utils/image";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils/cn";
-import { BADGES, type BadgeCode } from "@/lib/constants/badges";
+import { BADGES, HIDDEN_BADGES, ALL_BADGES, type BadgeCode, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
 import { getRankByShopCount, type Rank } from "@/lib/constants/ranks";
-import { NewBadgeModal } from "./badge-display";
+import { NewBadgeModal, HiddenBadgeCompleteModal } from "./badge-display";
 import { RankUpModal } from "./rank-up-modal";
 import { PrefectureSelect } from "@/components/ui/prefecture-select";
 import { Camera, X } from "lucide-react";
@@ -57,8 +57,13 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [imageRemoved, setImageRemoved] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newBadge, setNewBadge] = useState<(typeof BADGES)[BadgeCode] | null>(null);
+  const [newBadge, setNewBadge] = useState<(typeof ALL_BADGES)[AllBadgeCode] | null>(null);
   const [rankUpInfo, setRankUpInfo] = useState<{ from: Rank; to: Rank } | null>(null);
+  const [hiddenBadgeComplete, setHiddenBadgeComplete] = useState<{
+    show: boolean;
+    earned: number;
+    total: number;
+  } | null>(null);
   const prevShopCountRef = useRef<number | null>(null);
 
   const shops = useQuery(api.shops.search, { searchText: shopSearch });
@@ -203,9 +208,31 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         }
 
         // バッジチェック
-        const newBadges = await checkBadges({ userId: user._id });
-        if (newBadges.length > 0) {
-          const badge = BADGES[newBadges[0] as BadgeCode];
+        const badgeResult = await checkBadges({ userId: user._id });
+
+        // 隠しバッジのマイルストーン達成チェック（5個、10個、20個、または全制覇）
+        const { hiddenBadgeInfo } = badgeResult;
+        const milestones = [5, 10, 20, hiddenBadgeInfo.totalAvailable];
+        const prevEarned = hiddenBadgeInfo.totalEarned - hiddenBadgeInfo.newHiddenBadges.length;
+        const currentEarned = hiddenBadgeInfo.totalEarned;
+
+        // マイルストーンを超えたかチェック
+        const reachedMilestone = milestones.find(
+          (m) => prevEarned < m && currentEarned >= m
+        );
+
+        if (reachedMilestone) {
+          setHiddenBadgeComplete({
+            show: true,
+            earned: currentEarned,
+            total: hiddenBadgeInfo.totalAvailable,
+          });
+          return;
+        }
+
+        // 新しいバッジがある場合は表示
+        if (badgeResult.newBadges.length > 0) {
+          const badge = ALL_BADGES[badgeResult.newBadges[0] as AllBadgeCode];
           if (badge) {
             setNewBadge(badge);
             return;
@@ -228,6 +255,11 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   const handleRankUpModalClose = () => {
     setRankUpInfo(null);
+    router.push("/noodles");
+  };
+
+  const handleHiddenBadgeCompleteClose = () => {
+    setHiddenBadgeComplete(null);
     router.push("/noodles");
   };
 
@@ -464,6 +496,12 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         fromRank={rankUpInfo?.from ?? null}
         toRank={rankUpInfo?.to ?? null}
         onClose={handleRankUpModalClose}
+      />
+      <HiddenBadgeCompleteModal
+        open={hiddenBadgeComplete?.show ?? false}
+        onClose={handleHiddenBadgeCompleteClose}
+        completedCount={hiddenBadgeComplete?.earned ?? 0}
+        totalCount={hiddenBadgeComplete?.total ?? 0}
       />
     </>
   );

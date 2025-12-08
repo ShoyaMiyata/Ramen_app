@@ -26,12 +26,17 @@ import {
   Send,
   Search,
   Eye,
+  Award,
+  Plus,
+  X,
 } from "lucide-react";
+import { BADGES, HIDDEN_BADGES, ALL_BADGES, type BadgeCode, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
+import { Badge as BadgeUI } from "@/components/ui/badge";
 import { useTestUser } from "@/contexts/TestUserContext";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils/cn";
 
-type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings";
+type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings" | "badges";
 
 const FEEDBACK_STATUSES = [
   { value: "new", label: "新規", color: "#3B82F6" },
@@ -79,6 +84,12 @@ export default function AdminPage() {
   // 設定更新用state
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
 
+  // バッジシミュレーション用state
+  const [selectedUserForBadge, setSelectedUserForBadge] = useState<Id<"users"> | null>(null);
+  const [badgeSearchText, setBadgeSearchText] = useState("");
+  const [showBadgeGrantModal, setShowBadgeGrantModal] = useState(false);
+  const [selectedBadgeCode, setSelectedBadgeCode] = useState<string>("");
+
   // 管理者用API
   const stats = useQuery(
     api.admin.getStats,
@@ -119,6 +130,21 @@ export default function AdminPage() {
   const sendAnnouncement = useMutation(api.admin.sendAnnouncement);
   const sendAnnouncementToAll = useMutation(api.admin.sendAnnouncementToAll);
   const updateAppSetting = useMutation(api.admin.updateAppSetting);
+
+  // バッジシミュレーション用API
+  const usersForBadge = useQuery(
+    api.admin.listUsersForNotification,
+    user?._id && activeTab === "badges" ? { adminUserId: user._id } : "skip"
+  );
+  const selectedUserBadges = useQuery(
+    api.admin.getUserBadges,
+    user?._id && selectedUserForBadge
+      ? { adminUserId: user._id, targetUserId: selectedUserForBadge }
+      : "skip"
+  );
+  const grantBadge = useMutation(api.admin.grantBadge);
+  const revokeBadge = useMutation(api.admin.revokeBadge);
+  const revokeAllBadges = useMutation(api.admin.revokeAllBadges);
 
   // ローディング中
   if (isLoading) {
@@ -363,6 +389,70 @@ export default function AdminPage() {
     );
   });
 
+  // バッジ付与処理
+  const handleGrantBadge = async () => {
+    if (!user?._id || !selectedUserForBadge || !selectedBadgeCode) return;
+
+    try {
+      await grantBadge({
+        adminUserId: user._id,
+        targetUserId: selectedUserForBadge,
+        badgeCode: selectedBadgeCode,
+      });
+      setShowBadgeGrantModal(false);
+      setSelectedBadgeCode("");
+    } catch (error) {
+      console.error("Grant badge failed:", error);
+      alert(error instanceof Error ? error.message : "バッジの付与に失敗しました");
+    }
+  };
+
+  // バッジ削除処理
+  const handleRevokeBadge = async (badgeId: Id<"userBadges">) => {
+    if (!user?._id) return;
+
+    try {
+      await revokeBadge({
+        adminUserId: user._id,
+        badgeId,
+      });
+    } catch (error) {
+      console.error("Revoke badge failed:", error);
+    }
+  };
+
+  // 全バッジ削除処理
+  const handleRevokeAllBadges = async () => {
+    if (!user?._id || !selectedUserForBadge) return;
+
+    if (!confirm("本当にすべてのバッジを削除しますか？")) return;
+
+    try {
+      await revokeAllBadges({
+        adminUserId: user._id,
+        targetUserId: selectedUserForBadge,
+      });
+    } catch (error) {
+      console.error("Revoke all badges failed:", error);
+    }
+  };
+
+  // バッジ検索フィルタ
+  const filteredBadges = Object.entries(ALL_BADGES).filter(([code, badge]) => {
+    if (!badgeSearchText) return true;
+    const search = badgeSearchText.toLowerCase();
+    return (
+      badge.name.toLowerCase().includes(search) ||
+      badge.description.toLowerCase().includes(search) ||
+      code.toLowerCase().includes(search)
+    );
+  });
+
+  // 獲得済みバッジコードのSet
+  const earnedBadgeCodes = new Set(
+    selectedUserBadges?.map((ub) => ub.badgeCode) || []
+  );
+
   const tabs = [
     { id: "overview" as Tab, label: "概要", icon: BarChart3 },
     { id: "users" as Tab, label: "ユーザー", icon: Users },
@@ -370,6 +460,7 @@ export default function AdminPage() {
     { id: "feedbacks" as Tab, label: "FB", icon: MessageSquare },
     { id: "notifications" as Tab, label: "通知", icon: Bell },
     { id: "settings" as Tab, label: "設定", icon: Settings },
+    { id: "badges" as Tab, label: "バッジ", icon: Award },
   ];
 
   return (
@@ -384,12 +475,12 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-gray-100 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+              className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? "border-b-2 text-gray-900"
                   : "text-gray-500 hover:text-gray-700"
@@ -399,7 +490,7 @@ export default function AdminPage() {
               }}
             >
               <tab.icon className="w-4 h-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="text-xs">{tab.label}</span>
             </button>
           ))}
         </div>
@@ -990,6 +1081,192 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Badges Tab */}
+          {activeTab === "badges" && (
+            <div className="space-y-4">
+              {/* ユーザー選択 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  対象ユーザー
+                </label>
+                <select
+                  value={selectedUserForBadge || ""}
+                  onChange={(e) =>
+                    setSelectedUserForBadge(
+                      e.target.value ? (e.target.value as Id<"users">) : null
+                    )
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="">ユーザーを選択</option>
+                  {usersForBadge?.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name || "名前なし"} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedUserForBadge && (
+                <>
+                  {/* 獲得済みバッジ */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900">
+                        獲得済みバッジ ({selectedUserBadges?.length || 0})
+                      </h3>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => setShowBadgeGrantModal(true)}
+                          className="text-white"
+                          style={{ backgroundColor: themeColor }}
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          付与
+                        </Button>
+                        {selectedUserBadges && selectedUserBadges.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleRevokeAllBadges}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            全削除
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedUserBadges === undefined ? (
+                      <div className="text-center py-4">
+                        <Loading size="sm" />
+                      </div>
+                    ) : selectedUserBadges.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-4">
+                        バッジはありません
+                      </p>
+                    ) : (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {selectedUserBadges.map((ub) => {
+                          const isHidden = HIDDEN_BADGES[ub.badgeCode as HiddenBadgeCode];
+                          return (
+                            <div
+                              key={ub._id}
+                              className={cn(
+                                "flex items-center justify-between p-2 rounded-lg",
+                                isHidden
+                                  ? "bg-gradient-to-r from-purple-50 to-indigo-50"
+                                  : "bg-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-2">
+                                <BadgeUI
+                                  rarity={ub.badge?.rarity || "common"}
+                                  className="text-xs"
+                                >
+                                  {ub.badge?.name || ub.badgeCode}
+                                </BadgeUI>
+                                {isHidden && (
+                                  <span className="text-[10px] text-purple-500">
+                                    シークレット
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleRevokeBadge(ub._id)}
+                                className="p-1 hover:bg-red-100 rounded text-red-500"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* バッジ一覧 */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-medium text-gray-900 mb-3">
+                      全バッジ一覧
+                    </h3>
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        value={badgeSearchText}
+                        onChange={(e) => setBadgeSearchText(e.target.value)}
+                        placeholder="バッジ名で検索"
+                        className="pl-9"
+                      />
+                    </div>
+
+                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                      {filteredBadges.map(([code, badge]) => {
+                        const isEarned = earnedBadgeCodes.has(code);
+                        const isHidden = HIDDEN_BADGES[code as HiddenBadgeCode];
+                        return (
+                          <div
+                            key={code}
+                            className={cn(
+                              "flex items-center justify-between p-2 rounded-lg text-sm",
+                              isEarned
+                                ? "bg-green-50"
+                                : isHidden
+                                  ? "bg-purple-50/50"
+                                  : "bg-white"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <BadgeUI
+                                rarity={badge.rarity}
+                                className="text-[10px] flex-shrink-0"
+                              >
+                                {badge.name}
+                              </BadgeUI>
+                              {isHidden && (
+                                <span className="text-[10px] text-purple-400">
+                                  秘密
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-400 truncate">
+                                {badge.description}
+                              </span>
+                            </div>
+                            {isEarned ? (
+                              <span className="text-xs text-green-600 flex-shrink-0">
+                                獲得済
+                              </span>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  if (!user?._id || !selectedUserForBadge) return;
+                                  try {
+                                    await grantBadge({
+                                      adminUserId: user._id,
+                                      targetUserId: selectedUserForBadge,
+                                      badgeCode: code,
+                                    });
+                                  } catch (error) {
+                                    console.error("Grant badge failed:", error);
+                                  }
+                                }}
+                                className="text-xs text-orange-500 hover:text-orange-600 flex-shrink-0"
+                              >
+                                付与
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}
