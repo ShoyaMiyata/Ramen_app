@@ -35,6 +35,7 @@ export default function NoodlesPage() {
     sortBy,
     limit: ITEMS_PER_PAGE,
     offset,
+    viewerId: user?._id,
   });
 
   // フィルター変更時にリセット

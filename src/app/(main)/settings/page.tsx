@@ -81,24 +81,29 @@ export default function SettingsPage() {
               onClick={handlePrivacyToggle}
               disabled={isUpdating}
               className={cn(
-                "relative w-12 h-7 rounded-full transition-colors",
+                "relative w-12 h-7 rounded-full transition-colors flex-shrink-0",
                 user.isPrivate ? "bg-orange-500" : "bg-gray-200"
               )}
             >
               <span
                 className={cn(
-                  "absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform",
-                  user.isPrivate ? "translate-x-6" : "translate-x-1"
+                  "absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform",
+                  user.isPrivate && "translate-x-5"
                 )}
               />
             </button>
           </div>
 
           {user.isPrivate && (
-            <div className="mt-3 p-3 bg-orange-50 rounded-lg">
-              <p className="text-sm text-orange-700">
-                鍵アカウントが有効です。新しいフォロワーはあなたの承認が必要になります。
+            <div className="mt-4 p-3 bg-orange-50 rounded-lg space-y-2">
+              <p className="text-sm font-medium text-orange-800">
+                🔒 鍵アカウントが有効です
               </p>
+              <ul className="text-sm text-orange-700 space-y-1 list-disc list-inside">
+                <li>あなたのプロフィールはフォロワーのみ閲覧可能</li>
+                <li>タイムラインはフォロワーにのみ表示</li>
+                <li>フォローには承認が必要</li>
+              </ul>
             </div>
           )}
         </div>
