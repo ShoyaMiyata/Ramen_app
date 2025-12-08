@@ -76,20 +76,37 @@ export const follow = mutation({
         if (existingRequest.status === "pending") {
           return { type: "request_pending" as const, id: existingRequest._id };
         }
+        // approved の場合は既にフォロー関係があるはず（念のため確認）
+        if (existingRequest.status === "approved") {
+          return { type: "already_approved" as const, id: existingRequest._id };
+        }
         // rejected の場合は再度リクエスト可能にする
         if (existingRequest.status === "rejected") {
           await ctx.db.patch(existingRequest._id, {
             status: "pending",
             updatedAt: Date.now(),
           });
-          // 通知を作成（フォローリクエスト）
-          await ctx.db.insert("notifications", {
-            userId: args.followingId,
-            type: "follow_request",
-            fromUserId: args.followerId,
-            isRead: false,
-            createdAt: Date.now(),
-          });
+          // 通知を作成（フォローリクエスト）- 重複チェック
+          const existingNotification = await ctx.db
+            .query("notifications")
+            .withIndex("by_userId", (q) => q.eq("userId", args.followingId))
+            .filter((q) =>
+              q.and(
+                q.eq(q.field("type"), "follow_request"),
+                q.eq(q.field("fromUserId"), args.followerId),
+                q.eq(q.field("isRead"), false)
+              )
+            )
+            .first();
+          if (!existingNotification) {
+            await ctx.db.insert("notifications", {
+              userId: args.followingId,
+              type: "follow_request",
+              fromUserId: args.followerId,
+              isRead: false,
+              createdAt: Date.now(),
+            });
+          }
           return { type: "request_sent" as const, id: existingRequest._id };
         }
       }
@@ -102,14 +119,27 @@ export const follow = mutation({
         createdAt: Date.now(),
       });
 
-      // 通知を作成（フォローリクエスト）
-      await ctx.db.insert("notifications", {
-        userId: args.followingId,
-        type: "follow_request",
-        fromUserId: args.followerId,
-        isRead: false,
-        createdAt: Date.now(),
-      });
+      // 通知を作成（フォローリクエスト）- 重複チェック
+      const existingNotification = await ctx.db
+        .query("notifications")
+        .withIndex("by_userId", (q) => q.eq("userId", args.followingId))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("type"), "follow_request"),
+            q.eq(q.field("fromUserId"), args.followerId),
+            q.eq(q.field("isRead"), false)
+          )
+        )
+        .first();
+      if (!existingNotification) {
+        await ctx.db.insert("notifications", {
+          userId: args.followingId,
+          type: "follow_request",
+          fromUserId: args.followerId,
+          isRead: false,
+          createdAt: Date.now(),
+        });
+      }
 
       return { type: "request_sent" as const, id: requestId };
     }

@@ -239,7 +239,7 @@ export default function UserProfilePage({
               variant={isFollowing || isRequestPending ? "outline" : "default"}
               className="flex-1"
               onClick={handleFollowToggle}
-              disabled={isSubmitting || isFollowing === undefined}
+              disabled={isSubmitting || isFollowing === undefined || optimisticRequestPending}
             >
               {isFollowing ? (
                 "フォロー中"
