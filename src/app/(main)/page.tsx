@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { RankDisplay } from "@/components/features/rank-display";
+import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
@@ -291,6 +292,9 @@ export default function HomePage() {
 
       {/* Rank Display */}
       <RankDisplay shopCount={shopCount} userId={user._id} />
+
+      {/* Taste Profile */}
+      <TasteProfile userId={user._id} />
 
       {/* My Best */}
       <MyBestDisplay userId={user._id} editable />

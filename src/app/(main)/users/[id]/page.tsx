@@ -11,6 +11,7 @@ import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { RankDisplay } from "@/components/features/rank-display";
+import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
@@ -285,6 +286,9 @@ export default function UserProfilePage({
         <>
           {/* Rank Display */}
           <RankDisplay shopCount={shopCount} />
+
+          {/* Taste Profile */}
+          <TasteProfile userId={userId} />
 
           {/* Conquest Map Link */}
           <Link

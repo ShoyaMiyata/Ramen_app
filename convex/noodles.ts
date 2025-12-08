@@ -487,6 +487,55 @@ export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
 
+// 味覚プロファイル（ジャンル別統計）を取得
+export const getTasteProfile = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const noodles = await ctx.db
+      .query("noodles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    if (noodles.length === 0) {
+      return null;
+    }
+
+    // ジャンル別に集計
+    const genreStats = new Map<string, { count: number; totalRating: number; ratedCount: number }>();
+
+    for (const noodle of noodles) {
+      for (const genre of noodle.genres) {
+        const existing = genreStats.get(genre) || { count: 0, totalRating: 0, ratedCount: 0 };
+        existing.count++;
+        if (noodle.evaluation) {
+          existing.totalRating += noodle.evaluation;
+          existing.ratedCount++;
+        }
+        genreStats.set(genre, existing);
+      }
+    }
+
+    // 配列に変換してソート（投稿数の多い順）
+    const totalCount = noodles.length;
+    const genres = Array.from(genreStats.entries())
+      .map(([code, stats]) => ({
+        code,
+        count: stats.count,
+        percentage: Math.round((stats.count / totalCount) * 100),
+        avgRating: stats.ratedCount > 0 ? Math.round((stats.totalRating / stats.ratedCount) * 10) / 10 : null,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const topGenre = genres.length > 0 ? genres[0].code : null;
+
+    return {
+      genres,
+      totalCount,
+      topGenre,
+    };
+  },
+});
+
 // ラーメン名の履歴を取得（サジェスト用）
 export const getRamenNameSuggestions = query({
   args: {
