@@ -7,6 +7,7 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { getRankByShopCount } from "@/lib/constants/ranks";
 import { useState } from "react";
+import { Lock, Clock } from "lucide-react";
 
 interface UserCardProps {
   user: Doc<"users">;
@@ -29,9 +30,17 @@ export function UserCard({
       ? { followerId: currentUserId, followingId: user._id }
       : "skip"
   );
+  const followRequestStatus = useQuery(
+    api.follows.getFollowRequestStatus,
+    currentUserId && user.isPrivate
+      ? { requesterId: currentUserId, targetId: user._id }
+      : "skip"
+  );
 
   const follow = useMutation(api.follows.follow);
   const unfollow = useMutation(api.follows.unfollow);
+
+  const isRequestPending = followRequestStatus === "pending";
 
   const shopCount = noodles
     ? new Set(noodles.map((n) => n.shopId)).size
@@ -71,8 +80,11 @@ export function UserCard({
         </Link>
 
         <Link href={`/users/${user._id}`} className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 truncate">
+          <h3 className="font-bold text-gray-900 truncate flex items-center gap-1">
             {user.name || "ユーザー"}
+            {user.isPrivate && (
+              <Lock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            )}
           </h3>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <span
@@ -93,12 +105,21 @@ export function UserCard({
 
         {showFollowButton && currentUserId && currentUserId !== user._id && (
           <Button
-            variant={isFollowing ? "outline" : "default"}
+            variant={isFollowing || isRequestPending ? "outline" : "default"}
             size="sm"
             onClick={handleFollowToggle}
             disabled={isSubmitting || isFollowing === undefined}
           >
-            {isFollowing ? "フォロー中" : "フォロー"}
+            {isFollowing ? (
+              "フォロー中"
+            ) : isRequestPending ? (
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                申請中
+              </span>
+            ) : (
+              "フォロー"
+            )}
           </Button>
         )}
       </div>

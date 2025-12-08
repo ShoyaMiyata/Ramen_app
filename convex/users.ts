@@ -269,3 +269,65 @@ export const completeOnboarding = mutation({
     return args.userId;
   },
 });
+
+// プライバシー設定を更新（鍵アカウントの切り替え）
+export const updatePrivacy = mutation({
+  args: {
+    userId: v.id("users"),
+    isPrivate: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(args.userId, {
+      isPrivate: args.isPrivate,
+    });
+
+    return args.userId;
+  },
+});
+
+// プロフィール閲覧権限をチェック
+export const canViewProfile = query({
+  args: {
+    targetUserId: v.id("users"),
+    viewerUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser || targetUser.deletedAt) {
+      return { canView: false, reason: "user_not_found" as const };
+    }
+
+    // 公開アカウントなら誰でも閲覧可能
+    if (!targetUser.isPrivate) {
+      return { canView: true, reason: "public" as const };
+    }
+
+    // 鍵アカウントの場合
+    // ログインしていない場合は閲覧不可
+    if (!args.viewerUserId) {
+      return { canView: false, reason: "private_not_logged_in" as const };
+    }
+
+    // 自分自身のプロフィールは閲覧可能
+    if (args.viewerUserId === args.targetUserId) {
+      return { canView: true, reason: "own_profile" as const };
+    }
+
+    // フォローしていれば閲覧可能
+    const isFollowing = await ctx.db
+      .query("follows")
+      .withIndex("by_follower_following", (q) =>
+        q.eq("followerId", args.viewerUserId!).eq("followingId", args.targetUserId)
+      )
+      .first();
+
+    if (isFollowing) {
+      return { canView: true, reason: "following" as const };
+    }
+
+    return { canView: false, reason: "private_not_following" as const };
+  },
+});

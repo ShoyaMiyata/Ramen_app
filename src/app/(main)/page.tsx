@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield, Settings } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -381,6 +381,14 @@ export default function HomePage() {
           className="hover:text-gray-600 transition-colors"
         >
           制覇マップ
+        </Link>
+        <span>|</span>
+        <Link
+          href="/settings"
+          className="flex items-center gap-1 hover:text-gray-600 transition-colors"
+        >
+          <Settings className="w-3 h-3" />
+          <span>設定</span>
         </Link>
         <span>|</span>
         <Link

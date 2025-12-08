@@ -122,7 +122,9 @@ export function Header() {
                                 ? `/chat/${notification.targetId}`
                                 : notification.type === "comment" || notification.type === "like"
                                   ? `/noodles/${notification.targetId}`
-                                  : `/users/${notification.fromUserId}`
+                                  : notification.type === "follow_request"
+                                    ? `/follow-requests`
+                                    : `/users/${notification.fromUserId}`
                             }
                             onClick={() => setIsNotificationOpen(false)}
                             className={cn(
@@ -158,6 +160,16 @@ export function Header() {
                                 {notification.type === "follow" && (
                                   <span className="text-gray-600">
                                     さんがあなたをフォローしました
+                                  </span>
+                                )}
+                                {notification.type === "follow_request" && (
+                                  <span className="text-gray-600">
+                                    さんからフォローリクエストが届きました
+                                  </span>
+                                )}
+                                {notification.type === "follow_request_approved" && (
+                                  <span className="text-gray-600">
+                                    さんがフォローリクエストを承認しました
                                   </span>
                                 )}
                                 {notification.type === "like" && (

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
-// フォローする
+// フォローする（鍵アカウントの場合はリクエストを送信）
 export const follow = mutation({
   args: {
     followerId: v.id("users"),
@@ -22,10 +22,68 @@ export const follow = mutation({
       .first();
 
     if (existing) {
-      return existing._id;
+      return { type: "already_following" as const, id: existing._id };
     }
 
-    // フォロー作成
+    // フォロー対象のユーザー情報を取得
+    const targetUser = await ctx.db.get(args.followingId);
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
+
+    // 鍵アカウントの場合はフォローリクエストを送信
+    if (targetUser.isPrivate) {
+      // 既存のリクエストを確認
+      const existingRequest = await ctx.db
+        .query("followRequests")
+        .withIndex("by_requester_target", (q) =>
+          q.eq("requesterId", args.followerId).eq("targetId", args.followingId)
+        )
+        .first();
+
+      if (existingRequest) {
+        if (existingRequest.status === "pending") {
+          return { type: "request_pending" as const, id: existingRequest._id };
+        }
+        // rejected の場合は再度リクエスト可能にする
+        if (existingRequest.status === "rejected") {
+          await ctx.db.patch(existingRequest._id, {
+            status: "pending",
+            updatedAt: Date.now(),
+          });
+          // 通知を作成（フォローリクエスト）
+          await ctx.db.insert("notifications", {
+            userId: args.followingId,
+            type: "follow_request",
+            fromUserId: args.followerId,
+            isRead: false,
+            createdAt: Date.now(),
+          });
+          return { type: "request_sent" as const, id: existingRequest._id };
+        }
+      }
+
+      // 新規リクエスト作成
+      const requestId = await ctx.db.insert("followRequests", {
+        requesterId: args.followerId,
+        targetId: args.followingId,
+        status: "pending",
+        createdAt: Date.now(),
+      });
+
+      // 通知を作成（フォローリクエスト）
+      await ctx.db.insert("notifications", {
+        userId: args.followingId,
+        type: "follow_request",
+        fromUserId: args.followerId,
+        isRead: false,
+        createdAt: Date.now(),
+      });
+
+      return { type: "request_sent" as const, id: requestId };
+    }
+
+    // 通常のフォロー処理
     const followId = await ctx.db.insert("follows", {
       followerId: args.followerId,
       followingId: args.followingId,
@@ -41,17 +99,18 @@ export const follow = mutation({
       createdAt: Date.now(),
     });
 
-    return followId;
+    return { type: "followed" as const, id: followId };
   },
 });
 
-// フォロー解除
+// フォロー解除（またはフォローリクエストのキャンセル）
 export const unfollow = mutation({
   args: {
     followerId: v.id("users"),
     followingId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // フォロー関係を確認
     const existing = await ctx.db
       .query("follows")
       .withIndex("by_follower_following", (q) =>
@@ -61,11 +120,24 @@ export const unfollow = mutation({
 
     if (existing) {
       await ctx.db.delete(existing._id);
+      return;
+    }
+
+    // フォローリクエストを確認（pendingの場合はキャンセル）
+    const existingRequest = await ctx.db
+      .query("followRequests")
+      .withIndex("by_requester_target", (q) =>
+        q.eq("requesterId", args.followerId).eq("targetId", args.followingId)
+      )
+      .first();
+
+    if (existingRequest && existingRequest.status === "pending") {
+      await ctx.db.delete(existingRequest._id);
     }
   },
 });
 
-// フォローしているか確認
+// フォロー状態を確認（フォロー中、リクエスト中、なし）
 export const isFollowing = query({
   args: {
     followerId: v.id("users"),
@@ -79,7 +151,128 @@ export const isFollowing = query({
       )
       .first();
 
-    return !!existing;
+    if (existing) {
+      return true;
+    }
+
+    return false;
+  },
+});
+
+// フォローリクエスト状態を取得
+export const getFollowRequestStatus = query({
+  args: {
+    requesterId: v.id("users"),
+    targetId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const request = await ctx.db
+      .query("followRequests")
+      .withIndex("by_requester_target", (q) =>
+        q.eq("requesterId", args.requesterId).eq("targetId", args.targetId)
+      )
+      .first();
+
+    if (!request) {
+      return null;
+    }
+
+    return request.status;
+  },
+});
+
+// 受信したフォローリクエスト一覧を取得
+export const getPendingRequests = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const requests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_targetId_status", (q) =>
+        q.eq("targetId", args.userId).eq("status", "pending")
+      )
+      .collect();
+
+    const users = await Promise.all(
+      requests.map(async (request) => {
+        const user = await ctx.db.get(request.requesterId);
+        return {
+          requestId: request._id,
+          user,
+          createdAt: request.createdAt,
+        };
+      })
+    );
+
+    return users.filter((u) => u.user !== null);
+  },
+});
+
+// フォローリクエストを承認
+export const approveRequest = mutation({
+  args: {
+    requestId: v.id("followRequests"),
+  },
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId);
+    if (!request || request.status !== "pending") {
+      throw new Error("Invalid request");
+    }
+
+    // リクエストを承認済みに更新
+    await ctx.db.patch(args.requestId, {
+      status: "approved",
+      updatedAt: Date.now(),
+    });
+
+    // フォロー関係を作成
+    await ctx.db.insert("follows", {
+      followerId: request.requesterId,
+      followingId: request.targetId,
+      createdAt: Date.now(),
+    });
+
+    // 通知を作成（リクエスト承認）
+    await ctx.db.insert("notifications", {
+      userId: request.requesterId,
+      type: "follow_request_approved",
+      fromUserId: request.targetId,
+      isRead: false,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// フォローリクエストを拒否
+export const rejectRequest = mutation({
+  args: {
+    requestId: v.id("followRequests"),
+  },
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId);
+    if (!request || request.status !== "pending") {
+      throw new Error("Invalid request");
+    }
+
+    // リクエストを拒否に更新
+    await ctx.db.patch(args.requestId, {
+      status: "rejected",
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// フォローリクエスト数を取得
+export const getPendingRequestCount = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const requests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_targetId_status", (q) =>
+        q.eq("targetId", args.userId).eq("status", "pending")
+      )
+      .collect();
+
+    return requests.length;
   },
 });
 

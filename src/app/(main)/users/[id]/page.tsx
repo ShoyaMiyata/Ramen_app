@@ -14,7 +14,7 @@ import { RankDisplay } from "@/components/features/rank-display";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -39,9 +39,22 @@ export default function UserProfilePage({
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
   const profileUser = useQuery(api.users.getById, { id: userId });
-  const noodles = useQuery(api.noodles.getByUser, { userId });
-  const galleryNoodles = useQuery(api.noodles.getGalleryByUser, { userId });
-  const badges = useQuery(api.badges.getByUser, { userId });
+  const canViewProfile = useQuery(api.users.canViewProfile, {
+    targetUserId: userId,
+    viewerUserId: currentUser?._id,
+  });
+  const noodles = useQuery(
+    api.noodles.getByUser,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
+  const galleryNoodles = useQuery(
+    api.noodles.getGalleryByUser,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
+  const badges = useQuery(
+    api.badges.getByUser,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
   const followCounts = useQuery(api.follows.getCounts, { userId });
   const isFollowing = useQuery(
     api.follows.isFollowing,
@@ -49,10 +62,19 @@ export default function UserProfilePage({
       ? { followerId: currentUser._id, followingId: userId }
       : "skip"
   );
+  const followRequestStatus = useQuery(
+    api.follows.getFollowRequestStatus,
+    currentUser?._id && profileUser?.isPrivate
+      ? { requesterId: currentUser._id, targetId: userId }
+      : "skip"
+  );
 
   const follow = useMutation(api.follows.follow);
   const unfollow = useMutation(api.follows.unfollow);
-  const menfluencerRank = useQuery(api.ranking.getMenfluencerRank, { userId });
+  const menfluencerRank = useQuery(
+    api.ranking.getMenfluencerRank,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
 
   if (!isLoaded || profileUser === undefined) {
     return <LoadingPage />;
@@ -73,6 +95,9 @@ export default function UserProfilePage({
   const shopCount = noodles
     ? new Set(noodles.map((n) => n.shopId)).size
     : 0;
+  const isPrivateAccount = profileUser?.isPrivate ?? false;
+  const canView = canViewProfile?.canView ?? false;
+  const isRequestPending = followRequestStatus === "pending";
 
   const handleFollowToggle = async () => {
     if (!currentUser) return;
@@ -136,11 +161,16 @@ export default function UserProfilePage({
               <h2 className="font-bold text-xl text-gray-900">
                 {profileUser.name || "ユーザー"}
               </h2>
+              {isPrivateAccount && (
+                <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              )}
               {menfluencerRank?.isMenbassador && (
                 <Crown className="w-5 h-5 text-yellow-500 flex-shrink-0" />
               )}
             </div>
-            <p className="text-sm text-gray-500">{noodles?.length || 0}件の記録</p>
+            <p className="text-sm text-gray-500">
+              {canView ? `${noodles?.length || 0}件の記録` : "非公開アカウント"}
+            </p>
             {menfluencerRank?.isMenbassador ? (
               <div className="flex items-center gap-1 mt-1">
                 <Sparkles className="w-3.5 h-3.5 text-purple-500" />
@@ -187,12 +217,21 @@ export default function UserProfilePage({
         {!isOwnProfile && currentUser && (
           <div className="mt-4 flex gap-2">
             <Button
-              variant={isFollowing ? "outline" : "default"}
+              variant={isFollowing || isRequestPending ? "outline" : "default"}
               className="flex-1"
               onClick={handleFollowToggle}
               disabled={isSubmitting || isFollowing === undefined}
             >
-              {isFollowing ? "フォロー中" : "フォローする"}
+              {isFollowing ? (
+                "フォロー中"
+              ) : isRequestPending ? (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  リクエスト中
+                </span>
+              ) : (
+                "フォローする"
+              )}
             </Button>
             <Button
               variant="outline"
@@ -206,77 +245,93 @@ export default function UserProfilePage({
         )}
       </div>
 
-      {/* Rank Display */}
-      <RankDisplay shopCount={shopCount} />
-
-      {/* Conquest Map Link */}
-      <Link
-        href={`/users/${userId}/map`}
-        className="block bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-gray-700">制覇マップを見る</span>
-          <span className="text-gray-400">→</span>
-        </div>
-      </Link>
-
-      {/* My Best */}
-      <MyBestDisplay userId={userId} editable={isOwnProfile} />
-
-      {/* Badges */}
-      {badges && badges.length > 0 && (
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h2 className="font-bold text-gray-900 mb-3">獲得バッジ</h2>
-          <BadgeDisplay userBadges={badges} />
+      {/* Private Account Message */}
+      {!canView && !isOwnProfile && (
+        <div className="bg-white rounded-xl p-8 text-center shadow-sm">
+          <Lock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium">このアカウントは非公開です</p>
+          <p className="text-sm text-gray-400 mt-1">
+            フォローすると記録を見ることができます
+          </p>
         </div>
       )}
 
-      {/* Records */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-gray-900">記録</h2>
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("gallery")}
-              className={cn(
-                "p-1.5 rounded",
-                viewMode === "gallery"
-                  ? "bg-white text-orange-500 shadow-sm"
-                  : "text-gray-400"
-              )}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-1.5 rounded",
-                viewMode === "list"
-                  ? "bg-white text-orange-500 shadow-sm"
-                  : "text-gray-400"
-              )}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+      {/* Content visible only when allowed */}
+      {canView && (
+        <>
+          {/* Rank Display */}
+          <RankDisplay shopCount={shopCount} />
 
-        {viewMode === "gallery" ? (
-          <div className="bg-white rounded-xl overflow-hidden shadow-sm">
-            <Gallery noodles={galleryNoodles || []} />
+          {/* Conquest Map Link */}
+          <Link
+            href={`/users/${userId}/map`}
+            className="block bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-gray-700">制覇マップを見る</span>
+              <span className="text-gray-400">→</span>
+            </div>
+          </Link>
+
+          {/* My Best */}
+          <MyBestDisplay userId={userId} editable={isOwnProfile} />
+
+          {/* Badges */}
+          {badges && badges.length > 0 && (
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <h2 className="font-bold text-gray-900 mb-3">獲得バッジ</h2>
+              <BadgeDisplay userBadges={badges} />
+            </div>
+          )}
+
+          {/* Records */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-gray-900">記録</h2>
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("gallery")}
+                  className={cn(
+                    "p-1.5 rounded",
+                    viewMode === "gallery"
+                      ? "bg-white text-orange-500 shadow-sm"
+                      : "text-gray-400"
+                  )}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-1.5 rounded",
+                    viewMode === "list"
+                      ? "bg-white text-orange-500 shadow-sm"
+                      : "text-gray-400"
+                  )}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {viewMode === "gallery" ? (
+              <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+                <Gallery noodles={galleryNoodles || []} />
+              </div>
+            ) : noodles && noodles.length > 0 ? (
+              <div className="space-y-3">
+                {noodles.map((noodle) => (
+                  <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={currentUser?._id} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-8 text-center">
+                <p className="text-gray-500">まだ記録がありません</p>
+              </div>
+            )}
           </div>
-        ) : noodles && noodles.length > 0 ? (
-          <div className="space-y-3">
-            {noodles.map((noodle) => (
-              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={currentUser?._id} />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <p className="text-gray-500">まだ記録がありません</p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Avatar Modal */}
       <Dialog.Root open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>

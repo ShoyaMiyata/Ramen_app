@@ -48,11 +48,20 @@ export const getShopVisits = query({
       .sort((a, b) => b.shopCount - a.shopCount)
       .slice(0, limit);
 
-    return ranking.map((r, index) => ({
-      rank: index + 1,
-      user: r.user,
-      shopCount: r.shopCount,
-    }));
+    // 同率順位を考慮したランキング
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    return ranking.map((r, index) => {
+      if (prevValue !== null && r.shopCount < prevValue) {
+        currentRank = index + 1;
+      }
+      prevValue = r.shopCount;
+      return {
+        rank: currentRank,
+        user: r.user,
+        shopCount: r.shopCount,
+      };
+    });
   },
 });
 
@@ -97,11 +106,20 @@ export const getPostCounts = query({
       .sort((a, b) => b.postCount - a.postCount)
       .slice(0, limit);
 
-    return ranking.map((r, index) => ({
-      rank: index + 1,
-      user: r.user,
-      postCount: r.postCount,
-    }));
+    // 同率順位を考慮したランキング
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    return ranking.map((r, index) => {
+      if (prevValue !== null && r.postCount < prevValue) {
+        currentRank = index + 1;
+      }
+      prevValue = r.postCount;
+      return {
+        rank: currentRank,
+        user: r.user,
+        postCount: r.postCount,
+      };
+    });
   },
 });
 
@@ -155,13 +173,22 @@ export const getPopularPosts = query({
       .sort((a, b) => b.likeCount - a.likeCount)
       .slice(0, limit);
 
-    return ranking.map((r, index) => ({
-      rank: index + 1,
-      noodle: r.noodle,
-      user: r.user,
-      shop: r.shop,
-      likeCount: r.likeCount,
-    }));
+    // 同率順位を考慮したランキング
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    return ranking.map((r, index) => {
+      if (prevValue !== null && r.likeCount < prevValue) {
+        currentRank = index + 1;
+      }
+      prevValue = r.likeCount;
+      return {
+        rank: currentRank,
+        noodle: r.noodle,
+        user: r.user,
+        shop: r.shop,
+        likeCount: r.likeCount,
+      };
+    });
   },
 });
 
@@ -211,11 +238,20 @@ export const getPopularUsers = query({
       .sort((a, b) => b.likeCount - a.likeCount)
       .slice(0, limit);
 
-    return ranking.map((r, index) => ({
-      rank: index + 1,
-      user: r.user,
-      likeCount: r.likeCount,
-    }));
+    // 同率順位を考慮したランキング
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    return ranking.map((r, index) => {
+      if (prevValue !== null && r.likeCount < prevValue) {
+        currentRank = index + 1;
+      }
+      prevValue = r.likeCount;
+      return {
+        rank: currentRank,
+        user: r.user,
+        likeCount: r.likeCount,
+      };
+    });
   },
 });
 
@@ -242,7 +278,7 @@ export const getMenfluencerRank = query({
     const users = await ctx.db.query("users").collect();
     const activeUsers = users.filter((u) => !u.deletedAt);
 
-    const ranking = Array.from(userLikes.entries())
+    const sortedRanking = Array.from(userLikes.entries())
       .map(([userId, count]) => ({
         userId,
         likeCount: count,
@@ -250,17 +286,29 @@ export const getMenfluencerRank = query({
       .filter((r) => activeUsers.some((u) => u._id === r.userId))
       .sort((a, b) => b.likeCount - a.likeCount);
 
-    const userRankIndex = ranking.findIndex((r) => r.userId === args.userId);
+    // 同率順位を考慮したランキングを計算
+    const rankingWithRank: Array<{ userId: string; likeCount: number; rank: number }> = [];
+    let currentRank = 1;
+    let prevValue: number | null = null;
+    sortedRanking.forEach((r, index) => {
+      if (prevValue !== null && r.likeCount < prevValue) {
+        currentRank = index + 1;
+      }
+      prevValue = r.likeCount;
+      rankingWithRank.push({ ...r, rank: currentRank });
+    });
 
-    if (userRankIndex === -1) {
+    const userRankData = rankingWithRank.find((r) => r.userId === args.userId);
+
+    if (!userRankData) {
       return null; // ランキングに入っていない
     }
 
     return {
-      rank: userRankIndex + 1,
-      likeCount: ranking[userRankIndex].likeCount,
-      isMenbassador: userRankIndex === 0, // 1位は麺バサダー
-      isMenfluencer: userRankIndex >= 0, // ランキングに入っていれば麺フルエンサー
+      rank: userRankData.rank,
+      likeCount: userRankData.likeCount,
+      isMenbassador: userRankData.rank === 1, // 1位は麺バサダー（同率1位も含む）
+      isMenfluencer: userRankData.rank >= 1, // ランキングに入っていれば麺フルエンサー
     };
   },
 });

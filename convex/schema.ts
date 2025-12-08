@@ -13,6 +13,7 @@ export default defineSchema({
     selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
     isAdmin: v.optional(v.boolean()), // 管理者フラグ
     onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
+    isPrivate: v.optional(v.boolean()), // 鍵アカウントフラグ
   })
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"]),
@@ -75,6 +76,19 @@ export default defineSchema({
     .index("by_followerId", ["followerId"])
     .index("by_followingId", ["followingId"])
     .index("by_follower_following", ["followerId", "followingId"]),
+
+  // フォローリクエスト（鍵アカウント用）
+  followRequests: defineTable({
+    requesterId: v.id("users"), // リクエストする人
+    targetId: v.id("users"), // リクエストされる人
+    status: v.string(), // "pending" | "approved" | "rejected"
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_requesterId", ["requesterId"])
+    .index("by_targetId", ["targetId"])
+    .index("by_requester_target", ["requesterId", "targetId"])
+    .index("by_targetId_status", ["targetId", "status"]),
 
   // 麺テナンス（改善要望）
   feedbacks: defineTable({
