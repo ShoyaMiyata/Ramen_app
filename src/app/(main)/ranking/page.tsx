@@ -190,19 +190,19 @@ function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: 
             href={`/users/${item.user?._id}`}
             className={cn(
               "bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors",
-              index < 3 && "ring-2",
-              index === 0 && "ring-yellow-400",
-              index === 1 && "ring-gray-300",
-              index === 2 && "ring-amber-600"
+              item.rank <= 3 && "ring-2",
+              item.rank === 1 && "ring-yellow-400",
+              item.rank === 2 && "ring-gray-300",
+              item.rank === 3 && "ring-amber-600"
             )}
           >
             <div
               className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0",
-                index === 0 && "bg-yellow-400 text-white",
-                index === 1 && "bg-gray-300 text-gray-700",
-                index === 2 && "bg-amber-600 text-white",
-                index >= 3 && "bg-gray-100 text-gray-500"
+                item.rank === 1 && "bg-yellow-400 text-white",
+                item.rank === 2 && "bg-gray-300 text-gray-700",
+                item.rank === 3 && "bg-amber-600 text-white",
+                item.rank >= 4 && "bg-gray-100 text-gray-500"
               )}
             >
               {item.rank}
@@ -293,19 +293,19 @@ function PostRankingList({ ranking }: PostRankingListProps) {
           href={`/noodles/${item.noodle?._id}`}
           className={cn(
             "bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors",
-            index < 3 && "ring-2",
-            index === 0 && "ring-yellow-400",
-            index === 1 && "ring-gray-300",
-            index === 2 && "ring-amber-600"
+            item.rank <= 3 && "ring-2",
+            item.rank === 1 && "ring-yellow-400",
+            item.rank === 2 && "ring-gray-300",
+            item.rank === 3 && "ring-amber-600"
           )}
         >
           <div
             className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0",
-              index === 0 && "bg-yellow-400 text-white",
-              index === 1 && "bg-gray-300 text-gray-700",
-              index === 2 && "bg-amber-600 text-white",
-              index >= 3 && "bg-gray-100 text-gray-500"
+              item.rank === 1 && "bg-yellow-400 text-white",
+              item.rank === 2 && "bg-gray-300 text-gray-700",
+              item.rank === 3 && "bg-amber-600 text-white",
+              item.rank >= 4 && "bg-gray-100 text-gray-500"
             )}
           >
             {item.rank}
