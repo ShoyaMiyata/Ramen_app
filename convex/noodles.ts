@@ -1,6 +1,23 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+// フォロー機能が有効かどうかを確認するヘルパー
+async function isFollowEnabled(ctx: { db: any }) {
+  const setting = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q: any) => q.eq("key", "followEnabled"))
+    .unique();
+
+  // 設定がない場合はデフォルトで有効
+  if (!setting) return true;
+
+  try {
+    return JSON.parse(setting.value) === true;
+  } catch {
+    return true;
+  }
+}
+
 export const list = query({
   args: {
     genres: v.optional(v.array(v.string())),
@@ -18,37 +35,42 @@ export const list = query({
 
     let noodles = await ctx.db.query("noodles").order("desc").collect();
 
-    // 鍵アカウントのユーザーの投稿をフィルタリング
+    // ユーザー情報を取得（後でエンリッチメントにも使用）
     const users = await ctx.db.query("users").collect();
     const userMap = new Map(users.map((u) => [u._id, u]));
 
-    // 閲覧者がフォローしているユーザーのIDを取得
-    let followingIds: Set<string> = new Set();
-    if (args.viewerId) {
-      const following = await ctx.db
-        .query("follows")
-        .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
-        .collect();
-      followingIds = new Set(following.map((f) => f.followingId));
+    // フォロー機能が無効の場合は鍵アカウントのフィルタリングをスキップ
+    const followEnabled = await isFollowEnabled(ctx);
+
+    if (followEnabled) {
+      // 閲覧者がフォローしているユーザーのIDを取得
+      let followingIds: Set<string> = new Set();
+      if (args.viewerId) {
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
+          .collect();
+        followingIds = new Set(following.map((f) => f.followingId));
+      }
+
+      // 鍵アカウントのユーザーの投稿を除外（自分・フォロー中は除く）
+      noodles = noodles.filter((noodle) => {
+        const noodleUser = userMap.get(noodle.userId);
+        if (!noodleUser) return false;
+
+        // 公開アカウントは表示
+        if (!noodleUser.isPrivate) return true;
+
+        // 自分の投稿は表示
+        if (args.viewerId && noodle.userId === args.viewerId) return true;
+
+        // フォローしているユーザーの投稿は表示
+        if (args.viewerId && followingIds.has(noodle.userId)) return true;
+
+        // それ以外の鍵アカウントの投稿は非表示
+        return false;
+      });
     }
-
-    // 鍵アカウントのユーザーの投稿を除外（自分・フォロー中は除く）
-    noodles = noodles.filter((noodle) => {
-      const noodleUser = userMap.get(noodle.userId);
-      if (!noodleUser) return false;
-
-      // 公開アカウントは表示
-      if (!noodleUser.isPrivate) return true;
-
-      // 自分の投稿は表示
-      if (args.viewerId && noodle.userId === args.viewerId) return true;
-
-      // フォローしているユーザーの投稿は表示
-      if (args.viewerId && followingIds.has(noodle.userId)) return true;
-
-      // それ以外の鍵アカウントの投稿は非表示
-      return false;
-    });
 
     // Filter by genres
     if (args.genres && args.genres.length > 0) {
@@ -87,7 +109,6 @@ export const list = query({
     const hasMore = offset + limit < totalCount;
 
     // Enrich with user and shop data and image URLs
-    // userMap は既に上で作成済み
     const shops = await ctx.db.query("shops").collect();
     const shopMap = new Map(shops.map((s) => [s._id, s]));
 

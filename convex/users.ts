@@ -288,6 +288,23 @@ export const updatePrivacy = mutation({
   },
 });
 
+// フォロー機能が有効かどうかを確認するヘルパー
+async function isFollowEnabled(ctx: { db: any }) {
+  const setting = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q: any) => q.eq("key", "followEnabled"))
+    .unique();
+
+  // 設定がない場合はデフォルトで有効
+  if (!setting) return true;
+
+  try {
+    return JSON.parse(setting.value) === true;
+  } catch {
+    return true;
+  }
+}
+
 // プロフィール閲覧権限をチェック
 export const canViewProfile = query({
   args: {
@@ -298,6 +315,12 @@ export const canViewProfile = query({
     const targetUser = await ctx.db.get(args.targetUserId);
     if (!targetUser || targetUser.deletedAt) {
       return { canView: false, reason: "user_not_found" as const };
+    }
+
+    // フォロー機能が無効の場合は全員閲覧可能（鍵アカウント制限も無効化）
+    const followEnabled = await isFollowEnabled(ctx);
+    if (!followEnabled) {
+      return { canView: true, reason: "follow_disabled" as const };
     }
 
     // 公開アカウントなら誰でも閲覧可能
