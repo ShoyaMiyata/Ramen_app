@@ -116,7 +116,9 @@ export default function HomePage() {
             </button>
           )}
           <div>
-            <h1 className="font-bold text-xl text-gray-900">{user.name || "ユーザー"}</h1>
+            <Link href={`/users/${user._id}`}>
+              <h1 className="font-bold text-xl text-gray-900 hover:underline">{user.name || "ユーザー"}</h1>
+            </Link>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span>{postCount}杯を制覇</span>
               <span className="text-gray-300">|</span>

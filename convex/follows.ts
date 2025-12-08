@@ -33,12 +33,6 @@ export const follow = mutation({
     followingId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    // フォロー機能が無効の場合はエラー
-    const followEnabled = await isFollowEnabled(ctx);
-    if (!followEnabled) {
-      throw new Error("フォロー機能は現在メンテナンス中です");
-    }
-
     // 自分自身はフォローできない
     if (args.followerId === args.followingId) {
       throw new Error("Cannot follow yourself");

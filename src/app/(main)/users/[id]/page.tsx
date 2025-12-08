@@ -74,9 +74,10 @@ export default function UserProfilePage({
   const follow = useMutation(api.follows.follow);
   const unfollow = useMutation(api.follows.unfollow);
 
-  // followRequestStatus が更新されたらオプティミスティックな状態をリセット
+  // followRequestStatus が確定したらオプティミスティックな状態をリセット
+  // ただし pending の場合はリセットしない（リクエスト中を維持）
   useEffect(() => {
-    if (followRequestStatus !== undefined) {
+    if (followRequestStatus !== undefined && followRequestStatus !== "pending") {
       setOptimisticRequestPending(false);
     }
   }, [followRequestStatus]);
