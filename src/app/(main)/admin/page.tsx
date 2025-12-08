@@ -942,7 +942,7 @@ export default function AdminPage() {
                   <div>
                     <h3 className="font-medium text-gray-900">フォロー機能</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      オフにすると、全ユーザーがフォローできなくなります
+                      オフにすると、鍵アカウントの閲覧制限が解除されます
                     </p>
                   </div>
                   <button
@@ -965,7 +965,7 @@ export default function AdminPage() {
                 {!followEnabled && (
                   <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
                     <p className="text-xs text-yellow-700">
-                      ⚠️ フォロー機能は現在無効です。ユーザーはフォロー操作ができません。
+                      ⚠️ フォロー機能は現在無効です。鍵アカウントの閲覧制限が解除され、全ユーザーの投稿が公開されています。
                     </p>
                   </div>
                 )}
