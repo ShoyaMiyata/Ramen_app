@@ -367,3 +367,27 @@ export const getCounts = query({
     };
   },
 });
+
+// フォロワーを削除（自分をフォローしている人を解除）
+export const removeFollower = mutation({
+  args: {
+    userId: v.id("users"), // 自分（フォローされている側）
+    followerId: v.id("users"), // 削除したいフォロワー
+  },
+  handler: async (ctx, args) => {
+    // フォロー関係を確認
+    const existing = await ctx.db
+      .query("follows")
+      .withIndex("by_follower_following", (q) =>
+        q.eq("followerId", args.followerId).eq("followingId", args.userId)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      return { success: true };
+    }
+
+    return { success: false, message: "フォロー関係が見つかりません" };
+  },
+});

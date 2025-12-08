@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 type ViewMode = "list" | "gallery";
 
 export default function HomePage() {
-  const { user, isLoaded } = useCurrentUser();
+  const { user, realUser, isLoaded, isTestMode } = useViewingUser();
   const { shopCount, postCount, badges, isLoading: statsLoading } = useUserStats(
     user?._id
   );
@@ -76,28 +76,45 @@ export default function HomePage() {
       {/* User Info */}
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => {
-              setEditName(user.name || "");
-              setIsEditNameOpen(true);
-            }}
-            className="relative group"
-          >
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={user.name || ""}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-                <User className="w-8 h-8 text-gray-400" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Pencil className="w-5 h-5 text-white" />
+          {isTestMode ? (
+            // テストモード時は編集不可
+            <div className="relative">
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={user.name || ""}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+              )}
             </div>
-          </button>
+          ) : (
+            <button
+              onClick={() => {
+                setEditName(user.name || "");
+                setIsEditNameOpen(true);
+              }}
+              className="relative group"
+            >
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={user.name || ""}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Pencil className="w-5 h-5 text-white" />
+              </div>
+            </button>
+          )}
           <div>
             <h1 className="font-bold text-xl text-gray-900">{user.name || "ユーザー"}</h1>
             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -298,16 +315,18 @@ export default function HomePage() {
         earnedBadgeCodes={badges.map((b) => b.badgeCode)}
       />
 
-      {/* New Record Button */}
-      <Link href="/noodles/new">
-        <Button
-          className="w-full gap-2 text-white"
-          style={{ backgroundColor: themeColor }}
-        >
-          <Plus className="w-5 h-5" />
-          一杯を記録する
-        </Button>
-      </Link>
+      {/* New Record Button (テストモード時は非表示) */}
+      {!isTestMode && (
+        <Link href="/noodles/new">
+          <Button
+            className="w-full gap-2 text-white"
+            style={{ backgroundColor: themeColor }}
+          >
+            <Plus className="w-5 h-5" />
+            一杯を記録する
+          </Button>
+        </Link>
+      )}
 
       {/* Records */}
       <div>
@@ -398,7 +417,7 @@ export default function HomePage() {
           <Wrench className="w-3 h-3" />
           <span>麺テナンス</span>
         </Link>
-        {user?.isAdmin && (
+        {realUser?.isAdmin && (
           <>
             <span>|</span>
             <Link

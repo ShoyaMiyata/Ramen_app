@@ -25,7 +25,9 @@ import {
   Settings,
   Send,
   Search,
+  Eye,
 } from "lucide-react";
+import { useTestUser } from "@/contexts/TestUserContext";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils/cn";
 
@@ -49,6 +51,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { isAdmin, isLoading, user } = useAdmin();
   const { themeColor } = useTheme();
+  const { setTestUserId } = useTestUser();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "user" | "noodle" | "feedback";
@@ -536,7 +539,21 @@ export default function AdminPage() {
                       投稿: {u.postCount}件
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    {/* テスト閲覧ボタン */}
+                    {!u.deletedAt && !u.isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setTestUserId(u._id as Id<"users">);
+                          router.push("/");
+                        }}
+                        className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                    )}
                     {u.deletedAt ? (
                       <Button
                         size="sm"

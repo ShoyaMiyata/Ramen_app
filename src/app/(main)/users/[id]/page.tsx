@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { use } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
@@ -35,6 +35,7 @@ export default function UserProfilePage({
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [optimisticRequestPending, setOptimisticRequestPending] = useState(false);
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
@@ -72,6 +73,14 @@ export default function UserProfilePage({
 
   const follow = useMutation(api.follows.follow);
   const unfollow = useMutation(api.follows.unfollow);
+
+  // followRequestStatus が更新されたらオプティミスティックな状態をリセット
+  useEffect(() => {
+    if (followRequestStatus !== undefined) {
+      setOptimisticRequestPending(false);
+    }
+  }, [followRequestStatus]);
+
   const menfluencerRank = useQuery(
     api.ranking.getMenfluencerRank,
     canViewProfile?.canView ? { userId } : "skip"
@@ -98,7 +107,7 @@ export default function UserProfilePage({
     : 0;
   const isPrivateAccount = profileUser?.isPrivate ?? false;
   const canView = canViewProfile?.canView ?? false;
-  const isRequestPending = followRequestStatus === "pending";
+  const isRequestPending = followRequestStatus === "pending" || optimisticRequestPending;
 
   const handleFollowToggle = async () => {
     if (!currentUser) return;
@@ -107,8 +116,17 @@ export default function UserProfilePage({
     try {
       if (isFollowing) {
         await unfollow({ followerId: currentUser._id, followingId: userId });
+        setOptimisticRequestPending(false);
+      } else if (isRequestPending) {
+        // リクエスト中の場合はキャンセル
+        await unfollow({ followerId: currentUser._id, followingId: userId });
+        setOptimisticRequestPending(false);
       } else {
-        await follow({ followerId: currentUser._id, followingId: userId });
+        const result = await follow({ followerId: currentUser._id, followingId: userId });
+        // 鍵アカウントへのリクエストの場合、即座にUIを更新
+        if (result?.type === "request_sent" || result?.type === "request_pending") {
+          setOptimisticRequestPending(true);
+        }
       }
     } finally {
       setIsSubmitting(false);
