@@ -70,9 +70,21 @@ export const follow = mutation({
         if (existingRequest.status === "pending") {
           return { type: "request_pending" as const, id: existingRequest._id };
         }
-        // approved の場合は既にフォロー関係があるはず（念のため確認）
+        // approved の場合は既にフォロー関係があるか確認
         if (existingRequest.status === "approved") {
-          return { type: "already_approved" as const, id: existingRequest._id };
+          // フォロー関係が存在するか確認（フォロー解除後は存在しない）
+          const followExists = await ctx.db
+            .query("follows")
+            .withIndex("by_follower_following", (q) =>
+              q.eq("followerId", args.followerId).eq("followingId", args.followingId)
+            )
+            .first();
+
+          if (followExists) {
+            return { type: "already_approved" as const, id: existingRequest._id };
+          }
+          // フォロー関係がない場合は、承認済みリクエストを削除して新規リクエストを作成
+          await ctx.db.delete(existingRequest._id);
         }
         // rejected の場合は再度リクエスト可能にする
         if (existingRequest.status === "rejected") {
@@ -175,6 +187,18 @@ export const unfollow = mutation({
 
     if (existing) {
       await ctx.db.delete(existing._id);
+
+      // フォロー解除時に承認済みのリクエストも削除（再フォロー可能にするため）
+      const existingRequest = await ctx.db
+        .query("followRequests")
+        .withIndex("by_requester_target", (q) =>
+          q.eq("requesterId", args.followerId).eq("targetId", args.followingId)
+        )
+        .first();
+
+      if (existingRequest && existingRequest.status === "approved") {
+        await ctx.db.delete(existingRequest._id);
+      }
       return;
     }
 

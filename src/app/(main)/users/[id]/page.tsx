@@ -77,7 +77,9 @@ export default function UserProfilePage({
   // followRequestStatus が確定したらオプティミスティックな状態をリセット
   // ただし pending の場合はリセットしない（リクエスト中を維持）
   useEffect(() => {
+    console.log("[Follow] useEffect: followRequestStatus =", followRequestStatus, "optimisticRequestPending =", optimisticRequestPending);
     if (followRequestStatus !== undefined && followRequestStatus !== "pending") {
+      console.log("[Follow] Resetting optimisticRequestPending to false");
       setOptimisticRequestPending(false);
     }
   }, [followRequestStatus]);
@@ -124,9 +126,11 @@ export default function UserProfilePage({
         setOptimisticRequestPending(false);
       } else {
         const result = await follow({ followerId: currentUser._id, followingId: userId });
+        console.log("[Follow] result:", result, "isPrivate:", isPrivateAccount);
         // 鍵アカウントへのリクエストの場合、即座にUIを更新
         if (result?.type === "request_sent" || result?.type === "request_pending") {
           setOptimisticRequestPending(true);
+          console.log("[Follow] Setting optimisticRequestPending to true");
         }
       }
     } finally {
@@ -240,7 +244,7 @@ export default function UserProfilePage({
               variant={isFollowing || isRequestPending ? "outline" : "default"}
               className="flex-1"
               onClick={handleFollowToggle}
-              disabled={isSubmitting || isFollowing === undefined || optimisticRequestPending}
+              disabled={isSubmitting || isFollowing === undefined}
             >
               {isFollowing ? (
                 "フォロー中"
