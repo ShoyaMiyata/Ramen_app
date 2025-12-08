@@ -62,9 +62,10 @@ export default function UserProfilePage({
       ? { followerId: currentUser._id, followingId: userId }
       : "skip"
   );
+  // 鍵アカウントに関わらずリクエスト状態を取得（拒否後の再リクエスト対応）
   const followRequestStatus = useQuery(
     api.follows.getFollowRequestStatus,
-    currentUser?._id && profileUser?.isPrivate
+    currentUser?._id
       ? { requesterId: currentUser._id, targetId: userId }
       : "skip"
   );

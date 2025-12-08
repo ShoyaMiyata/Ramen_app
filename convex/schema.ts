@@ -114,14 +114,24 @@ export default defineSchema({
   // 通知
   notifications: defineTable({
     userId: v.id("users"), // 通知を受け取るユーザー
-    type: v.string(), // "follow", "like", "comment", "message" など
-    fromUserId: v.id("users"), // 通知を発生させたユーザー
+    type: v.string(), // "follow", "like", "comment", "message", "admin_announcement" など
+    fromUserId: v.optional(v.id("users")), // 通知を発生させたユーザー（管理者通知はなし）
     targetId: v.optional(v.string()), // 対象のID（noodleIdなど）
+    title: v.optional(v.string()), // 管理者通知用タイトル
+    message: v.optional(v.string()), // 管理者通知用メッセージ
     isRead: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_userId", ["userId"])
     .index("by_userId_isRead", ["userId", "isRead"]),
+
+  // アプリ設定（グローバル設定）
+  appSettings: defineTable({
+    key: v.string(), // 設定キー（"followEnabled" など）
+    value: v.string(), // 設定値（JSON文字列）
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.id("users")), // 更新した管理者
+  }).index("by_key", ["key"]),
 
   // 投稿へのコメント
   comments: defineTable({

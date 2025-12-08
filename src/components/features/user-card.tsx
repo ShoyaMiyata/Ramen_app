@@ -30,9 +30,10 @@ export function UserCard({
       ? { followerId: currentUserId, followingId: user._id }
       : "skip"
   );
+  // 鍵アカウントに関わらずリクエスト状態を取得（拒否後の再リクエスト対応）
   const followRequestStatus = useQuery(
     api.follows.getFollowRequestStatus,
-    currentUserId && user.isPrivate
+    currentUserId
       ? { requesterId: currentUserId, targetId: user._id }
       : "skip"
   );

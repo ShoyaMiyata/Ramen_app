@@ -114,92 +114,132 @@ export function Header() {
                           ))}
                         </div>
                       ) : notifications.length > 0 ? (
-                        notifications.map((notification) => (
-                          <Link
-                            key={notification._id}
-                            href={
-                              notification.type === "message"
-                                ? `/chat/${notification.targetId}`
-                                : notification.type === "comment" || notification.type === "like"
-                                  ? `/noodles/${notification.targetId}`
-                                  : notification.type === "follow_request"
-                                    ? `/follow-requests`
-                                    : `/users/${notification.fromUserId}`
-                            }
-                            onClick={() => setIsNotificationOpen(false)}
-                            className={cn(
-                              "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0",
-                              !notification.isRead && "bg-orange-50/50"
-                            )}
-                          >
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: `${themeColor}20` }}
-                            >
-                              {notification.fromUser?.imageUrl ? (
-                                <img
-                                  src={notification.fromUser.imageUrl}
-                                  alt=""
-                                  className="w-10 h-10 rounded-full object-cover"
-                                />
-                              ) : notification.type === "message" ? (
-                                <MessageSquare className="w-5 h-5" style={{ color: themeColor }} />
-                              ) : notification.type === "comment" ? (
-                                <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
-                              ) : notification.type === "like" ? (
-                                <Heart className="w-5 h-5" style={{ color: themeColor }} />
-                              ) : (
-                                <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-900">
-                                <span className="font-medium">
-                                  {notification.fromUser?.name || "ユーザー"}
-                                </span>
-                                {notification.type === "follow" && (
-                                  <span className="text-gray-600">
-                                    さんがあなたをフォローしました
-                                  </span>
-                                )}
-                                {notification.type === "follow_request" && (
-                                  <span className="text-gray-600">
-                                    さんからフォローリクエストが届きました
-                                  </span>
-                                )}
-                                {notification.type === "follow_request_approved" && (
-                                  <span className="text-gray-600">
-                                    さんがフォローリクエストを承認しました
-                                  </span>
-                                )}
-                                {notification.type === "like" && (
-                                  <span className="text-gray-600">
-                                    さんがあなたの投稿にいいねしました
-                                  </span>
-                                )}
-                                {notification.type === "comment" && (
-                                  <span className="text-gray-600">
-                                    さんがあなたの投稿にコメントしました
-                                  </span>
-                                )}
-                                {notification.type === "message" && (
-                                  <span className="text-gray-600">
-                                    さんからメッセージが届きました
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                {formatTime(notification.createdAt)}
-                              </p>
-                            </div>
-                            {!notification.isRead && (
+                        notifications.map((notification) => {
+                          // 管理者通知はリンクなし
+                          const isAdminAnnouncement = notification.type === "admin_announcement";
+                          const href = isAdminAnnouncement
+                            ? "#"
+                            : notification.type === "message"
+                              ? `/chat/${notification.targetId}`
+                              : notification.type === "comment" || notification.type === "like"
+                                ? `/noodles/${notification.targetId}`
+                                : notification.type === "follow_request"
+                                  ? `/follow-requests`
+                                  : `/users/${notification.fromUserId}`;
+
+                          const handleClick = () => {
+                            setIsNotificationOpen(false);
+                          };
+
+                          const content = (
+                            <>
                               <div
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: themeColor }}
-                              />
-                            )}
-                          </Link>
-                        ))
+                                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: isAdminAnnouncement ? "#8B5CF620" : `${themeColor}20` }}
+                              >
+                                {notification.fromUser?.imageUrl ? (
+                                  <img
+                                    src={notification.fromUser.imageUrl}
+                                    alt=""
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
+                                ) : notification.type === "admin_announcement" ? (
+                                  <Bell className="w-5 h-5 text-purple-500" />
+                                ) : notification.type === "message" ? (
+                                  <MessageSquare className="w-5 h-5" style={{ color: themeColor }} />
+                                ) : notification.type === "comment" ? (
+                                  <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
+                                ) : notification.type === "like" ? (
+                                  <Heart className="w-5 h-5" style={{ color: themeColor }} />
+                                ) : (
+                                  <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {notification.type === "admin_announcement" ? (
+                                  <>
+                                    <p className="text-sm font-medium text-purple-700">
+                                      {notification.title}
+                                    </p>
+                                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                                      {notification.message}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-gray-900">
+                                    <span className="font-medium">
+                                      {notification.fromUser?.name || "ユーザー"}
+                                    </span>
+                                    {notification.type === "follow" && (
+                                      <span className="text-gray-600">
+                                        さんがあなたをフォローしました
+                                      </span>
+                                    )}
+                                    {notification.type === "follow_request" && (
+                                      <span className="text-gray-600">
+                                        さんからフォローリクエストが届きました
+                                      </span>
+                                    )}
+                                    {notification.type === "follow_request_approved" && (
+                                      <span className="text-gray-600">
+                                        さんがフォローリクエストを承認しました
+                                      </span>
+                                    )}
+                                    {notification.type === "like" && (
+                                      <span className="text-gray-600">
+                                        さんがあなたの投稿にいいねしました
+                                      </span>
+                                    )}
+                                    {notification.type === "comment" && (
+                                      <span className="text-gray-600">
+                                        さんがあなたの投稿にコメントしました
+                                      </span>
+                                    )}
+                                    {notification.type === "message" && (
+                                      <span className="text-gray-600">
+                                        さんからメッセージが届きました
+                                      </span>
+                                    )}
+                                  </p>
+                                )}
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {formatTime(notification.createdAt)}
+                                </p>
+                              </div>
+                              {!notification.isRead && (
+                                <div
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: isAdminAnnouncement ? "#8B5CF6" : themeColor }}
+                                />
+                              )}
+                            </>
+                          );
+
+                          return isAdminAnnouncement ? (
+                            <div
+                              key={notification._id}
+                              onClick={handleClick}
+                              className={cn(
+                                "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 cursor-default",
+                                !notification.isRead && "bg-purple-50/50"
+                              )}
+                            >
+                              {content}
+                            </div>
+                          ) : (
+                            <Link
+                              key={notification._id}
+                              href={href}
+                              onClick={handleClick}
+                              className={cn(
+                                "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0",
+                                !notification.isRead && "bg-orange-50/50"
+                              )}
+                            >
+                              {content}
+                            </Link>
+                          );
+                        })
                       ) : (
                         <div className="p-8 text-center">
                           <Bell className="w-10 h-10 text-gray-200 mx-auto mb-2" />

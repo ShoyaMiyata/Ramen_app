@@ -6,8 +6,10 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useTheme } from "@/contexts/ThemeContext";
-import { LoadingPage } from "@/components/ui/loading";
+import { LoadingPage, Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Id } from "../../../../convex/_generated/dataModel";
 import {
   Users,
@@ -19,10 +21,15 @@ import {
   AlertTriangle,
   CheckSquare,
   Square,
+  Bell,
+  Settings,
+  Send,
+  Search,
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils/cn";
 
-type Tab = "overview" | "users" | "noodles" | "feedbacks";
+type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings";
 
 const FEEDBACK_STATUSES = [
   { value: "new", label: "新規", color: "#3B82F6" },
@@ -58,6 +65,17 @@ export default function AdminPage() {
     count: number;
   } | null>(null);
 
+  // 通知送信用state
+  const [notificationTitle, setNotificationTitle] = useState("");
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
+
+  // 設定更新用state
+  const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
+
   // 管理者用API
   const stats = useQuery(
     api.admin.getStats,
@@ -84,6 +102,20 @@ export default function AdminPage() {
   const bulkSoftDeleteUsers = useMutation(api.admin.bulkSoftDeleteUsers);
   const bulkDeleteNoodles = useMutation(api.admin.bulkDeleteNoodles);
   const bulkDeleteFeedbacks = useMutation(api.admin.bulkDeleteFeedbacks);
+
+  // 通知・設定用API
+  const usersForNotification = useQuery(
+    api.admin.listUsersForNotification,
+    user?._id && activeTab === "notifications" ? { adminUserId: user._id } : "skip"
+  );
+  const appSettings = useQuery(
+    api.admin.getAllAppSettings,
+    user?._id && activeTab === "settings" ? { adminUserId: user._id } : "skip"
+  );
+  const followEnabled = useQuery(api.follows.getFollowEnabled);
+  const sendAnnouncement = useMutation(api.admin.sendAnnouncement);
+  const sendAnnouncementToAll = useMutation(api.admin.sendAnnouncementToAll);
+  const updateAppSetting = useMutation(api.admin.updateAppSetting);
 
   // ローディング中
   if (isLoading) {
@@ -243,11 +275,98 @@ export default function AdminPage() {
     }
   };
 
+  // 通知送信処理
+  const handleSendNotification = async () => {
+    if (!user?._id) return;
+
+    setIsSendingNotification(true);
+    try {
+      if (selectedRecipients.size === 0) {
+        // 全員に送信
+        await sendAnnouncementToAll({
+          adminUserId: user._id,
+          title: notificationTitle,
+          message: notificationMessage,
+        });
+      } else {
+        // 選択したユーザーに送信
+        await sendAnnouncement({
+          adminUserId: user._id,
+          targetUserIds: Array.from(selectedRecipients) as Id<"users">[],
+          title: notificationTitle,
+          message: notificationMessage,
+        });
+      }
+      // 成功後リセット
+      setNotificationTitle("");
+      setNotificationMessage("");
+      setSelectedRecipients(new Set());
+      setShowSendConfirm(false);
+      alert("通知を送信しました");
+    } catch (error) {
+      console.error("Send notification failed:", error);
+      alert("通知の送信に失敗しました");
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
+
+  // 通知先トグル
+  const toggleRecipient = (id: string) => {
+    const newSet = new Set(selectedRecipients);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedRecipients(newSet);
+  };
+
+  // 全員選択/解除
+  const toggleAllRecipients = () => {
+    if (!usersForNotification) return;
+    if (selectedRecipients.size === usersForNotification.length) {
+      setSelectedRecipients(new Set());
+    } else {
+      setSelectedRecipients(new Set(usersForNotification.map((u) => u._id)));
+    }
+  };
+
+  // フォロー機能のオンオフ
+  const handleToggleFollowEnabled = async () => {
+    if (!user?._id || followEnabled === undefined) return;
+
+    setIsUpdatingSetting(true);
+    try {
+      await updateAppSetting({
+        adminUserId: user._id,
+        key: "followEnabled",
+        value: !followEnabled,
+      });
+    } catch (error) {
+      console.error("Update setting failed:", error);
+    } finally {
+      setIsUpdatingSetting(false);
+    }
+  };
+
+  // 検索でフィルタされたユーザー
+  const filteredUsersForNotification = usersForNotification?.filter((u) => {
+    if (!recipientSearch) return true;
+    const search = recipientSearch.toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(search) ||
+      u.email.toLowerCase().includes(search)
+    );
+  });
+
   const tabs = [
     { id: "overview" as Tab, label: "概要", icon: BarChart3 },
     { id: "users" as Tab, label: "ユーザー", icon: Users },
     { id: "noodles" as Tab, label: "投稿", icon: FileText },
-    { id: "feedbacks" as Tab, label: "フィードバック", icon: MessageSquare },
+    { id: "feedbacks" as Tab, label: "FB", icon: MessageSquare },
+    { id: "notifications" as Tab, label: "通知", icon: Bell },
+    { id: "settings" as Tab, label: "設定", icon: Settings },
   ];
 
   return (
@@ -662,6 +781,201 @@ export default function AdminPage() {
               )}
             </div>
           )}
+
+          {/* Notifications Tab */}
+          {activeTab === "notifications" && (
+            <div className="space-y-4">
+              {/* 通知作成フォーム */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    タイトル
+                  </label>
+                  <Input
+                    value={notificationTitle}
+                    onChange={(e) => setNotificationTitle(e.target.value)}
+                    placeholder="お知らせのタイトル"
+                    maxLength={50}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    メッセージ
+                  </label>
+                  <Textarea
+                    value={notificationMessage}
+                    onChange={(e) => setNotificationMessage(e.target.value)}
+                    placeholder="お知らせの内容を入力"
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+
+              {/* 送信先選択 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">
+                    送信先
+                    {selectedRecipients.size > 0 && (
+                      <span className="ml-2 text-xs text-orange-500">
+                        ({selectedRecipients.size}人選択中)
+                      </span>
+                    )}
+                    {selectedRecipients.size === 0 && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        (未選択の場合は全員に送信)
+                      </span>
+                    )}
+                  </label>
+                  {usersForNotification && usersForNotification.length > 0 && (
+                    <button
+                      onClick={toggleAllRecipients}
+                      className="text-xs text-orange-500 hover:text-orange-600"
+                    >
+                      {selectedRecipients.size === usersForNotification.length
+                        ? "全解除"
+                        : "全選択"}
+                    </button>
+                  )}
+                </div>
+
+                {/* 検索 */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    value={recipientSearch}
+                    onChange={(e) => setRecipientSearch(e.target.value)}
+                    placeholder="ユーザー名・メールで検索"
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* ユーザー一覧 */}
+                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                  {filteredUsersForNotification === undefined ? (
+                    <div className="p-4 text-center">
+                      <Loading size="sm" />
+                    </div>
+                  ) : filteredUsersForNotification.length === 0 ? (
+                    <p className="p-4 text-center text-sm text-gray-400">
+                      ユーザーが見つかりません
+                    </p>
+                  ) : (
+                    filteredUsersForNotification.map((u) => (
+                      <button
+                        key={u._id}
+                        onClick={() => toggleRecipient(u._id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-2 hover:bg-gray-50 border-b border-gray-100 last:border-0",
+                          selectedRecipients.has(u._id) && "bg-orange-50"
+                        )}
+                      >
+                        {selectedRecipients.has(u._id) ? (
+                          <CheckSquare className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                        ) : (
+                          <Square className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                        )}
+                        {u.imageUrl ? (
+                          <img
+                            src={u.imageUrl}
+                            alt=""
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                            {u.name?.charAt(0) || "?"}
+                          </div>
+                        )}
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {u.name || "名前なし"}
+                          </p>
+                          <p className="text-[10px] text-gray-400 truncate">
+                            {u.email}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* 送信ボタン */}
+              <Button
+                onClick={() => setShowSendConfirm(true)}
+                disabled={!notificationTitle.trim() || !notificationMessage.trim()}
+                className="w-full"
+                style={{ backgroundColor: themeColor }}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {selectedRecipients.size > 0
+                  ? `${selectedRecipients.size}人に送信`
+                  : "全員に送信"}
+              </Button>
+            </div>
+          )}
+
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              {/* フォロー機能のオンオフ */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900">フォロー機能</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      オフにすると、全ユーザーがフォローできなくなります
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleToggleFollowEnabled}
+                    disabled={isUpdatingSetting || followEnabled === undefined}
+                    className={cn(
+                      "relative w-12 h-7 rounded-full transition-colors flex-shrink-0",
+                      followEnabled ? "bg-green-500" : "bg-gray-300",
+                      isUpdatingSetting && "opacity-50"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform",
+                        followEnabled && "translate-x-5"
+                      )}
+                    />
+                  </button>
+                </div>
+                {!followEnabled && (
+                  <div className="mt-3 p-2 bg-yellow-50 rounded-lg">
+                    <p className="text-xs text-yellow-700">
+                      ⚠️ フォロー機能は現在無効です。ユーザーはフォロー操作ができません。
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 設定一覧（デバッグ用） */}
+              {appSettings && appSettings.length > 0 && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">現在の設定</h3>
+                  <div className="space-y-1 text-xs text-gray-600">
+                    {appSettings.map((s) => (
+                      <div key={s._id} className="flex justify-between">
+                        <span>{s.key}</span>
+                        <span className="font-mono">
+                          {typeof s.parsedValue === "boolean"
+                            ? s.parsedValue
+                              ? "有効"
+                              : "無効"
+                            : String(s.parsedValue)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -753,6 +1067,81 @@ export default function AdminPage() {
                 onClick={handleBulkDelete}
               >
                 一括削除
+              </Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Send Notification Confirmation Dialog */}
+      <Dialog.Root
+        open={showSendConfirm}
+        onOpenChange={setShowSendConfirm}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-50 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: `${themeColor}20` }}
+              >
+                <Bell className="w-5 h-5" style={{ color: themeColor }} />
+              </div>
+              <div>
+                <Dialog.Title className="font-bold text-gray-900">
+                  通知送信確認
+                </Dialog.Title>
+                <Dialog.Description className="text-sm text-gray-500">
+                  以下の内容で通知を送信します
+                </Dialog.Description>
+              </div>
+            </div>
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg space-y-2">
+              <div>
+                <p className="text-[10px] text-gray-500">送信先</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {selectedRecipients.size > 0
+                    ? `${selectedRecipients.size}人`
+                    : "全ユーザー"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500">タイトル</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {notificationTitle}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500">メッセージ</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {notificationMessage}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowSendConfirm(false)}
+                disabled={isSendingNotification}
+              >
+                キャンセル
+              </Button>
+              <Button
+                className="flex-1 text-white"
+                style={{ backgroundColor: themeColor }}
+                onClick={handleSendNotification}
+                disabled={isSendingNotification}
+              >
+                {isSendingNotification ? (
+                  <Loading size="sm" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-1" />
+                    送信
+                  </>
+                )}
               </Button>
             </div>
           </Dialog.Content>

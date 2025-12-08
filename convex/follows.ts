@@ -1,6 +1,31 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+// フォロー機能が有効かどうかを確認するヘルパー
+async function isFollowEnabled(ctx: { db: any }) {
+  const setting = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q: any) => q.eq("key", "followEnabled"))
+    .unique();
+
+  // 設定がない場合はデフォルトで有効
+  if (!setting) return true;
+
+  try {
+    return JSON.parse(setting.value) === true;
+  } catch {
+    return true;
+  }
+}
+
+// フォロー機能が有効かどうかを取得（クライアント用）
+export const getFollowEnabled = query({
+  args: {},
+  handler: async (ctx) => {
+    return await isFollowEnabled(ctx);
+  },
+});
+
 // フォローする（鍵アカウントの場合はリクエストを送信）
 export const follow = mutation({
   args: {
@@ -8,6 +33,12 @@ export const follow = mutation({
     followingId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // フォロー機能が無効の場合はエラー
+    const followEnabled = await isFollowEnabled(ctx);
+    if (!followEnabled) {
+      throw new Error("フォロー機能は現在メンテナンス中です");
+    }
+
     // 自分自身はフォローできない
     if (args.followerId === args.followingId) {
       throw new Error("Cannot follow yourself");

@@ -12,14 +12,19 @@ export const getByUser = query({
       .take(50);
 
     // fromUserIdを収集してバッチ取得（N+1対策）
-    const fromUserIds = [...new Set(notifications.map((n) => n.fromUserId))];
+    // fromUserIdがない通知（管理者通知など）は除外
+    const fromUserIds = [...new Set(
+      notifications
+        .map((n) => n.fromUserId)
+        .filter((id): id is NonNullable<typeof id> => id !== undefined)
+    )];
     const fromUsers = await Promise.all(fromUserIds.map((id) => ctx.db.get(id)));
     const userMap = new Map(fromUserIds.map((id, i) => [id, fromUsers[i]]));
 
     // 通知にユーザー情報をマッピング
     const notificationsWithUser = notifications.map((notification) => ({
       ...notification,
-      fromUser: userMap.get(notification.fromUserId) ?? null,
+      fromUser: notification.fromUserId ? userMap.get(notification.fromUserId) ?? null : null,
     }));
 
     return notificationsWithUser;

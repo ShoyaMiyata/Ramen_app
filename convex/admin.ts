@@ -411,3 +411,195 @@ export const bulkDeleteFeedbacks = mutation({
     return { success: true, deletedCount };
   },
 });
+
+// ======================
+// アプリ設定（グローバル設定）
+// ======================
+
+// アプリ設定を取得
+export const getAppSetting = query({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    const setting = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .unique();
+
+    if (!setting) return null;
+
+    try {
+      return JSON.parse(setting.value);
+    } catch {
+      return setting.value;
+    }
+  },
+});
+
+// 全てのアプリ設定を取得（管理者用）
+export const getAllAppSettings = query({
+  args: { adminUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const settings = await ctx.db.query("appSettings").collect();
+
+    return settings.map((s) => ({
+      ...s,
+      parsedValue: (() => {
+        try {
+          return JSON.parse(s.value);
+        } catch {
+          return s.value;
+        }
+      })(),
+    }));
+  },
+});
+
+// アプリ設定を更新
+export const updateAppSetting = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    key: v.string(),
+    value: v.any(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const existing = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .unique();
+
+    const stringValue = typeof args.value === "string"
+      ? args.value
+      : JSON.stringify(args.value);
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: stringValue,
+        updatedAt: Date.now(),
+        updatedBy: args.adminUserId,
+      });
+    } else {
+      await ctx.db.insert("appSettings", {
+        key: args.key,
+        value: stringValue,
+        updatedAt: Date.now(),
+        updatedBy: args.adminUserId,
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+// ======================
+// 管理者一斉通知
+// ======================
+
+// 通知送信先ユーザー一覧（選択用）
+export const listUsersForNotification = query({
+  args: { adminUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const users = await ctx.db.query("users").collect();
+
+    // 削除されていないアクティブユーザーのみ
+    return users
+      .filter((u) => !u.deletedAt)
+      .map((u) => ({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        imageUrl: u.imageUrl,
+      }))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  },
+});
+
+// 管理者から一斉通知を送信
+export const sendAnnouncement = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserIds: v.array(v.id("users")),
+    title: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    if (args.targetUserIds.length === 0) {
+      throw new Error("送信先を選択してください");
+    }
+
+    if (!args.title.trim()) {
+      throw new Error("タイトルを入力してください");
+    }
+
+    if (!args.message.trim()) {
+      throw new Error("メッセージを入力してください");
+    }
+
+    const now = Date.now();
+    let sentCount = 0;
+
+    for (const userId of args.targetUserIds) {
+      const user = await ctx.db.get(userId);
+      if (!user || user.deletedAt) continue;
+
+      await ctx.db.insert("notifications", {
+        userId,
+        type: "admin_announcement",
+        title: args.title.trim(),
+        message: args.message.trim(),
+        isRead: false,
+        createdAt: now,
+      });
+      sentCount++;
+    }
+
+    return { success: true, sentCount };
+  },
+});
+
+// 全員に通知を送信
+export const sendAnnouncementToAll = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    title: v.string(),
+    message: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    if (!args.title.trim()) {
+      throw new Error("タイトルを入力してください");
+    }
+
+    if (!args.message.trim()) {
+      throw new Error("メッセージを入力してください");
+    }
+
+    const users = await ctx.db.query("users").collect();
+    const activeUsers = users.filter((u) => !u.deletedAt);
+
+    const now = Date.now();
+    let sentCount = 0;
+
+    for (const user of activeUsers) {
+      await ctx.db.insert("notifications", {
+        userId: user._id,
+        type: "admin_announcement",
+        title: args.title.trim(),
+        message: args.message.trim(),
+        isRead: false,
+        createdAt: now,
+      });
+      sentCount++;
+    }
+
+    return { success: true, sentCount };
+  },
+});

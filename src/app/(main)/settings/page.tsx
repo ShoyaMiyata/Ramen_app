@@ -94,18 +94,26 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {user.isPrivate && (
-            <div className="mt-4 p-3 bg-orange-50 rounded-lg space-y-2">
-              <p className="text-sm font-medium text-orange-800">
-                🔒 鍵アカウントが有効です
-              </p>
-              <ul className="text-sm text-orange-700 space-y-1 list-disc list-inside">
-                <li>あなたのプロフィールはフォロワーのみ閲覧可能</li>
-                <li>タイムラインはフォロワーにのみ表示</li>
-                <li>フォローには承認が必要</li>
-              </ul>
-            </div>
-          )}
+          {/* 鍵アカウントの説明（常に表示） */}
+          <div className={cn(
+            "mt-4 p-3 rounded-lg space-y-2",
+            user.isPrivate ? "bg-orange-50" : "bg-gray-50"
+          )}>
+            <p className={cn(
+              "text-sm font-medium",
+              user.isPrivate ? "text-orange-800" : "text-gray-700"
+            )}>
+              {user.isPrivate ? "🔒 鍵アカウントが有効です" : "🔓 鍵アカウントを有効にすると"}
+            </p>
+            <ul className={cn(
+              "text-sm space-y-1 list-disc list-inside",
+              user.isPrivate ? "text-orange-700" : "text-gray-500"
+            )}>
+              <li>あなたのプロフィールはフォロワーのみ閲覧可能</li>
+              <li>タイムラインにはフォロワーにのみ表示</li>
+              <li>フォローには承認が必要</li>
+            </ul>
+          </div>
         </div>
       </div>
 
