@@ -30,11 +30,12 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { BADGES, HIDDEN_BADGES, ALL_BADGES, type BadgeCode, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
+import { HIDDEN_BADGES, ALL_BADGES, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
 import { Badge as BadgeUI } from "@/components/ui/badge";
 import { useTestUser } from "@/contexts/TestUserContext";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils/cn";
+import { NewBadgeModal } from "@/components/features/badge-display";
 
 type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings" | "badges";
 
@@ -89,6 +90,8 @@ export default function AdminPage() {
   const [badgeSearchText, setBadgeSearchText] = useState("");
   const [showBadgeGrantModal, setShowBadgeGrantModal] = useState(false);
   const [selectedBadgeCode, setSelectedBadgeCode] = useState<string>("");
+  // アニメーションプレビュー用state
+  const [previewBadge, setPreviewBadge] = useState<(typeof ALL_BADGES)[AllBadgeCode] | null>(null);
 
   // 管理者用API
   const stats = useQuery(
@@ -1091,7 +1094,7 @@ export default function AdminPage() {
               {/* ユーザー選択 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  対象ユーザー
+                  対象ユーザー（バッジ付与/削除）
                 </label>
                 <select
                   value={selectedUserForBadge || ""}
@@ -1238,29 +1241,38 @@ export default function AdminPage() {
                                 {badge.description}
                               </span>
                             </div>
-                            {isEarned ? (
-                              <span className="text-xs text-green-600 flex-shrink-0">
-                                獲得済
-                              </span>
-                            ) : (
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               <button
-                                onClick={async () => {
-                                  if (!user?._id || !selectedUserForBadge) return;
-                                  try {
-                                    await grantBadge({
-                                      adminUserId: user._id,
-                                      targetUserId: selectedUserForBadge,
-                                      badgeCode: code,
-                                    });
-                                  } catch (error) {
-                                    console.error("Grant badge failed:", error);
-                                  }
-                                }}
-                                className="text-xs text-orange-500 hover:text-orange-600 flex-shrink-0"
+                                onClick={() => setPreviewBadge(badge)}
+                                className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-600"
+                                title="アニメーションプレビュー"
                               >
-                                付与
+                                <Eye className="w-3.5 h-3.5" />
                               </button>
-                            )}
+                              {isEarned ? (
+                                <span className="text-xs text-green-600 ml-1">
+                                  獲得済
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    if (!user?._id || !selectedUserForBadge) return;
+                                    try {
+                                      await grantBadge({
+                                        adminUserId: user._id,
+                                        targetUserId: selectedUserForBadge,
+                                        badgeCode: code,
+                                      });
+                                    } catch (error) {
+                                      console.error("Grant badge failed:", error);
+                                    }
+                                  }}
+                                  className="text-xs text-orange-500 hover:text-orange-600"
+                                >
+                                  付与
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -1441,6 +1453,12 @@ export default function AdminPage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      {/* Badge Animation Preview Modal */}
+      <NewBadgeModal
+        badge={previewBadge}
+        onClose={() => setPreviewBadge(null)}
+      />
     </div>
   );
 }
