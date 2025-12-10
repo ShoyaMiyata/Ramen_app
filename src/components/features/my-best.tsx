@@ -189,12 +189,12 @@ function MyBestEditDialog({ userId, open, onOpenChange }: MyBestEditDialogProps)
 
                 // ジャンルでフィルタリング（総合の場合は全て表示）
                 const filteredNoodles = genreFilter
-                  ? myNoodles.filter((noodle) =>
+                  ? myNoodles.items.filter((noodle: any) =>
                       noodle.genres.some(
-                        (g) => g === genreFilter || g.includes(genreFilter) || genreFilter.includes(g)
+                        (g: any) => g === genreFilter || g.includes(genreFilter) || genreFilter.includes(g)
                       )
                     )
-                  : myNoodles;
+                  : myNoodles.items;
 
                 return (
                   <>
@@ -244,7 +244,7 @@ function MyBestEditDialog({ userId, open, onOpenChange }: MyBestEditDialogProps)
                                 {noodle.ramenName}
                               </p>
                               <div className="flex flex-wrap gap-1 mt-1">
-                                {noodle.genres.map((genre) => (
+                                {noodle.genres.map((genre: any) => (
                                   <span
                                     key={genre}
                                     className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded"

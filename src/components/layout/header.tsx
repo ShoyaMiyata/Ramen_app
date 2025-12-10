@@ -265,10 +265,16 @@ export function Header() {
 export function BottomNav() {
   const pathname = usePathname();
   const { themeColor } = useTheme();
+  const { user } = useCurrentUser();
+
+  const newTimelinePostsCount = useQuery(
+    api.users.getNewTimelinePostsCount,
+    user?._id ? { userId: user._id } : "skip"
+  );
 
   const navItems = [
     { href: "/", icon: Home, label: "マイページ" },
-    { href: "/noodles", icon: Soup, label: "タイムライン" },
+    { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
     { href: "/users", icon: Search, label: "友達を探す" },
     { href: "/likes", icon: Heart, label: "いいね" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
@@ -284,12 +290,22 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 transition-colors"
+              className="flex flex-col items-center gap-1 transition-colors relative"
               style={{
                 color: isActive ? themeColor : "#6B7280",
               }}
             >
-              <Icon className="w-5 h-5" />
+              <div className="relative">
+                <Icon className="w-5 h-5" />
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center text-[9px] font-bold text-white rounded-full px-0.5"
+                    style={{ backgroundColor: themeColor }}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
+              </div>
               <span className="text-xs">{item.label}</span>
             </Link>
           );

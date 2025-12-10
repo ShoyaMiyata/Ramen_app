@@ -81,7 +81,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const generateUploadUrl = useMutation(api.noodles.generateUploadUrl);
 
   const currentShopCount = userNoodles
-    ? new Set(userNoodles.map((n) => n.shopId)).size
+    ? new Set(userNoodles.items.map((n: any) => n.shopId)).size
     : 0;
 
   const [isCompressing, setIsCompressing] = useState(false);
@@ -195,7 +195,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         const noodleId = result.noodleId;
 
         // ランクアップ判定
-        const isNewShop = !userNoodles?.some((n) => n.shopId === shopId);
+        const isNewShop = !userNoodles?.items.some((n: any) => n.shopId === shopId);
         if (isNewShop && prevShopCountRef.current !== null) {
           const newShopCount = prevShopCountRef.current + 1;
           const prevRank = getRankByShopCount(prevShopCountRef.current);

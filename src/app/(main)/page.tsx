@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -52,15 +52,47 @@ export default function HomePage() {
     user?._id ? { userId: user._id } : "skip"
   );
 
-  const myNoodles = useQuery(
+  const [offset, setOffset] = useState(0);
+  const LIMIT = 10;
+
+  const myNoodlesData = useQuery(
     api.noodles.getByUser,
-    user?._id ? { userId: user._id } : "skip"
+    user?._id ? { userId: user._id, limit: LIMIT, offset: offset } : "skip"
   );
 
   const galleryNoodles = useQuery(
     api.noodles.getGalleryByUser,
     user?._id ? { userId: user._id } : "skip"
   );
+
+  // 既読データを保持するための state
+  type NoodleItem = NonNullable<typeof myNoodlesData>["items"][number];
+  const [allLoadedNoodles, setAllLoadedNoodles] = useState<NoodleItem[]>([]);
+
+  // データが更新されたら allLoadedNoodles に追加
+  useEffect(() => {
+    if (myNoodlesData?.items) {
+      setAllLoadedNoodles((prev) => {
+        // 重複チェック
+        const existingIds = new Set(prev.map(n => n._id));
+        const newItems = myNoodlesData.items.filter(n => !existingIds.has(n._id));
+        return [...prev, ...newItems];
+      });
+    }
+  }, [myNoodlesData]);
+
+  // offset が変更されたらデータをリセット（新規投稿時など）
+  useEffect(() => {
+    if (offset === 0) {
+      setAllLoadedNoodles([]);
+    }
+  }, [offset]);
+
+  const loadMore = () => {
+    if (myNoodlesData?.hasMore) {
+      setOffset(prev => prev + LIMIT);
+    }
+  };
 
   if (!isLoaded || statsLoading) {
     return <LoadingPage />;
@@ -69,8 +101,6 @@ export default function HomePage() {
   if (!user) {
     return <LoadingPage />;
   }
-
-  const recentNoodles = myNoodles?.slice(0, 5) || [];
 
   return (
     <div className="space-y-6">
@@ -366,16 +396,6 @@ export default function HomePage() {
                 <List className="w-4 h-4" />
               </button>
             </div>
-            {myNoodles && myNoodles.length > 5 && viewMode === "list" && (
-              <Link
-                href="/noodles"
-                className="text-sm flex items-center gap-1"
-                style={{ color: themeColor }}
-              >
-                すべて
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            )}
           </div>
         </div>
 
@@ -383,7 +403,7 @@ export default function HomePage() {
           <div className="bg-white rounded-xl overflow-hidden shadow-sm">
             <Gallery noodles={galleryNoodles || []} />
           </div>
-        ) : recentNoodles.length === 0 ? (
+        ) : allLoadedNoodles.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center">
             <p className="text-gray-500 mb-4">まだ記録がありません</p>
             <Link href="/noodles/new">
@@ -391,11 +411,24 @@ export default function HomePage() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-3">
-            {recentNoodles.map((noodle) => (
-              <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={user._id} />
-            ))}
-          </div>
+          <>
+            <div className="space-y-3">
+              {allLoadedNoodles.map((noodle) => (
+                <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={user._id} />
+              ))}
+            </div>
+            {myNoodlesData?.hasMore && (
+              <div className="text-center pt-4">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  className="w-full"
+                >
+                  もっと見る ({myNoodlesData.totalCount - allLoadedNoodles.length}件)
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

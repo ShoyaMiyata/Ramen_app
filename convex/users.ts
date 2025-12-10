@@ -354,3 +354,45 @@ export const canViewProfile = query({
     return { canView: false, reason: "private_not_following" as const };
   },
 });
+
+// タイムライン訪問時刻を更新
+export const updateTimelineVisit = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      lastTimelineVisit: Date.now(),
+    });
+  },
+});
+
+// タイムライン上の新規投稿数を取得
+export const getNewTimelinePostsCount = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return 0;
+
+    const lastVisit = user.lastTimelineVisit || 0;
+
+    // フォロー中のユーザーを取得
+    const following = await ctx.db
+      .query("follows")
+      .withIndex("by_followerId", (q) => q.eq("followerId", args.userId))
+      .collect();
+
+    if (following.length === 0) return 0;
+
+    const followingIds = following.map((f) => f.followingId);
+
+    // lastVisit以降に投稿された、フォロー中のユーザーの投稿を数える
+    const allNoodles = await ctx.db.query("noodles").collect();
+    const newPosts = allNoodles.filter(
+      (noodle) =>
+        followingIds.includes(noodle.userId) &&
+        noodle.createdAt &&
+        noodle.createdAt > lastVisit
+    );
+
+    return newPosts.length;
+  },
+});

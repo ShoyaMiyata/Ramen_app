@@ -22,11 +22,11 @@ export function useUserStats(userId: Id<"users"> | undefined) {
     };
   }
 
-  const uniqueShops = new Set(noodles.map((n) => n.shopId)).size;
+  const uniqueShops = new Set(noodles.items.map((n) => n.shopId)).size;
   const rank = getRankByShopCount(uniqueShops);
 
   return {
-    postCount: noodles.length,
+    postCount: noodles.totalCount,
     shopCount: uniqueShops,
     rank,
     badges,

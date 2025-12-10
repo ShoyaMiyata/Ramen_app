@@ -44,7 +44,7 @@ export function UserCard({
   const isRequestPending = followRequestStatus === "pending";
 
   const shopCount = noodles
-    ? new Set(noodles.map((n) => n.shopId)).size
+    ? new Set(noodles.items.map((n) => n.shopId)).size
     : 0;
   const rank = getRankByShopCount(shopCount);
 
@@ -94,7 +94,7 @@ export function UserCard({
             >
               {rank.name}
             </span>
-            <span>{noodles?.length || 0}件</span>
+            <span>{noodles?.totalCount || 0}件</span>
             {followCounts && (
               <>
                 <span>•</span>

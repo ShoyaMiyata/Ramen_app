@@ -14,6 +14,7 @@ export default defineSchema({
     isAdmin: v.optional(v.boolean()), // 管理者フラグ
     onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
     isPrivate: v.optional(v.boolean()), // 鍵アカウントフラグ
+    lastTimelineVisit: v.optional(v.number()), // 最後にタイムラインを訪問した日時
   })
     .index("by_clerkId", ["clerkId"])
     .index("by_email", ["email"]),
@@ -142,6 +143,16 @@ export default defineSchema({
   })
     .index("by_noodleId", ["noodleId"])
     .index("by_userId", ["userId"]),
+
+  // コメントへのいいね
+  commentLikes: defineTable({
+    userId: v.id("users"),
+    commentId: v.id("comments"),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_commentId", ["commentId"])
+    .index("by_userId_commentId", ["userId", "commentId"]),
 
   // チャットルーム（1対1）
   chatRooms: defineTable({

@@ -183,13 +183,24 @@ export const getById = query({
 });
 
 export const getByUser = query({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.id("users"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
-    const noodles = await ctx.db
+    const limit = args.limit ?? 20;
+    const offset = args.offset ?? 0;
+
+    const allNoodles = await ctx.db
       .query("noodles")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
+
+    const totalCount = allNoodles.length;
+    const noodles = allNoodles.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
 
     const shops = await ctx.db.query("shops").collect();
     const shopMap = new Map(shops.map((s) => [s._id, s]));
@@ -220,7 +231,12 @@ export const getByUser = query({
       })
     );
 
-    return results;
+    return {
+      items: results,
+      totalCount,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
+    };
   },
 });
 

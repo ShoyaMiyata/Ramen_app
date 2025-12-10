@@ -37,6 +37,8 @@ export default function UserProfilePage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [optimisticRequestPending, setOptimisticRequestPending] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const LIMIT = 10;
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
@@ -45,14 +47,40 @@ export default function UserProfilePage({
     targetUserId: userId,
     viewerUserId: currentUser?._id,
   });
-  const noodles = useQuery(
+  const noodlesData = useQuery(
     api.noodles.getByUser,
-    canViewProfile?.canView ? { userId } : "skip"
+    canViewProfile?.canView ? { userId, limit: LIMIT, offset } : "skip"
   );
   const galleryNoodles = useQuery(
     api.noodles.getGalleryByUser,
     canViewProfile?.canView ? { userId } : "skip"
   );
+
+  // 既読データを保持
+  type NoodleItem = NonNullable<typeof noodlesData>["items"][number];
+  const [allLoadedNoodles, setAllLoadedNoodles] = useState<NoodleItem[]>([]);
+
+  useEffect(() => {
+    if (noodlesData?.items) {
+      setAllLoadedNoodles((prev) => {
+        const existingIds = new Set(prev.map(n => n._id));
+        const newItems = noodlesData.items.filter(n => !existingIds.has(n._id));
+        return [...prev, ...newItems];
+      });
+    }
+  }, [noodlesData]);
+
+  useEffect(() => {
+    if (offset === 0) {
+      setAllLoadedNoodles([]);
+    }
+  }, [offset]);
+
+  const loadMore = () => {
+    if (noodlesData?.hasMore) {
+      setOffset(prev => prev + LIMIT);
+    }
+  };
   const badges = useQuery(
     api.badges.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
@@ -106,8 +134,8 @@ export default function UserProfilePage({
   }
 
   const isOwnProfile = currentUser?._id === userId;
-  const shopCount = noodles
-    ? new Set(noodles.map((n) => n.shopId)).size
+  const shopCount = allLoadedNoodles.length > 0
+    ? new Set(allLoadedNoodles.map((n) => n.shopId)).size
     : 0;
   const isPrivateAccount = profileUser?.isPrivate ?? false;
   const canView = canViewProfile?.canView ?? false;
@@ -194,7 +222,7 @@ export default function UserProfilePage({
               )}
             </div>
             <p className="text-sm text-gray-500">
-              {canView ? `${noodles?.length || 0}件の記録` : "非公開アカウント"}
+              {canView ? `${noodlesData?.totalCount || 0}件の記録` : "非公開アカウント"}
             </p>
             {menfluencerRank?.isMenbassador ? (
               <div className="flex items-center gap-1 mt-1">
@@ -346,12 +374,25 @@ export default function UserProfilePage({
               <div className="bg-white rounded-xl overflow-hidden shadow-sm">
                 <Gallery noodles={galleryNoodles || []} />
               </div>
-            ) : noodles && noodles.length > 0 ? (
-              <div className="space-y-3">
-                {noodles.map((noodle) => (
-                  <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={currentUser?._id} />
-                ))}
-              </div>
+            ) : allLoadedNoodles.length > 0 ? (
+              <>
+                <div className="space-y-3">
+                  {allLoadedNoodles.map((noodle) => (
+                    <NoodleCard key={noodle._id} noodle={noodle} showUser={false} currentUserId={currentUser?._id} />
+                  ))}
+                </div>
+                {noodlesData?.hasMore && (
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={loadMore}
+                      className="w-full"
+                    >
+                      もっと見る ({noodlesData.totalCount - allLoadedNoodles.length}件)
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="bg-white rounded-xl p-8 text-center">
                 <p className="text-gray-500">まだ記録がありません</p>

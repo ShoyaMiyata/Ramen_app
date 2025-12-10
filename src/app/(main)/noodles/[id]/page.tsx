@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
+import { getPrefectureName } from "@/lib/utils/prefecture";
 import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -33,6 +34,8 @@ export default function NoodleDetailPage({
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [allComments, setAllComments] = useState<any[]>([]);
   const [showLikeUsersModal, setShowLikeUsersModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const noodleId = id as Id<"noodles">;
 
@@ -44,6 +47,18 @@ export default function NoodleDetailPage({
   const commentCount = useQuery(api.comments.getCount, { noodleId });
   const createComment = useMutation(api.comments.create);
   const removeComment = useMutation(api.comments.remove);
+
+  // コメントへのいいね
+  const commentIds = commentsData?.items.map(c => c._id) ?? [];
+  const commentLikeCounts = useQuery(
+    api.commentLikes.getCountBatch,
+    commentIds.length > 0 ? { commentIds } : "skip"
+  );
+  const commentLikeStates = useQuery(
+    api.commentLikes.isLikedBatch,
+    user && commentIds.length > 0 ? { userId: user._id, commentIds } : "skip"
+  );
+  const toggleCommentLike = useMutation(api.commentLikes.toggle);
 
   // コメントデータを状態にセット
   useEffect(() => {
@@ -129,6 +144,15 @@ export default function NoodleDetailPage({
     }
   };
 
+  const handleCommentLike = async (commentId: Id<"comments">) => {
+    if (!user) return;
+    try {
+      await toggleCommentLike({ userId: user._id, commentId });
+    } catch (error) {
+      console.error("Failed to toggle comment like:", error);
+    }
+  };
+
   const formatTimeAgo = (timestamp: number) => {
     const diff = Date.now() - timestamp;
     const minutes = Math.floor(diff / 60000);
@@ -153,22 +177,67 @@ export default function NoodleDetailPage({
         <span className="text-sm">戻る</span>
       </button>
 
-      {/* Image */}
-      {noodle.imageUrl && (
-        <div className="rounded-xl overflow-hidden shadow-sm relative aspect-video">
-          <Image
-            src={noodle.imageUrl}
-            alt={noodle.ramenName}
-            fill
-            sizes="(max-width: 768px) 100vw, 640px"
-            className="object-cover"
-            priority
-          />
-        </div>
-      )}
-
       {/* Main Content */}
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+        {/* Images */}
+        {noodle.imageUrls && noodle.imageUrls.length > 0 && (
+          <div className="space-y-2">
+            {/* メイン画像 */}
+            <button
+              onClick={() => {
+                setCurrentImageIndex(0);
+                setShowImageModal(true);
+              }}
+              className="w-full rounded-xl overflow-hidden shadow-sm relative aspect-video hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src={noodle.imageUrls[0]}
+                alt={noodle.ramenName}
+                fill
+                sizes="(max-width: 768px) 100vw, 640px"
+                className="object-cover"
+                priority
+              />
+              {noodle.imageUrls.length > 1 && (
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                  1/{noodle.imageUrls.length}
+                </div>
+              )}
+            </button>
+
+            {/* サムネイル（2枚目以降がある場合） */}
+            {noodle.imageUrls.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {noodle.imageUrls.slice(1, 5).map((imageUrl, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setCurrentImageIndex(index + 1);
+                      setShowImageModal(true);
+                    }}
+                    className="rounded-lg overflow-hidden shadow-sm relative aspect-square hover:opacity-90 transition-opacity"
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={`${noodle.ramenName} ${index + 2}`}
+                      fill
+                      sizes="(max-width: 768px) 25vw, 160px"
+                      className="object-cover"
+                    />
+                    {index === 3 && noodle.imageUrls.length > 5 && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">
+                          +{noodle.imageUrls.length - 5}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Header */}
         <div>
           <h1 className="font-bold text-xl text-gray-900">
@@ -195,28 +264,38 @@ export default function NoodleDetailPage({
           ))}
         </div>
 
-        {/* Visit Date */}
-        {noodle.visitDate && (
-          <p className="text-sm text-gray-500">
-            訪問日: {formatDate(noodle.visitDate)}
-          </p>
-        )}
+        {/* Visit Date & Prefecture */}
+        <div className="text-sm text-gray-500 space-y-1">
+          {noodle.visitDate && (
+            <p>訪問日: {formatDate(noodle.visitDate)}</p>
+          )}
+          {noodle.shop?.prefecture && (
+            <p>{getPrefectureName(noodle.shop.prefecture)}</p>
+          )}
+        </div>
 
         {/* Comment */}
         {noodle.comment && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-gray-700 whitespace-pre-wrap">{noodle.comment}</p>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{noodle.comment}</p>
           </div>
         )}
 
         {/* User Info */}
-        <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-          {noodle.user?.imageUrl && (
+        <Link
+          href={`/users/${noodle.userId}`}
+          className="flex items-center gap-3 pt-4 mt-2 border-t border-gray-100 hover:bg-gray-50 -mx-4 -mb-4 px-4 pb-4 rounded-lg transition-colors"
+        >
+          {noodle.user?.imageUrl ? (
             <img
               src={noodle.user.imageUrl}
               alt={noodle.user.name || ""}
               className="w-8 h-8 rounded-full"
             />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+              <User className="w-4 h-4 text-gray-400" />
+            </div>
           )}
           <div>
             <p className="text-sm font-medium text-gray-900">
@@ -226,7 +305,7 @@ export default function NoodleDetailPage({
               投稿日: {formatDate(noodle._creationTime)}
             </p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Actions */}
@@ -450,10 +529,27 @@ export default function NoodleDetailPage({
                       {comment.content}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 px-1">
+                  <div className="flex items-center gap-3 mt-1 px-1">
                     <span className="text-xs text-gray-400">
                       {formatTimeAgo(comment.createdAt)}
                     </span>
+                    {user && (
+                      <button
+                        onClick={() => handleCommentLike(comment._id)}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 ${
+                            commentLikeStates?.[comment._id]
+                              ? "fill-orange-500 text-orange-500"
+                              : ""
+                          }`}
+                        />
+                        {commentLikeCounts?.[comment._id] !== undefined && commentLikeCounts[comment._id] > 0 && (
+                          <span>{commentLikeCounts[comment._id]}</span>
+                        )}
+                      </button>
+                    )}
                     {user?._id === comment.userId && (
                       <button
                         onClick={() => handleDeleteComment(comment._id)}
@@ -470,7 +566,7 @@ export default function NoodleDetailPage({
           {/* Load More Button */}
           {commentsData?.hasMore && (
             <button
-              onClick={() => {/* TODO: Load more comments */}}
+              onClick={() => {/* TODO: Load more comments */ }}
               className="text-sm text-center w-full py-2 hover:text-gray-600"
               style={{ color: themeColor }}
             >
@@ -479,6 +575,71 @@ export default function NoodleDetailPage({
           )}
         </div>
       </div>
+
+      {/* Image Modal */}
+      <AnimatePresence>
+        {showImageModal && noodle.imageUrls && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black z-50 flex flex-col"
+            onClick={() => setShowImageModal(false)}
+          >
+            <div className="flex items-center justify-between p-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowImageModal(false);
+                }}
+                className="p-2 text-white hover:bg-white/10 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <span className="text-white text-sm">
+                {currentImageIndex + 1} / {noodle.imageUrls.length}
+              </span>
+              <div className="w-10" />
+            </div>
+
+            <div className="flex-1 relative flex items-center justify-center px-4">
+              <motion.img
+                key={currentImageIndex}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                src={noodle.imageUrls[currentImageIndex]}
+                alt={`${noodle.ramenName} ${currentImageIndex + 1}`}
+                className="max-h-full max-w-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+
+              {currentImageIndex > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(currentImageIndex - 1);
+                  }}
+                  className="absolute left-2 p-2 text-white hover:bg-white/10 rounded-full"
+                >
+                  <ArrowLeft className="w-8 h-8" />
+                </button>
+              )}
+
+              {currentImageIndex < noodle.imageUrls.length - 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentImageIndex(currentImageIndex + 1);
+                  }}
+                  className="absolute right-2 p-2 text-white hover:bg-white/10 rounded-full"
+                >
+                  <ArrowLeft className="w-8 h-8 rotate-180" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

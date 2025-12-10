@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -21,6 +21,14 @@ const ITEMS_PER_PAGE = 10;
 export default function NoodlesPage() {
   const { user, isLoaded } = useCurrentUser();
   const { themeColor } = useTheme();
+  const updateTimelineVisit = useMutation(api.users.updateTimelineVisit);
+
+  // タイムライン訪問時刻を更新
+  useEffect(() => {
+    if (user?._id) {
+      updateTimelineVisit({ userId: user._id });
+    }
+  }, [user?._id, updateTimelineVisit]);
   const [searchText, setSearchText] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
