@@ -397,9 +397,13 @@ export const getCounts = query({
       .withIndex("by_followingId", (q) => q.eq("followingId", args.userId))
       .collect();
 
+    // ユニークなユーザーIDのみをカウント（重複削除）
+    const uniqueFollowing = new Set(following.map((f) => f.followingId));
+    const uniqueFollowers = new Set(followers.map((f) => f.followerId));
+
     return {
-      followingCount: following.length,
-      followersCount: followers.length,
+      followingCount: uniqueFollowing.size,
+      followersCount: uniqueFollowers.size,
     };
   },
 });

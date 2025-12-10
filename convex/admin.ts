@@ -98,6 +98,42 @@ export const softDeleteUser = mutation({
       throw new Error("管理者は削除できません");
     }
 
+    // フォロー関係を削除（自分がフォローしているもの）
+    const following = await ctx.db
+      .query("follows")
+      .withIndex("by_followerId", (q) => q.eq("followerId", args.targetUserId))
+      .collect();
+    for (const follow of following) {
+      await ctx.db.delete(follow._id);
+    }
+
+    // フォロワー関係を削除（自分をフォローしているもの）
+    const followers = await ctx.db
+      .query("follows")
+      .withIndex("by_followingId", (q) => q.eq("followingId", args.targetUserId))
+      .collect();
+    for (const follower of followers) {
+      await ctx.db.delete(follower._id);
+    }
+
+    // フォローリクエストを削除（自分が送信したもの）
+    const sentRequests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_requesterId", (q) => q.eq("requesterId", args.targetUserId))
+      .collect();
+    for (const request of sentRequests) {
+      await ctx.db.delete(request._id);
+    }
+
+    // フォローリクエストを削除（自分が受信したもの）
+    const receivedRequests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_targetId", (q) => q.eq("targetId", args.targetUserId))
+      .collect();
+    for (const request of receivedRequests) {
+      await ctx.db.delete(request._id);
+    }
+
     await ctx.db.patch(args.targetUserId, {
       deletedAt: Date.now(),
     });
@@ -318,6 +354,42 @@ export const bulkSoftDeleteUsers = mutation({
     for (const userId of args.targetUserIds) {
       const user = await ctx.db.get(userId);
       if (user && !user.isAdmin && !user.deletedAt) {
+        // フォロー関係を削除（自分がフォローしているもの）
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", userId))
+          .collect();
+        for (const follow of following) {
+          await ctx.db.delete(follow._id);
+        }
+
+        // フォロワー関係を削除（自分をフォローしているもの）
+        const followers = await ctx.db
+          .query("follows")
+          .withIndex("by_followingId", (q) => q.eq("followingId", userId))
+          .collect();
+        for (const follower of followers) {
+          await ctx.db.delete(follower._id);
+        }
+
+        // フォローリクエストを削除（自分が送信したもの）
+        const sentRequests = await ctx.db
+          .query("followRequests")
+          .withIndex("by_requesterId", (q) => q.eq("requesterId", userId))
+          .collect();
+        for (const request of sentRequests) {
+          await ctx.db.delete(request._id);
+        }
+
+        // フォローリクエストを削除（自分が受信したもの）
+        const receivedRequests = await ctx.db
+          .query("followRequests")
+          .withIndex("by_targetId", (q) => q.eq("targetId", userId))
+          .collect();
+        for (const request of receivedRequests) {
+          await ctx.db.delete(request._id);
+        }
+
         await ctx.db.patch(userId, { deletedAt: Date.now() });
         deletedCount++;
       }

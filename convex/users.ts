@@ -65,6 +65,43 @@ export const softDelete = mutation({
 
     if (!user) return null;
 
+    // フォロー関係を削除（自分がフォローしているもの）
+    const following = await ctx.db
+      .query("follows")
+      .withIndex("by_followerId", (q) => q.eq("followerId", user._id))
+      .collect();
+    for (const follow of following) {
+      await ctx.db.delete(follow._id);
+    }
+
+    // フォロワー関係を削除（自分をフォローしているもの）
+    const followers = await ctx.db
+      .query("follows")
+      .withIndex("by_followingId", (q) => q.eq("followingId", user._id))
+      .collect();
+    for (const follower of followers) {
+      await ctx.db.delete(follower._id);
+    }
+
+    // フォローリクエストを削除（自分が送信したもの）
+    const sentRequests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_requesterId", (q) => q.eq("requesterId", user._id))
+      .collect();
+    for (const request of sentRequests) {
+      await ctx.db.delete(request._id);
+    }
+
+    // フォローリクエストを削除（自分が受信したもの）
+    const receivedRequests = await ctx.db
+      .query("followRequests")
+      .withIndex("by_targetId", (q) => q.eq("targetId", user._id))
+      .collect();
+    for (const request of receivedRequests) {
+      await ctx.db.delete(request._id);
+    }
+
+    // ユーザーを論理削除
     await ctx.db.patch(user._id, {
       deletedAt: Date.now(),
     });
