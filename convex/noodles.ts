@@ -312,6 +312,25 @@ export const create = mutation({
       createdAt: Date.now(),
     });
 
+    // ガチャチケット付与（1投稿 = 1チケット）
+    const existingTickets = await ctx.db
+      .query("gachaTickets")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existingTickets) {
+      await ctx.db.patch(existingTickets._id, {
+        ticketCount: existingTickets.ticketCount + 1,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("gachaTickets", {
+        userId: args.userId,
+        ticketCount: 1,
+        updatedAt: Date.now(),
+      });
+    }
+
     // 店舗の都道府県を取得してバッジチェック
     const shop = await ctx.db.get(args.shopId);
     let badgeResult = null;

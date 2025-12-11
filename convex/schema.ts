@@ -185,4 +185,53 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_prefecture", ["userId", "prefecture"]),
+
+  // ガチャで入手可能なバッジ定義
+  gachaBadges: defineTable({
+    code: v.string(), // バッジコード（"gacha_ramen_master"など）
+    name: v.string(), // バッジ名
+    description: v.string(), // 説明
+    icon: v.string(), // アイコン絵文字
+    rarity: v.number(), // 1-5のレアリティ
+    dropRate: v.number(), // 排出確率（％）
+    category: v.string(), // "food" | "chef" | "special"
+  })
+    .index("by_rarity", ["rarity"])
+    .index("by_code", ["code"]),
+
+  // ガチャチケット残高
+  gachaTickets: defineTable({
+    userId: v.id("users"),
+    ticketCount: v.number(), // 所持チケット数
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  // ガチャ履歴
+  gachaHistory: defineTable({
+    userId: v.id("users"),
+    badgeCode: v.string(), // 排出されたバッジコード
+    rarity: v.number(), // レアリティ
+    gachaType: v.string(), // "daily" | "ticket" | "special"
+    pity_count: v.optional(v.number()), // 天井カウント
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_createdAt", ["userId", "createdAt"]),
+
+  // デイリーガチャ記録
+  dailyGacha: defineTable({
+    userId: v.id("users"),
+    lastDrawDate: v.string(), // "2025-12-11" 形式
+    drawCount: v.number(), // その日の引いた回数
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_date", ["userId", "lastDrawDate"]),
+
+  // 天井カウンター
+  pityCounter: defineTable({
+    userId: v.id("users"),
+    counter50: v.number(), // 50連カウント（★4確定）
+    counter100: v.number(), // 100連カウント（★5確定）
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });

@@ -29,6 +29,7 @@ import {
   Award,
   Plus,
   X,
+  Sparkles,
 } from "lucide-react";
 import { HIDDEN_BADGES, ALL_BADGES, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
 import { Badge as BadgeUI } from "@/components/ui/badge";
@@ -36,8 +37,10 @@ import { useTestUser } from "@/contexts/TestUserContext";
 import * as Dialog from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils/cn";
 import { NewBadgeModal } from "@/components/features/badge-display";
+import { GachaTestPanel } from "@/components/admin/GachaTestPanel";
+import { TicketDistributionPanel } from "@/components/admin/TicketDistributionPanel";
 
-type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings" | "badges";
+type Tab = "overview" | "users" | "noodles" | "feedbacks" | "notifications" | "settings" | "badges" | "gacha";
 
 const FEEDBACK_STATUSES = [
   { value: "new", label: "新規", color: "#3B82F6" },
@@ -464,6 +467,7 @@ export default function AdminPage() {
     { id: "notifications" as Tab, label: "通知", icon: Bell },
     { id: "settings" as Tab, label: "設定", icon: Settings },
     { id: "badges" as Tab, label: "バッジ", icon: Award },
+    { id: "gacha" as Tab, label: "ガチャ", icon: Sparkles },
   ];
 
   return (
@@ -1085,6 +1089,43 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Gacha Tab */}
+          {activeTab === "gacha" && user?._id && (
+            <div className="space-y-4">
+              {/* チケット配布パネル */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-yellow-50 border-b border-gray-200">
+                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" style={{ color: themeColor }} />
+                    チケット配布
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    全ユーザーまたは特定ユーザーにガチャチケットを配布
+                  </p>
+                </div>
+                <div className="p-4">
+                  <TicketDistributionPanel adminUserId={user._id} />
+                </div>
+              </div>
+
+              {/* ガチャテストパネル */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+                  <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    ガチャテスト
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    ガチャの動作確認・統計表示（バッジは獲得されません）
+                  </p>
+                </div>
+                <div className="p-4">
+                  <GachaTestPanel adminUserId={user._id} />
+                </div>
+              </div>
             </div>
           )}
 
