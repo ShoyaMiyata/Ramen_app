@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, Ticket } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -275,7 +275,7 @@ export function BottomNav() {
   const navItems = [
     { href: "/", icon: Home, label: "マイページ" },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
-    { href: "/gacha", icon: Ticket, label: "ガチャ" },
+    { href: "/users", icon: Search, label: "友達を探す" },
     { href: "/likes", icon: Heart, label: "いいね" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];
