@@ -39,9 +39,10 @@ export const getOrCreate = mutation({
 
     // 駅が指定されている場合、stationsテーブルに登録
     if (args.station) {
+      const stationName = args.station; // Type narrowing
       const existingStation = await ctx.db
         .query("stations")
-        .withIndex("by_name", (q) => q.eq("name", args.station))
+        .withIndex("by_name", (q) => q.eq("name", stationName))
         .first();
 
       if (existingStation) {
@@ -59,7 +60,7 @@ export const getOrCreate = mutation({
       } else {
         // 新規駅を登録
         await ctx.db.insert("stations", {
-          name: args.station,
+          name: stationName,
           prefecture: args.prefecture,
           registeredBy: args.userId,
           usageCount: 1,
