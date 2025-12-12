@@ -20,6 +20,7 @@ import { getRankByShopCount, type Rank } from "@/lib/constants/ranks";
 import { NewBadgeModal, HiddenBadgeCompleteModal } from "./badge-display";
 import { RankUpModal } from "./rank-up-modal";
 import { PrefectureSelect } from "@/components/ui/prefecture-select";
+import { StationSelect } from "@/components/ui/station-select";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
@@ -36,6 +37,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [shopPrefecture, setShopPrefecture] = useState<string | undefined>(
     noodle?.shop?.prefecture || undefined
   );
+  const [shopStation, setShopStation] = useState(noodle?.shop?.station || "");
   const [shopSearch, setShopSearch] = useState("");
   const [showShopDropdown, setShowShopDropdown] = useState(false);
   const [ramenName, setRamenName] = useState(noodle?.ramenName || "");
@@ -164,6 +166,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         name: shopName,
         address: shopAddress || undefined,
         prefecture: shopPrefecture,
+        station: shopStation || undefined,
+        userId: user._id,
       });
 
       if (noodle) {
@@ -343,6 +347,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
                     setShopName(shop.name);
                     setShopAddress(shop.address || "");
                     setShopPrefecture(shop.prefecture || undefined);
+                    setShopStation(shop.station || "");
                     setShowShopDropdown(false);
                   }}
                 >
@@ -365,6 +370,19 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
             value={shopPrefecture}
             onChange={setShopPrefecture}
             placeholder="都道府県を選択"
+          />
+        </div>
+
+        {/* Station */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            最寄り駅（任意）
+          </label>
+          <StationSelect
+            value={shopStation}
+            onChange={setShopStation}
+            prefecture={shopPrefecture}
+            placeholder="駅名を検索"
           />
         </div>
 

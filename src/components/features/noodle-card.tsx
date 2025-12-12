@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { StarRating } from "@/components/ui/star-rating";
@@ -10,6 +9,7 @@ import { formatDate } from "@/lib/utils/date";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 
 interface NoodleCardProps {
   noodle: Doc<"noodles"> & {
@@ -49,25 +49,26 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
     >
       {/* 画像がある場合は表示 */}
       {noodle.imageUrl && (
-        <div className="aspect-video w-full overflow-hidden relative">
-          <Image
-            src={noodle.imageUrl}
-            alt={noodle.ramenName}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover"
-            loading="lazy"
-          />
-        </div>
+        <ImageWithPlaceholder
+          src={noodle.imageUrl}
+          alt={noodle.ramenName}
+          aspectRatio="video"
+          className="w-full"
+        />
       )}
 
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 truncate">
+            <p className="text-sm text-gray-600">
               {noodle.shop?.name || "不明な店舗"}
-            </h3>
-            <p className="text-sm text-gray-600 truncate">{noodle.ramenName}</p>
+              {noodle.shop?.station && (
+                <span className="text-gray-400 ml-1">
+                  （{noodle.shop.station}）
+                </span>
+              )}
+            </p>
+            <h3 className="font-bold text-gray-900 truncate">{noodle.ramenName}</h3>
           </div>
           <StarRating value={noodle.evaluation} readonly size="sm" />
         </div>

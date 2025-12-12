@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { GENRES } from "@/lib/constants/genres";
+import { PREFECTURES } from "@/lib/constants/prefectures";
+import { StationSelect } from "@/components/ui/station-select";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -33,6 +35,12 @@ export default function NoodlesPage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState<number | undefined>();
+  const [maxRating, setMaxRating] = useState<number | undefined>();
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [selectedStation, setSelectedStation] = useState<string>("");
   const [offset, setOffset] = useState(0);
   const [allItems, setAllItems] = useState<any[]>([]);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -44,13 +52,19 @@ export default function NoodlesPage() {
     limit: ITEMS_PER_PAGE,
     offset,
     viewerId: user?._id,
+    prefectures: selectedPrefectures.length > 0 ? selectedPrefectures : undefined,
+    minRating,
+    maxRating,
+    dateFrom: dateFrom ? new Date(dateFrom).getTime() : undefined,
+    dateTo: dateTo ? new Date(dateTo + "T23:59:59").getTime() : undefined,
+    station: selectedStation || undefined,
   });
 
   // フィルター変更時にリセット
   useEffect(() => {
     setOffset(0);
     setAllItems([]);
-  }, [searchText, selectedGenres, sortBy]);
+  }, [searchText, selectedGenres, sortBy, selectedPrefectures, minRating, maxRating, dateFrom, dateTo, selectedStation]);
 
   // データが来たら追加
   useEffect(() => {
@@ -80,10 +94,37 @@ export default function NoodlesPage() {
   const virtualizer = useVirtualizer({
     count: allItems.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 280, // NoodleCardの概算高さ
+    estimateSize: (index) => {
+      // 画像がある場合は高め、ない場合は低めに設定
+      const item = allItems[index];
+      if (!item) return 280;
+      const hasImage = (item.imageUrls && item.imageUrls.length > 0) || item.imageUrl;
+      return hasImage ? 320 : 180;
+    },
     overscan: 5,
     getItemKey: (index) => allItems[index]?._id || index,
+    measureElement:
+      typeof window !== "undefined" && navigator.userAgent.indexOf("Firefox") === -1
+        ? (element) => element?.getBoundingClientRect().height
+        : undefined,
   });
+
+  // スクロールパフォーマンス最適化
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    // スムーズスクロールの無効化（パフォーマンス向上）
+    scrollElement.style.scrollBehavior = "auto";
+
+    // will-change プロパティでブラウザ最適化
+    scrollElement.style.willChange = "scroll-position";
+
+    return () => {
+      scrollElement.style.scrollBehavior = "";
+      scrollElement.style.willChange = "";
+    };
+  }, []);
 
   // 最後のアイテムが表示されたら次を読み込む
   useEffect(() => {
@@ -105,14 +146,34 @@ export default function NoodlesPage() {
     );
   };
 
+  const togglePrefecture = (prefecture: string) => {
+    setSelectedPrefectures((prev) =>
+      prev.includes(prefecture) ? prev.filter((p) => p !== prefecture) : [...prev, prefecture]
+    );
+  };
+
   const clearFilters = () => {
     setSelectedGenres([]);
     setSearchText("");
     setSortBy("newest");
+    setSelectedPrefectures([]);
+    setMinRating(undefined);
+    setMaxRating(undefined);
+    setDateFrom("");
+    setDateTo("");
+    setSelectedStation("");
   };
 
   const hasFilters =
-    selectedGenres.length > 0 || searchText || sortBy !== "newest";
+    selectedGenres.length > 0 ||
+    searchText ||
+    sortBy !== "newest" ||
+    selectedPrefectures.length > 0 ||
+    minRating !== undefined ||
+    maxRating !== undefined ||
+    dateFrom ||
+    dateTo ||
+    selectedStation;
 
   return (
     <div className="space-y-4">
@@ -202,6 +263,99 @@ export default function NoodlesPage() {
             </div>
           </div>
 
+          {/* Prefectures */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              都道府県
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+              {PREFECTURES.map((pref) => (
+                <button
+                  key={pref.code}
+                  type="button"
+                  onClick={() => togglePrefecture(pref.code)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                    selectedPrefectures.includes(pref.code)
+                      ? "text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                  style={selectedPrefectures.includes(pref.code) ? { backgroundColor: themeColor } : undefined}
+                >
+                  {pref.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rating */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              評価
+            </label>
+            <div className="flex items-center gap-2">
+              <select
+                value={minRating || ""}
+                onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">最低評価</option>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    ⭐ {rating}以上
+                  </option>
+                ))}
+              </select>
+              <span className="text-gray-400">〜</span>
+              <select
+                value={maxRating || ""}
+                onChange={(e) => setMaxRating(e.target.value ? Number(e.target.value) : undefined)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">最高評価</option>
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <option key={rating} value={rating}>
+                    ⭐ {rating}以下
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              訪問日
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+              <span className="text-gray-400">〜</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Station */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              最寄り駅
+            </label>
+            <StationSelect
+              value={selectedStation}
+              onChange={setSelectedStation}
+              placeholder="駅名で検索"
+            />
+          </div>
+
           {/* Clear Filters */}
           {hasFilters && (
             <button
@@ -254,6 +408,9 @@ export default function NoodlesPage() {
                     width: "100%",
                     transform: `translateY(${virtualItem.start}px)`,
                     paddingBottom: "12px",
+                    // パフォーマンス最適化
+                    contain: "layout style paint",
+                    contentVisibility: "auto",
                   }}
                 >
                   <NoodleCard noodle={noodle} currentUserId={user?._id} />

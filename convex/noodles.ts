@@ -28,6 +28,12 @@ export const list = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
     viewerId: v.optional(v.id("users")), // 閲覧者のID（鍵アカウントフィルタ用）
+    prefectures: v.optional(v.array(v.string())), // 都道府県フィルタ（複数選択可）
+    minRating: v.optional(v.number()), // 最低評価フィルタ（1-5）
+    maxRating: v.optional(v.number()), // 最高評価フィルタ（1-5）
+    dateFrom: v.optional(v.number()), // 訪問日開始（Unix timestamp）
+    dateTo: v.optional(v.number()), // 訪問日終了（Unix timestamp）
+    station: v.optional(v.string()), // 駅名フィルタ
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
@@ -91,6 +97,48 @@ export const list = query({
           noodle.ramenName.toLowerCase().includes(searchLower) ||
           shopName.toLowerCase().includes(searchLower)
         );
+      });
+    }
+
+    // Filter by prefectures
+    if (args.prefectures && args.prefectures.length > 0) {
+      const shops = await ctx.db.query("shops").collect();
+      const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+      noodles = noodles.filter((noodle) => {
+        const shop = shopMap.get(noodle.shopId);
+        return shop?.prefecture && args.prefectures!.includes(shop.prefecture);
+      });
+    }
+
+    // Filter by rating
+    if (args.minRating !== undefined || args.maxRating !== undefined) {
+      noodles = noodles.filter((noodle) => {
+        if (!noodle.evaluation) return false;
+        if (args.minRating !== undefined && noodle.evaluation < args.minRating) return false;
+        if (args.maxRating !== undefined && noodle.evaluation > args.maxRating) return false;
+        return true;
+      });
+    }
+
+    // Filter by date range
+    if (args.dateFrom !== undefined || args.dateTo !== undefined) {
+      noodles = noodles.filter((noodle) => {
+        if (!noodle.visitDate) return false;
+        if (args.dateFrom !== undefined && noodle.visitDate < args.dateFrom) return false;
+        if (args.dateTo !== undefined && noodle.visitDate > args.dateTo) return false;
+        return true;
+      });
+    }
+
+    // Filter by station
+    if (args.station) {
+      const shops = await ctx.db.query("shops").collect();
+      const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+      noodles = noodles.filter((noodle) => {
+        const shop = shopMap.get(noodle.shopId);
+        return shop?.station && shop.station.includes(args.station!);
       });
     }
 
@@ -187,16 +235,76 @@ export const getByUser = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    genres: v.optional(v.array(v.string())), // ジャンルフィルタ（複数選択可）
+    searchText: v.optional(v.string()), // 検索テキスト（ラーメン名・店舗名）
+    prefectures: v.optional(v.array(v.string())), // 都道府県フィルタ（複数選択可）
+    minRating: v.optional(v.number()), // 最低評価フィルタ（1-5）
+    maxRating: v.optional(v.number()), // 最高評価フィルタ（1-5）
+    dateFrom: v.optional(v.number()), // 訪問日開始（Unix timestamp）
+    dateTo: v.optional(v.number()), // 訪問日終了（Unix timestamp）
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const offset = args.offset ?? 0;
 
-    const allNoodles = await ctx.db
+    let allNoodles = await ctx.db
       .query("noodles")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
+
+    // Filter by genres
+    if (args.genres && args.genres.length > 0) {
+      allNoodles = allNoodles.filter((noodle) =>
+        args.genres!.some((genre) => noodle.genres.includes(genre))
+      );
+    }
+
+    // Filter by search text (shop name or ramen name)
+    if (args.searchText) {
+      const searchLower = args.searchText.toLowerCase();
+      const shops = await ctx.db.query("shops").collect();
+      const shopMap = new Map(shops.map((s) => [s._id, s.name]));
+
+      allNoodles = allNoodles.filter((noodle) => {
+        const shopName = shopMap.get(noodle.shopId) || "";
+        return (
+          noodle.ramenName.toLowerCase().includes(searchLower) ||
+          shopName.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Filter by prefectures
+    if (args.prefectures && args.prefectures.length > 0) {
+      const shops = await ctx.db.query("shops").collect();
+      const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+      allNoodles = allNoodles.filter((noodle) => {
+        const shop = shopMap.get(noodle.shopId);
+        return shop?.prefecture && args.prefectures!.includes(shop.prefecture);
+      });
+    }
+
+    // Filter by rating
+    if (args.minRating !== undefined || args.maxRating !== undefined) {
+      allNoodles = allNoodles.filter((noodle) => {
+        if (!noodle.evaluation) return false;
+        if (args.minRating !== undefined && noodle.evaluation < args.minRating) return false;
+        if (args.maxRating !== undefined && noodle.evaluation > args.maxRating) return false;
+        return true;
+      });
+    }
+
+    // Filter by date range
+    if (args.dateFrom !== undefined || args.dateTo !== undefined) {
+      allNoodles = allNoodles.filter((noodle) => {
+        if (!noodle.visitDate) return false;
+        if (args.dateFrom !== undefined && noodle.visitDate < args.dateFrom) return false;
+        if (args.dateTo !== undefined && noodle.visitDate > args.dateTo) return false;
+        return true;
+      });
+    }
 
     const totalCount = allNoodles.length;
     const noodles = allNoodles.slice(offset, offset + limit);

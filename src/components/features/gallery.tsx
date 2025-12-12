@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Doc } from "../../../convex/_generated/dataModel";
+import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 
 interface GalleryProps {
   noodles: Array<
@@ -44,12 +45,13 @@ export function Gallery({ noodles }: GalleryProps) {
           <button
             key={noodle._id}
             onClick={() => setSelectedIndex(index)}
-            className="aspect-square overflow-hidden"
+            className="overflow-hidden"
           >
-            <img
+            <ImageWithPlaceholder
               src={noodle.imageUrl || ""}
               alt={noodle.ramenName}
-              className="w-full h-full object-cover hover:opacity-80 transition-opacity"
+              aspectRatio="square"
+              className="hover:opacity-80 transition-opacity"
             />
           </button>
         ))}
@@ -93,6 +95,8 @@ export function Gallery({ noodles }: GalleryProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 src={noodles[selectedIndex].imageUrl || ""}
                 alt={noodles[selectedIndex].ramenName}
+                loading="lazy"
+                decoding="async"
                 className="max-h-full max-w-full object-contain"
               />
 

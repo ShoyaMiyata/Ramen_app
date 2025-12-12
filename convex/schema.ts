@@ -24,9 +24,11 @@ export default defineSchema({
     address: v.optional(v.string()),
     url: v.optional(v.string()),
     prefecture: v.optional(v.string()), // 都道府県コード ("tokyo", "osaka" など)
+    station: v.optional(v.string()), // 最寄り駅名
   })
     .index("by_name", ["name"])
-    .index("by_prefecture", ["prefecture"]),
+    .index("by_prefecture", ["prefecture"])
+    .index("by_station", ["station"]),
 
   noodles: defineTable({
     userId: v.id("users"),
@@ -185,4 +187,16 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_prefecture", ["userId", "prefecture"]),
+
+  // 駅マスタデータ（ユーザー登録駅を蓄積）
+  stations: defineTable({
+    name: v.string(), // 駅名（例: "渋谷駅"）
+    prefecture: v.optional(v.string()), // 都道府県コード
+    line: v.optional(v.string()), // 路線名
+    registeredBy: v.optional(v.id("users")), // 初回登録ユーザー
+    usageCount: v.number(), // 使用回数
+    createdAt: v.number(),
+  })
+    .index("by_name", ["name"])
+    .index("by_prefecture", ["prefecture"]),
 });

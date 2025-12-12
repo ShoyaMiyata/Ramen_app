@@ -23,6 +23,7 @@ import type * as prefectures from "../prefectures.js";
 import type * as ranking from "../ranking.js";
 import type * as seed from "../seed.js";
 import type * as shops from "../shops.js";
+import type * as stations from "../stations.js";
 import type * as users from "../users.js";
 
 import type {
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   ranking: typeof ranking;
   seed: typeof seed;
   shops: typeof shops;
+  stations: typeof stations;
   users: typeof users;
 }>;
 

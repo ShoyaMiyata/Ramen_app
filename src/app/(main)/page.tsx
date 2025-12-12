@@ -15,10 +15,11 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield, Settings } from "lucide-react";
+import { Plus, ChevronRight, Grid3X3, List, Pencil, X, Wrench, Camera, Trash2, User, MapPin, Shield, Settings, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Dialog from "@radix-ui/react-dialog";
+import { GENRES } from "@/lib/constants/genres";
 
 type ViewMode = "list" | "gallery";
 
@@ -32,6 +33,13 @@ export default function HomePage() {
   const [isEditNameOpen, setIsEditNameOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [isBadgeListOpen, setIsBadgeListOpen] = useState(false);
+
+  // マイページ用の検索・フィルタ状態
+  const [showMyFilters, setShowMyFilters] = useState(false);
+  const [mySearchText, setMySearchText] = useState("");
+  const [mySelectedGenres, setMySelectedGenres] = useState<string[]>([]);
+  const [myMinRating, setMyMinRating] = useState<number | undefined>();
+  const [myMaxRating, setMyMaxRating] = useState<number | undefined>();
 
   const updateName = useMutation(api.users.updateName);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
@@ -57,7 +65,15 @@ export default function HomePage() {
 
   const myNoodlesData = useQuery(
     api.noodles.getByUser,
-    user?._id ? { userId: user._id, limit: LIMIT, offset: offset } : "skip"
+    user?._id ? {
+      userId: user._id,
+      limit: LIMIT,
+      offset: offset,
+      searchText: mySearchText || undefined,
+      genres: mySelectedGenres.length > 0 ? mySelectedGenres : undefined,
+      minRating: myMinRating,
+      maxRating: myMaxRating,
+    } : "skip"
   );
 
   const galleryNoodles = useQuery(
@@ -81,12 +97,12 @@ export default function HomePage() {
     }
   }, [myNoodlesData]);
 
-  // offset が変更されたらデータをリセット（新規投稿時など）
+  // offset が変更されたらデータをリセット（新規投稿時、フィルタ変更時など）
   useEffect(() => {
     if (offset === 0) {
       setAllLoadedNoodles([]);
     }
-  }, [offset]);
+  }, [offset, mySearchText, mySelectedGenres, myMinRating, myMaxRating]);
 
   const loadMore = () => {
     if (myNoodlesData?.hasMore) {
@@ -369,6 +385,16 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-gray-900">啜ったラーメン</h2>
           <div className="flex items-center gap-2">
+            {/* Filter Icon (リスト表示時のみ) */}
+            {viewMode === "list" && (
+              <button
+                onClick={() => setShowMyFilters(!showMyFilters)}
+                className="p-1.5 rounded"
+                style={showMyFilters ? { color: themeColor } : undefined}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
+            )}
             {/* View Toggle */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
@@ -398,6 +424,114 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {/* Filter UI (リスト表示時のみ) */}
+        {viewMode === "list" && showMyFilters && (
+          <div className="bg-white rounded-xl p-4 shadow-sm space-y-3 mb-3">
+            {/* Search Text */}
+            <div>
+              <Input
+                value={mySearchText}
+                onChange={(e) => {
+                  setMySearchText(e.target.value);
+                  setOffset(0);
+                }}
+                placeholder="店名・メニュー名で検索"
+                className="w-full"
+              />
+            </div>
+
+            {/* Genres */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ジャンル
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {GENRES.map((genre) => (
+                  <button
+                    key={genre.code}
+                    type="button"
+                    onClick={() => {
+                      setMySelectedGenres((prev) =>
+                        prev.includes(genre.code)
+                          ? prev.filter((g) => g !== genre.code)
+                          : [...prev, genre.code]
+                      );
+                      setOffset(0);
+                    }}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                      mySelectedGenres.includes(genre.code)
+                        ? "text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                    style={mySelectedGenres.includes(genre.code) ? { backgroundColor: themeColor } : undefined}
+                  >
+                    {genre.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rating */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                評価
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={myMinRating || ""}
+                  onChange={(e) => {
+                    setMyMinRating(e.target.value ? Number(e.target.value) : undefined);
+                    setOffset(0);
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">最低評価</option>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <option key={rating} value={rating}>
+                      ⭐ {rating}以上
+                    </option>
+                  ))}
+                </select>
+                <span className="text-gray-400">〜</span>
+                <select
+                  value={myMaxRating || ""}
+                  onChange={(e) => {
+                    setMyMaxRating(e.target.value ? Number(e.target.value) : undefined);
+                    setOffset(0);
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">最高評価</option>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <option key={rating} value={rating}>
+                      ⭐ {rating}以下
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Clear Filters */}
+            {(mySearchText || mySelectedGenres.length > 0 || myMinRating !== undefined || myMaxRating !== undefined) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMySearchText("");
+                  setMySelectedGenres([]);
+                  setMyMinRating(undefined);
+                  setMyMaxRating(undefined);
+                  setOffset(0);
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              >
+                <X className="w-3 h-3" />
+                フィルタをクリア
+              </button>
+            )}
+          </div>
+        )}
 
         {viewMode === "gallery" ? (
           <div className="bg-white rounded-xl overflow-hidden shadow-sm">
