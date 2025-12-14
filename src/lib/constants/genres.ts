@@ -10,6 +10,7 @@ export const GENRES = [
   { code: "つけ麺", label: "つけ麺" },
   { code: "担々麺", label: "担々麺" },
   { code: "鶏白湯", label: "鶏白湯" },
+  { code: "油そば・まぜそば", label: "油そば・まぜそば" },
   { code: "その他", label: "その他" },
 ] as const;
 
