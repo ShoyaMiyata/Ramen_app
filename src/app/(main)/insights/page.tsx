@@ -37,21 +37,10 @@ export default function InsightsPage() {
   // アクセス制御
   const { displayLevel, currentRank, shopCount } = useFeatureAccess();
 
-  // Fetch real data from Convex
-  const summaryStats = useQuery(api.insights.getSummaryStats);
-  const genreStatsData = useQuery(api.insights.getGenreStats);
-  const prefectureStatsData = useQuery(api.insights.getPrefectureStats);
-  const monthlyTrendsData = useQuery(api.insights.getMonthlyTrends);
-  const ratingDistributionData = useQuery(api.insights.getRatingDistribution);
-  const topShopsData = useQuery(api.insights.getTopShops);
+  // 統合クエリで全データを一度に取得（パフォーマンス最適化）
+  const allInsights = useQuery(api.insights.getAllInsights);
 
-  const isLoading =
-    summaryStats === undefined ||
-    genreStatsData === undefined ||
-    prefectureStatsData === undefined ||
-    monthlyTrendsData === undefined ||
-    ratingDistributionData === undefined ||
-    topShopsData === undefined;
+  const isLoading = allInsights === undefined;
 
   if (isLoading) {
     return (
@@ -74,28 +63,28 @@ export default function InsightsPage() {
         <SummaryCard
           icon={<Soup className="w-5 h-5" />}
           label="総杯数"
-          value={summaryStats.totalPosts}
+          value={allInsights.summary.totalPosts}
           delay={0}
           themeColor={themeColor}
         />
         <SummaryCard
           icon={<Users className="w-5 h-5" />}
           label="メンバー"
-          value={summaryStats.totalUsers}
+          value={allInsights.summary.totalUsers}
           delay={0.1}
           themeColor={themeColor}
         />
         <SummaryCard
           icon={<Store className="w-5 h-5" />}
           label="総店舗数"
-          value={summaryStats.totalShops}
+          value={allInsights.summary.totalShops}
           delay={0.2}
           themeColor={themeColor}
         />
         <SummaryCard
           icon={<MapPin className="w-5 h-5" />}
           label="制覇都道府県"
-          value={summaryStats.totalPrefectures}
+          value={allInsights.summary.totalPrefectures}
           unit="都道府県"
           delay={0.3}
           themeColor={themeColor}
@@ -103,7 +92,7 @@ export default function InsightsPage() {
         <SummaryCard
           icon={<TrendingUp className="w-5 h-5" />}
           label="今週の一杯"
-          value={summaryStats.weeklyPosts}
+          value={allInsights.summary.weeklyPosts}
           unit="杯"
           delay={0.4}
           themeColor={themeColor}
@@ -111,7 +100,7 @@ export default function InsightsPage() {
         <SummaryCard
           icon={<Activity className="w-5 h-5" />}
           label="今月の新メンバー"
-          value={summaryStats.monthlyNewUsers}
+          value={allInsights.summary.monthlyNewUsers}
           unit="人"
           delay={0.5}
           themeColor={themeColor}
@@ -125,9 +114,9 @@ export default function InsightsPage() {
           icon={<BarChart3 className="w-5 h-5" />}
           delay={0.6}
         >
-          {genreStatsData && genreStatsData.genres.length > 0 ? (
+          {allInsights.genres.genres.length > 0 ? (
             <GenreBarChart
-              data={genreStatsData.genres.map((g) => ({
+              data={allInsights.genres.genres.map((g) => ({
                 genre: g.genre,
                 count: g.postCount,
                 averageRating: g.avgRating || 0,
@@ -160,10 +149,10 @@ export default function InsightsPage() {
                 <div className="h-8 bg-gray-200 rounded" />
               </div>
             </LockedFeatureCard>
-          ) : prefectureStatsData && prefectureStatsData.prefectures.length > 0 ? (
+          ) : allInsights.prefectures.prefectures.length > 0 ? (
             // 麺歩き以降：表示
             <PrefectureBarChart
-              data={prefectureStatsData.prefectures.map((p) => ({
+              data={allInsights.prefectures.prefectures.map((p) => ({
                 prefecture: p.prefectureName,
                 count: p.postCount,
               }))}
@@ -195,10 +184,10 @@ export default function InsightsPage() {
               <div className="h-48 bg-gray-200 rounded" />
             </div>
           </LockedFeatureCard>
-        ) : monthlyTrendsData && monthlyTrendsData.months.length > 0 ? (
+        ) : allInsights.monthlyTrends.months.length > 0 ? (
           // 麺歩き以降：表示
           <MonthlyTrendChart
-            data={monthlyTrendsData.months.map((m) => ({
+            data={allInsights.monthlyTrends.months.map((m) => ({
               month: m.month,
               postCount: m.postCount,
               activeUserCount: m.activeUserCount,
@@ -231,10 +220,10 @@ export default function InsightsPage() {
                 <div className="w-32 h-32 bg-gray-200 rounded-full" />
               </div>
             </LockedFeatureCard>
-          ) : ratingDistributionData && ratingDistributionData.distribution.length > 0 ? (
+          ) : allInsights.ratingDistribution.distribution.length > 0 ? (
             // 麺歩き以降：表示
             <RatingPieChart
-              data={ratingDistributionData.distribution.map((r) => ({
+              data={allInsights.ratingDistribution.distribution.map((r) => ({
                 rating: r.rating,
                 count: r.count,
               }))}
@@ -267,10 +256,10 @@ export default function InsightsPage() {
                 ))}
               </div>
             </LockedFeatureCard>
-          ) : topShopsData && topShopsData.shops.length > 0 ? (
+          ) : allInsights.topShops.shops.length > 0 ? (
             // 麺歩き以降：表示
             <div className="space-y-1.5">
-              {topShopsData.shops.map((item) => (
+              {allInsights.topShops.shops.map((item) => (
                 <div
                   key={item.shop._id}
                   className={cn(

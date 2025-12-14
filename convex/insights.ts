@@ -481,3 +481,200 @@ export const getTopShops = query({
     }
   },
 });
+
+// 統合クエリ: 全インサイトデータを一度に取得（パフォーマンス最適化）
+export type AllInsights = {
+  summary: SummaryStats;
+  genres: GenreStats;
+  prefectures: PrefectureStats;
+  monthlyTrends: MonthlyTrends;
+  ratingDistribution: RatingDistribution;
+  topShops: TopShops;
+};
+
+export const getAllInsights = query({
+  args: {},
+  handler: async (ctx): Promise<AllInsights> => {
+    try {
+      // データを一度だけ取得
+      const noodles = await ctx.db.query("noodles").collect();
+      const users = await ctx.db.query("users").collect();
+      const shops = await ctx.db.query("shops").collect();
+
+      const activeUsers = users.filter((u) => !u.deletedAt);
+      const now = Date.now();
+      const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+      const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+      const twelveMonthsAgo = now - 365 * 24 * 60 * 60 * 1000;
+
+      // 1. サマリー統計
+      const visitedShopIds = new Set(noodles.map((n) => n.shopId));
+      const visitedShops = shops.filter((s) => visitedShopIds.has(s._id));
+      const prefecturesSet = new Set(
+        visitedShops.map((s) => s.prefecture).filter((p): p is string => !!p)
+      );
+
+      const summary: SummaryStats = {
+        totalPosts: noodles.length,
+        totalUsers: activeUsers.length,
+        totalShops: visitedShopIds.size,
+        totalPrefectures: prefecturesSet.size,
+        weeklyPosts: noodles.filter((n) => (n.createdAt || n._creationTime) >= weekAgo).length,
+        monthlyNewUsers: activeUsers.filter((u) => (u.createdAt || u._creationTime) >= monthAgo).length,
+      };
+
+      // 2. ジャンル統計
+      const genreMap = new Map<string, { count: number; totalRating: number; ratedCount: number }>();
+      for (const noodle of noodles) {
+        for (const genre of noodle.genres) {
+          const existing = genreMap.get(genre) || { count: 0, totalRating: 0, ratedCount: 0 };
+          existing.count++;
+          if (noodle.evaluation) {
+            existing.totalRating += noodle.evaluation;
+            existing.ratedCount++;
+          }
+          genreMap.set(genre, existing);
+        }
+      }
+      const genres: GenreStats = {
+        genres: Array.from(genreMap.entries())
+          .map(([genre, stats]) => ({
+            genre,
+            postCount: stats.count,
+            avgRating: stats.ratedCount > 0 ? Math.round((stats.totalRating / stats.ratedCount) * 10) / 10 : null,
+          }))
+          .sort((a, b) => b.postCount - a.postCount),
+      };
+
+      // 3. 都道府県統計
+      const shopPrefectureMap = new Map(shops.map((s) => [s._id, s.prefecture]));
+      const prefectureMap = new Map<string, number>();
+      for (const noodle of noodles) {
+        const prefecture = shopPrefectureMap.get(noodle.shopId);
+        if (prefecture) {
+          prefectureMap.set(prefecture, (prefectureMap.get(prefecture) || 0) + 1);
+        }
+      }
+      const prefectures: PrefectureStats = {
+        prefectures: Array.from(prefectureMap.entries())
+          .map(([prefecture, count]) => ({
+            prefecture,
+            prefectureName: PREFECTURE_NAMES[prefecture] || prefecture,
+            postCount: count,
+          }))
+          .sort((a, b) => b.postCount - a.postCount)
+          .slice(0, 10),
+      };
+
+      // 4. 月別推移
+      const monthlyData = new Map<string, { postCount: number; activeUserIds: Set<string> }>();
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now - i * 30 * 24 * 60 * 60 * 1000);
+        const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        monthlyData.set(month, { postCount: 0, activeUserIds: new Set() });
+      }
+      for (const noodle of noodles) {
+        const createdAt = noodle.createdAt || noodle._creationTime;
+        if (createdAt >= twelveMonthsAgo) {
+          const date = new Date(createdAt);
+          const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+          const data = monthlyData.get(month);
+          if (data) {
+            data.postCount++;
+            data.activeUserIds.add(noodle.userId);
+          }
+        }
+      }
+      const monthlyTrends: MonthlyTrends = {
+        months: Array.from(monthlyData.entries())
+          .map(([month, data]) => ({
+            month,
+            postCount: data.postCount,
+            activeUserCount: data.activeUserIds.size,
+          }))
+          .sort((a, b) => a.month.localeCompare(b.month)),
+      };
+
+      // 5. 評価分布
+      const ratingMap = new Map<number, number>();
+      for (let i = 1; i <= 5; i++) {
+        ratingMap.set(i, 0);
+      }
+      for (const noodle of noodles) {
+        if (noodle.evaluation) {
+          const rating = Math.round(noodle.evaluation);
+          if (rating >= 1 && rating <= 5) {
+            ratingMap.set(rating, (ratingMap.get(rating) || 0) + 1);
+          }
+        }
+      }
+      const ratingDistribution: RatingDistribution = {
+        distribution: Array.from(ratingMap.entries())
+          .map(([rating, count]) => ({ rating, count }))
+          .sort((a, b) => a.rating - b.rating),
+      };
+
+      // 6. 人気店舗TOP10
+      const shopMap = new Map(shops.map((s) => [s._id, s]));
+      const shopPostCount = new Map<string, number>();
+      for (const noodle of noodles) {
+        shopPostCount.set(noodle.shopId, (shopPostCount.get(noodle.shopId) || 0) + 1);
+      }
+      const sortedShops = Array.from(shopPostCount.entries())
+        .map(([shopId, count]) => {
+          const shop = shopMap.get(shopId as any);
+          if (!shop) return null;
+          return {
+            shop: {
+              _id: shop._id,
+              name: shop.name,
+              address: shop.address,
+              url: shop.url,
+              prefecture: shop.prefecture,
+              station: shop.station,
+            },
+            postCount: count,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => b.postCount - a.postCount);
+
+      const shopsWithRank: Array<{
+        shop: {
+          _id: string;
+          name: string;
+          address?: string;
+          url?: string;
+          prefecture?: string;
+          station?: string;
+        };
+        postCount: number;
+        rank: number;
+      }> = [];
+      let currentRank = 1;
+      let prevCount: number | null = null;
+      for (let i = 0; i < sortedShops.length; i++) {
+        const item = sortedShops[i];
+        if (prevCount !== null && item.postCount < prevCount) {
+          currentRank = i + 1;
+        }
+        shopsWithRank.push({ ...item, rank: currentRank });
+        prevCount = item.postCount;
+        if (currentRank > 10) break;
+      }
+      const topShops: TopShops = { shops: shopsWithRank };
+
+      return {
+        summary,
+        genres,
+        prefectures,
+        monthlyTrends,
+        ratingDistribution,
+        topShops,
+      };
+    } catch (error) {
+      console.error("Error in getAllInsights:", error);
+      throw new Error("インサイトデータの取得に失敗しました");
+    }
+  },
+});
