@@ -54,7 +54,7 @@ export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
         <XAxis
           dataKey="prefecture"
           stroke="#6B7280"
-          tick={{ fontSize: 11, angle: -35, textAnchor: "end" }}
+          tick={{ fontSize: 11, angle: -35, textAnchor: "end" } as any}
           height={50}
           interval={0}
         />
@@ -74,7 +74,7 @@ export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
             position: "top",
             fontSize: 11,
             fill: "#374151",
-            formatter: (value: number) => `${value}杯`,
+            formatter: (value: any) => `${value}杯`,
           }}
         >
           {sortedData.map((entry, index) => (

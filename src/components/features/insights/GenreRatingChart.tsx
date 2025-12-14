@@ -53,7 +53,7 @@ export function GenreRatingChart({ data }: GenreRatingChartProps) {
         <XAxis
           dataKey="genre"
           stroke="#6B7280"
-          tick={{ fontSize: 11, angle: -35, textAnchor: "end" }}
+          tick={{ fontSize: 11, angle: -35, textAnchor: "end" } as any}
           height={60}
           interval={0}
         />
