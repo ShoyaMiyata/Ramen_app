@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { UserCard } from "@/components/features/user-card";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Users, ChevronLeft } from "lucide-react";
 
 export default function MyMenPage() {
-  const { user, isLoaded } = useCurrentUser();
+  const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
 
   const following = useQuery(

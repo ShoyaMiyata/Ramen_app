@@ -15,6 +15,7 @@ import type * as commentLikes from "../commentLikes.js";
 import type * as comments from "../comments.js";
 import type * as feedbacks from "../feedbacks.js";
 import type * as follows from "../follows.js";
+import type * as insights from "../insights.js";
 import type * as likes from "../likes.js";
 import type * as myBests from "../myBests.js";
 import type * as noodles from "../noodles.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   feedbacks: typeof feedbacks;
   follows: typeof follows;
+  insights: typeof insights;
   likes: typeof likes;
   myBests: typeof myBests;
   noodles: typeof noodles;

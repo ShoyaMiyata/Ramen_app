@@ -15,13 +15,13 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-type ViewMode = "list" | "gallery";
+type ViewMode = "list" | "gallery" | "likes";
 
 export default function UserProfilePage({
   params,
@@ -53,6 +53,10 @@ export default function UserProfilePage({
   );
   const galleryNoodles = useQuery(
     api.noodles.getGalleryByUser,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
+  const likedNoodles = useQuery(
+    api.likes.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
   );
 
@@ -353,6 +357,7 @@ export default function UserProfilePage({
                       ? "bg-white text-orange-500 shadow-sm"
                       : "text-gray-400"
                   )}
+                  title="ギャラリー"
                 >
                   <Grid3X3 className="w-4 h-4" />
                 </button>
@@ -364,8 +369,21 @@ export default function UserProfilePage({
                       ? "bg-white text-orange-500 shadow-sm"
                       : "text-gray-400"
                   )}
+                  title="リスト"
                 >
                   <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("likes")}
+                  className={cn(
+                    "p-1.5 rounded",
+                    viewMode === "likes"
+                      ? "bg-white text-orange-500 shadow-sm"
+                      : "text-gray-400"
+                  )}
+                  title="いいね"
+                >
+                  <Heart className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -374,6 +392,31 @@ export default function UserProfilePage({
               <div className="bg-white rounded-xl overflow-hidden shadow-sm">
                 <Gallery noodles={galleryNoodles || []} />
               </div>
+            ) : viewMode === "likes" ? (
+              likedNoodles === undefined ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <p className="text-gray-400">読み込み中...</p>
+                </div>
+              ) : likedNoodles.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <Heart className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    {isOwnProfile
+                      ? "いいねした一杯はまだありません"
+                      : "いいねした一杯はありません"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {likedNoodles.map((noodle) => (
+                    <NoodleCard
+                      key={noodle._id}
+                      noodle={noodle}
+                      currentUserId={currentUser?._id}
+                    />
+                  ))}
+                </div>
+              )
             ) : allLoadedNoodles.length > 0 ? (
               <>
                 <div className="space-y-3">

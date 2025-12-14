@@ -433,3 +433,24 @@ export const getNewTimelinePostsCount = query({
     return newPosts.length;
   },
 });
+
+// ユーザーの統計情報を取得
+export const getUserStats = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    // ユーザーの全投稿を取得
+    const noodles = await ctx.db
+      .query("noodles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // ユニークな店舗IDを取得
+    const uniqueShopIds = new Set(noodles.map((n) => n.shopId));
+    const visitedShopsCount = uniqueShopIds.size;
+
+    return {
+      visitedShopsCount,
+      totalPosts: noodles.length,
+    };
+  },
+});

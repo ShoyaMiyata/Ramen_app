@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -12,7 +12,7 @@ import { UserCard } from "@/components/features/user-card";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export default function UsersPage() {
-  const { user, isLoaded } = useCurrentUser();
+  const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
   const [searchText, setSearchText] = useState("");
 

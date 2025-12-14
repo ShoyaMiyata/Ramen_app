@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { LoadingPage } from "@/components/ui/loading";
 import { PrefectureDetailModal } from "@/components/features/japan-map/prefecture-detail-modal";
 import { BadgeCollection } from "@/components/features/prefecture-badge";
+import { LockedFeatureOverlay } from "@/components/features/rank-restriction";
 import {
   REGIONS,
   getPrefecturesByRegion,
@@ -17,7 +19,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { MapPin, Trophy, Check } from "lucide-react";
 
 export default function MapPage() {
-  const { user, isLoaded } = useCurrentUser();
+  const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
   const [selectedPrefecture, setSelectedPrefecture] =
     useState<PrefectureCode | null>(null);
@@ -27,11 +29,37 @@ export default function MapPage() {
     user?._id ? { userId: user._id } : "skip"
   );
 
+  const { canAccessConquestMap, shopCount } = useFeatureAccess();
+
   if (!isLoaded || !visitStats) {
     return <LoadingPage />;
   }
 
   const { prefectures, summary } = visitStats;
+
+  // 制覇マップへのアクセス制限（麺歩き Lv2, 5店舗で解放）
+  if (!canAccessConquestMap) {
+    return (
+      <LockedFeatureOverlay
+        requiredLevel={2}
+        requiredShops={5}
+        currentShops={shopCount}
+        featureName="制覇マップ"
+        description="47都道府県の訪問状況を地図で確認できます"
+      >
+        <div className="space-y-4 pb-4">
+          {/* ダミーコンテンツ（ぼかしで表示される） */}
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5" style={{ color: themeColor }} />
+            <h1 className="font-bold text-xl text-gray-900">制覇マップ</h1>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm h-32" />
+          <div className="bg-white rounded-xl p-4 shadow-sm h-48" />
+          <div className="bg-white rounded-xl p-4 shadow-sm h-64" />
+        </div>
+      </LockedFeatureOverlay>
+    );
+  }
 
   return (
     <div className="space-y-4 pb-4">

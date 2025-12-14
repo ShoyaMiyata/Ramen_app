@@ -2,14 +2,14 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
 import { LoadingPage, Loading } from "@/components/ui/loading";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { Heart } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 
 export default function LikesPage() {
-  const { user, isLoaded } = useCurrentUser();
+  const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
 
   const likes = useQuery(

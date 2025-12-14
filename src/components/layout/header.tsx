@@ -6,33 +6,33 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3 } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
 export function Header() {
-  const { user } = useCurrentUser();
+  const { user, realUser } = useViewingUser();
   const { rank } = useUserStats(user?._id);
   const { themeColor } = useTheme();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   const unreadCount = useQuery(
     api.notifications.getUnreadCount,
-    user?._id ? { userId: user._id } : "skip"
+    realUser?._id ? { userId: realUser._id } : "skip"
   );
   const notifications = useQuery(
     api.notifications.getByUser,
-    user?._id ? { userId: user._id } : "skip"
+    realUser?._id ? { userId: realUser._id } : "skip"
   );
   const markAllAsRead = useMutation(api.notifications.markAllAsRead);
 
   const handleOpenChange = async (open: boolean) => {
     setIsNotificationOpen(open);
-    if (open && user?._id && unreadCount && unreadCount > 0) {
-      await markAllAsRead({ userId: user._id });
+    if (open && realUser?._id && unreadCount && unreadCount > 0) {
+      await markAllAsRead({ userId: realUser._id });
     }
   };
 
@@ -265,18 +265,18 @@ export function Header() {
 export function BottomNav() {
   const pathname = usePathname();
   const { themeColor } = useTheme();
-  const { user } = useCurrentUser();
+  const { realUser } = useViewingUser();
 
   const newTimelinePostsCount = useQuery(
     api.users.getNewTimelinePostsCount,
-    user?._id ? { userId: user._id } : "skip"
+    realUser?._id ? { userId: realUser._id } : "skip"
   );
 
   const navItems = [
     { href: "/", icon: Home, label: "マイページ" },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
+    { href: "/insights", icon: BarChart3, label: "インサイト" },
     { href: "/users", icon: Search, label: "友達を探す" },
-    { href: "/likes", icon: Heart, label: "いいね" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];
 
