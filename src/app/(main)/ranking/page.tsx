@@ -226,14 +226,14 @@ function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: 
                       <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                     )}
                   </div>
-                  {isMenfluencer && index === 0 ? (
+                  {isMenfluencer && item.rank === 1 ? (
                     <div className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-purple-500" />
                       <span className="text-xs font-medium text-purple-500">
                         麺バサダー
                       </span>
                     </div>
-                  ) : isMenfluencer ? (
+                  ) : isMenfluencer && item.rank >= 2 && item.rank <= 5 ? (
                     <div className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-pink-400" />
                       <span className="text-xs font-medium text-pink-400">
