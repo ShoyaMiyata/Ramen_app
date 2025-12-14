@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -76,27 +75,6 @@ const formatMonth = (month: string) => {
 };
 
 export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (chartRef.current) {
-      observer.observe(chartRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   // データを月でソート（昇順）
   const sortedData = [...data].sort((a, b) => a.month.localeCompare(b.month));
 
@@ -107,8 +85,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
   }));
 
   return (
-    <div ref={chartRef}>
-      <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={280}>
       <LineChart
         data={formattedData}
         margin={{ top: 10, right: 35, left: 0, bottom: 5 }}
@@ -144,7 +121,6 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           dot={{ fill: "#F97316", r: 4 }}
           activeDot={{ r: 6 }}
           animationDuration={1500}
-          isAnimationActive={isVisible}
         />
         <Line
           yAxisId="right"
@@ -156,10 +132,8 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           dot={{ fill: "#EF4444", r: 4 }}
           activeDot={{ r: 6 }}
           animationDuration={1500}
-          isAnimationActive={isVisible}
         />
       </LineChart>
     </ResponsiveContainer>
-    </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { PrefectureStats } from "./types";
 
@@ -42,33 +41,11 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
 };
 
 export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (chartRef.current) {
-      observer.observe(chartRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   // データを投稿数でソート（降順）してTOP10を取得
   const sortedData = [...data].sort((a, b) => b.count - a.count).slice(0, 10);
 
   return (
-    <div ref={chartRef}>
-      <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart
         data={sortedData}
         margin={{ top: 20, right: 10, left: 5, bottom: 5 }}
@@ -93,7 +70,6 @@ export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
           radius={[8, 8, 0, 0]}
           animationDuration={1500}
           animationBegin={0}
-          isAnimationActive={isVisible}
           label={{
             position: "top",
             fontSize: 11,
@@ -107,6 +83,5 @@ export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
         </Bar>
       </BarChart>
     </ResponsiveContainer>
-    </div>
   );
 }

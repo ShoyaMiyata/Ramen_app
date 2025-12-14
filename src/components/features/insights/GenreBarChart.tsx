@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { GenreStats } from "./types";
 
@@ -81,27 +80,6 @@ const renderCustomLabel = (props: CustomLabelProps, data: GenreStats[]) => {
 };
 
 export function GenreBarChart({ data }: GenreBarChartProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (chartRef.current) {
-      observer.observe(chartRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   // データを投稿数でソート（降順）
   const sortedData = [...data].sort((a, b) => b.count - a.count);
 
@@ -109,8 +87,7 @@ export function GenreBarChart({ data }: GenreBarChartProps) {
   const dynamicHeight = Math.max(250, Math.min(sortedData.length * 30, 400));
 
   return (
-    <div ref={chartRef}>
-      <ResponsiveContainer width="100%" height={dynamicHeight}>
+    <ResponsiveContainer width="100%" height={dynamicHeight}>
       <BarChart
         data={sortedData}
         layout="vertical"
@@ -137,7 +114,6 @@ export function GenreBarChart({ data }: GenreBarChartProps) {
           radius={[0, 8, 8, 0]}
           animationDuration={1500}
           animationBegin={0}
-          isAnimationActive={isVisible}
           label={(props: any) => renderCustomLabel(props, sortedData)}
         >
           {sortedData.map((entry, index) => (
@@ -146,6 +122,5 @@ export function GenreBarChart({ data }: GenreBarChartProps) {
         </Bar>
       </BarChart>
     </ResponsiveContainer>
-    </div>
   );
 }
