@@ -396,7 +396,7 @@ function SectionCard({ title, icon, children, delay, infoTooltip }: SectionCardP
               <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
             </button>
             {showTooltip && (
-              <div className="absolute left-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl z-50 animate-in fade-in duration-200">
+              <div className="absolute left-0 top-6 w-28 bg-gray-900 text-white text-xs rounded-lg p-2 shadow-xl z-50 animate-in fade-in duration-200">
                 <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-900 transform rotate-45" />
                 {infoTooltip}
               </div>
