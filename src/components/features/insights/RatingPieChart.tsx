@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { RatingDistribution } from "./types";
 
@@ -114,6 +115,27 @@ const CustomLegend = ({ payload }: CustomLegendProps) => {
 };
 
 export function RatingPieChart({ data }: RatingPieChartProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (chartRef.current) {
+      observer.observe(chartRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   // データを評価でソート（昇順）
   const sortedData = [...data].sort((a, b) => a.rating - b.rating);
 
@@ -128,7 +150,8 @@ export function RatingPieChart({ data }: RatingPieChartProps) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <div ref={chartRef}>
+      <ResponsiveContainer width="100%" height={320}>
       <PieChart>
         <Pie
           data={dataWithTotal}
@@ -142,6 +165,7 @@ export function RatingPieChart({ data }: RatingPieChartProps) {
           dataKey="count"
           animationDuration={800}
           animationBegin={0}
+          isAnimationActive={isVisible}
         >
           {dataWithTotal.map((entry, index) => (
             <Cell
@@ -154,5 +178,6 @@ export function RatingPieChart({ data }: RatingPieChartProps) {
         <Legend content={<CustomLegend />} />
       </PieChart>
     </ResponsiveContainer>
+    </div>
   );
 }

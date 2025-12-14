@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { GenreStats } from "./types";
 
@@ -40,11 +41,33 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
 };
 
 export function GenreRatingChart({ data }: GenreRatingChartProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (chartRef.current) {
+      observer.observe(chartRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   // データを平均評価でソート（降順）
   const sortedData = [...data].sort((a, b) => b.averageRating - a.averageRating);
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <div ref={chartRef}>
+      <ResponsiveContainer width="100%" height={280}>
       <BarChart
         data={sortedData}
         margin={{ top: 5, right: 10, left: 0, bottom: 35 }}
@@ -70,6 +93,7 @@ export function GenreRatingChart({ data }: GenreRatingChartProps) {
           radius={[8, 8, 0, 0]}
           animationDuration={800}
           animationBegin={0}
+          isAnimationActive={isVisible}
         >
           {sortedData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -77,5 +101,6 @@ export function GenreRatingChart({ data }: GenreRatingChartProps) {
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+    </div>
   );
 }
