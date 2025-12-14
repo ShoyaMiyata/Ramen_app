@@ -250,7 +250,7 @@ export default function InsightsPage() {
           title="人気店舗 TOP10"
           icon={<Store className="w-5 h-5" />}
           delay={1.0}
-          infoTooltip="投稿数が多い順にランキング。同じ投稿数の店舗は同じ順位となり、次の順位は投稿数が変わった時点での位置になります。（例：1位が3店舗ある場合、次は4位）"
+          infoTooltip="投稿数順"
         >
           {displayLevel.topShops === false ? (
             // 麺見習い：完全ロック

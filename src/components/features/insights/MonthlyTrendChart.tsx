@@ -120,7 +120,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           strokeWidth={2}
           dot={{ fill: "#F97316", r: 4 }}
           activeDot={{ r: 6 }}
-          animationDuration={1500}
+          animationDuration={1000}
         />
         <Line
           yAxisId="right"
@@ -131,7 +131,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           strokeWidth={2}
           dot={{ fill: "#EF4444", r: 4 }}
           activeDot={{ r: 6 }}
-          animationDuration={1500}
+          animationDuration={1000}
         />
       </LineChart>
     </ResponsiveContainer>

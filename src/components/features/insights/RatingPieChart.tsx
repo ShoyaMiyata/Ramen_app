@@ -140,7 +140,7 @@ export function RatingPieChart({ data }: RatingPieChartProps) {
           innerRadius={0}
           fill="#8884d8"
           dataKey="count"
-          animationDuration={1500}
+          animationDuration={1000}
           animationBegin={0}
         >
           {dataWithTotal.map((entry, index) => (
