@@ -91,7 +91,7 @@ export function PrefectureBarChart({ data }: PrefectureBarChartProps) {
         <Bar
           dataKey="count"
           radius={[8, 8, 0, 0]}
-          animationDuration={800}
+          animationDuration={1500}
           animationBegin={0}
           isAnimationActive={isVisible}
           label={{

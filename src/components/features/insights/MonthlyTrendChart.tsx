@@ -143,7 +143,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           strokeWidth={2}
           dot={{ fill: "#F97316", r: 4 }}
           activeDot={{ r: 6 }}
-          animationDuration={800}
+          animationDuration={1500}
           isAnimationActive={isVisible}
         />
         <Line
@@ -155,7 +155,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
           strokeWidth={2}
           dot={{ fill: "#EF4444", r: 4 }}
           activeDot={{ r: 6 }}
-          animationDuration={800}
+          animationDuration={1500}
           isAnimationActive={isVisible}
         />
       </LineChart>

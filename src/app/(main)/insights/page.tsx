@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import {
@@ -369,6 +370,7 @@ interface SectionCardProps {
 
 function SectionCard({ title, icon, children, delay, infoTooltip }: SectionCardProps) {
   const { themeColor } = useTheme();
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <motion.div
@@ -383,11 +385,22 @@ function SectionCard({ title, icon, children, delay, infoTooltip }: SectionCardP
         </div>
         <h2 className="font-bold text-lg text-gray-900">{title}</h2>
         {infoTooltip && (
-          <div className="group relative ml-1">
-            <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-            <div className="absolute left-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              {infoTooltip}
-            </div>
+          <div className="relative ml-1">
+            <button
+              onClick={() => setShowTooltip(!showTooltip)}
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              className="focus:outline-none"
+              aria-label="詳細情報"
+            >
+              <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
+            </button>
+            {showTooltip && (
+              <div className="absolute left-0 top-6 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl z-50 animate-in fade-in duration-200">
+                <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-900 transform rotate-45" />
+                {infoTooltip}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -163,7 +163,7 @@ export function RatingPieChart({ data }: RatingPieChartProps) {
           innerRadius={0}
           fill="#8884d8"
           dataKey="count"
-          animationDuration={800}
+          animationDuration={1500}
           animationBegin={0}
           isAnimationActive={isVisible}
         >

@@ -91,7 +91,7 @@ export function GenreRatingChart({ data }: GenreRatingChartProps) {
         <Bar
           dataKey="averageRating"
           radius={[8, 8, 0, 0]}
-          animationDuration={800}
+          animationDuration={1500}
           animationBegin={0}
           isAnimationActive={isVisible}
         >

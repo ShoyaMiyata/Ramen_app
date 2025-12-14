@@ -135,7 +135,7 @@ export function GenreBarChart({ data }: GenreBarChartProps) {
         <Bar
           dataKey="count"
           radius={[0, 8, 8, 0]}
-          animationDuration={800}
+          animationDuration={1500}
           animationBegin={0}
           isAnimationActive={isVisible}
           label={(props: any) => renderCustomLabel(props, sortedData)}
