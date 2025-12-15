@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { query, mutation } from "./_generated/server";
 
 export const list = query({
   args: {},
@@ -19,6 +18,186 @@ export const search = query({
     return shops
       .filter((shop) => shop.name.toLowerCase().includes(searchLower))
       .slice(0, 10);
+  },
+});
+
+export const searchWithStats = query({
+  args: {
+    searchText: v.string(),
+    viewerId: v.optional(v.id("users")),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const offset = args.offset ?? 0;
+
+    const shops = await ctx.db.query("shops").collect();
+    const filteredShops = args.searchText
+      ? shops.filter((shop) =>
+          shop.name.toLowerCase().includes(args.searchText.toLowerCase())
+        )
+      : shops;
+
+    // 全ての投稿を取得
+    const allNoodles = await ctx.db.query("noodles").collect();
+
+    // フォロー機能が有効かどうかを確認
+    const followSetting = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", "followEnabled"))
+      .unique();
+    const followEnabled = followSetting ? JSON.parse(followSetting.value) === true : true;
+
+    // 鍵アカウントのフィルタリング用データを準備
+    let followingIds: Set<string> = new Set();
+    let userMap = new Map();
+    if (followEnabled) {
+      const users = await ctx.db.query("users").collect();
+      userMap = new Map(users.map((u) => [u._id, u]));
+
+      if (args.viewerId) {
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
+          .collect();
+        followingIds = new Set(following.map((f) => f.followingId));
+      }
+    }
+
+    // 各店舗の統計を計算
+    const shopsWithStats = filteredShops.map((shop) => {
+      let shopNoodles = allNoodles.filter((n) => n.shopId === shop._id);
+
+      // 鍵アカウントのフィルタリング
+      if (followEnabled) {
+        shopNoodles = shopNoodles.filter((noodle) => {
+          const noodleUser = userMap.get(noodle.userId);
+          if (!noodleUser) return false;
+          if (!noodleUser.isPrivate) return true;
+          if (args.viewerId && noodle.userId === args.viewerId) return true;
+          if (args.viewerId && followingIds.has(noodle.userId)) return true;
+          return false;
+        });
+      }
+
+      const totalPosts = shopNoodles.length;
+      const uniqueUserIds = new Set(shopNoodles.map((n) => n.userId));
+      const visitorCount = uniqueUserIds.size;
+
+      const ratedNoodles = shopNoodles.filter((n) => n.evaluation !== undefined);
+      const avgRating =
+        ratedNoodles.length > 0
+          ? ratedNoodles.reduce((sum, n) => sum + (n.evaluation || 0), 0) /
+            ratedNoodles.length
+          : 0;
+
+      return {
+        ...shop,
+        stats: {
+          totalPosts,
+          visitorCount,
+          avgRating: Math.round(avgRating * 10) / 10,
+        },
+      };
+    });
+
+    // 投稿数でソート（全店舗を含む）
+    const sortedShops = shopsWithStats.sort((a, b) => b.stats.totalPosts - a.stats.totalPosts);
+
+    const totalCount = sortedShops.length;
+    const paginatedShops = sortedShops.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
+
+    return {
+      items: paginatedShops,
+      totalCount,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
+    };
+  },
+});
+
+export const getById = query({
+  args: {
+    shopId: v.id("shops"),
+    viewerId: v.optional(v.id("users")), // 閲覧者のID（鍵アカウントフィルタ用）
+  },
+  handler: async (ctx, args) => {
+    const shop = await ctx.db.get(args.shopId);
+    if (!shop) return null;
+
+    // この店舗への全投稿を取得
+    let noodles = await ctx.db
+      .query("noodles")
+      .withIndex("by_shopId", (q) => q.eq("shopId", args.shopId))
+      .collect();
+
+    // フォロー機能が有効かどうかを確認
+    const followSetting = await ctx.db
+      .query("appSettings")
+      .withIndex("by_key", (q) => q.eq("key", "followEnabled"))
+      .unique();
+    const followEnabled = followSetting ? JSON.parse(followSetting.value) === true : true;
+
+    // 鍵アカウントのフィルタリング
+    if (followEnabled) {
+      const users = await ctx.db.query("users").collect();
+      const userMap = new Map(users.map((u) => [u._id, u]));
+
+      let followingIds: Set<string> = new Set();
+      if (args.viewerId) {
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
+          .collect();
+        followingIds = new Set(following.map((f) => f.followingId));
+      }
+
+      noodles = noodles.filter((noodle) => {
+        const noodleUser = userMap.get(noodle.userId);
+        if (!noodleUser) return false;
+        if (!noodleUser.isPrivate) return true;
+        if (args.viewerId && noodle.userId === args.viewerId) return true;
+        if (args.viewerId && followingIds.has(noodle.userId)) return true;
+        return false;
+      });
+    }
+
+    // 統計情報を計算
+    const totalPosts = noodles.length;
+    const uniqueUserIds = new Set(noodles.map((n) => n.userId));
+    const visitorCount = uniqueUserIds.size;
+
+    // 平均評価を計算
+    const ratedNoodles = noodles.filter((n) => n.evaluation !== undefined);
+    const avgRating = ratedNoodles.length > 0
+      ? ratedNoodles.reduce((sum, n) => sum + (n.evaluation || 0), 0) / ratedNoodles.length
+      : 0;
+
+    // 評価分布を計算（1-5星）
+    const ratingDistribution = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+    for (const noodle of ratedNoodles) {
+      if (noodle.evaluation) {
+        ratingDistribution[noodle.evaluation as keyof typeof ratingDistribution]++;
+      }
+    }
+
+    return {
+      ...shop,
+      stats: {
+        totalPosts,
+        visitorCount,
+        avgRating: Math.round(avgRating * 10) / 10,
+        ratingDistribution,
+      },
+    };
   },
 });
 

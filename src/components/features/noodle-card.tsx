@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { StarRating } from "@/components/ui/star-rating";
@@ -22,6 +23,7 @@ interface NoodleCardProps {
 }
 
 export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCardProps) {
+  const router = useRouter();
   const isLiked = useQuery(
     api.likes.isLiked,
     currentUserId ? { userId: currentUserId, noodleId: noodle._id } : "skip"
@@ -42,6 +44,14 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
     await toggleLike({ userId: currentUserId, noodleId: noodle._id });
   };
 
+  const handleShopClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (noodle.shopId) {
+      router.push(`/shops/${noodle.shopId}`);
+    }
+  };
+
   return (
     <Link
       href={`/noodles/${noodle._id}`}
@@ -60,14 +70,20 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-600">
+            <span
+              onClick={handleShopClick}
+              className={cn(
+                "text-sm text-gray-600 hover:text-gray-900 hover:underline transition-colors inline-block",
+                noodle.shopId && "cursor-pointer"
+              )}
+            >
               {noodle.shop?.name || "不明な店舗"}
               {noodle.shop?.station && (
                 <span className="text-gray-400 ml-1">
                   （{noodle.shop.station}）
                 </span>
               )}
-            </p>
+            </span>
             <h3 className="font-bold text-gray-900 truncate">{noodle.ramenName}</h3>
           </div>
           <StarRating value={noodle.evaluation} readonly size="sm" />

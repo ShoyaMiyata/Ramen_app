@@ -240,9 +240,18 @@ export default function NoodleDetailPage({
 
         {/* Header */}
         <div>
-          <h1 className="font-bold text-xl text-gray-900">
-            {noodle.shop?.name || "不明な店舗"}
-          </h1>
+          {noodle.shopId ? (
+            <Link
+              href={`/shops/${noodle.shopId}?from=noodle&noodleId=${noodle._id}`}
+              className="font-bold text-xl text-gray-900 hover:text-orange-500 transition-colors inline-block"
+            >
+              {noodle.shop?.name || "不明な店舗"}
+            </Link>
+          ) : (
+            <h1 className="font-bold text-xl text-gray-900">
+              {noodle.shop?.name || "不明な店舗"}
+            </h1>
+          )}
           <p className="text-gray-600">{noodle.ramenName}</p>
         </div>
 

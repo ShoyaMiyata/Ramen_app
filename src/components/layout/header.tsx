@@ -276,7 +276,7 @@ export function BottomNav() {
     { href: "/", icon: Home, label: "マイページ" },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
     { href: "/insights", icon: BarChart3, label: "インサイト" },
-    { href: "/users", icon: Search, label: "友達を探す" },
+    { href: "/search", icon: Search, label: "検索" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];
 

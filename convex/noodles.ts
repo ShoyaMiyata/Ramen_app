@@ -690,3 +690,143 @@ export const getRamenNameSuggestions = query({
       .slice(0, 10);
   },
 });
+
+export const getByShop = query({
+  args: {
+    shopId: v.id("shops"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+    sortBy: v.optional(
+      v.union(v.literal("newest"), v.literal("rating"), v.literal("likes"))
+    ),
+    filterRating: v.optional(v.number()), // 最低評価でフィルタ
+    filterGenres: v.optional(v.array(v.string())),
+    viewerId: v.optional(v.id("users")), // 鍵アカウントフィルタ用
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const offset = args.offset ?? 0;
+
+    // shopIdで投稿を取得
+    let posts = await ctx.db
+      .query("noodles")
+      .withIndex("by_shopId", (q) => q.eq("shopId", args.shopId))
+      .order("desc")
+      .collect();
+
+    // ユーザー情報を取得（鍵アカウントフィルタ用）
+    const users = await ctx.db.query("users").collect();
+    const userMap = new Map(users.map((u) => [u._id, u]));
+
+    // フォロー機能が有効かチェック
+    const followEnabled = await isFollowEnabled(ctx);
+
+    if (followEnabled) {
+      // 閲覧者がフォローしているユーザーのIDを取得
+      let followingIds: Set<string> = new Set();
+      if (args.viewerId) {
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
+          .collect();
+        followingIds = new Set(following.map((f) => f.followingId));
+      }
+
+      // 鍵アカウントのユーザーの投稿を除外（自分・フォロー中は除く）
+      posts = posts.filter((post) => {
+        const postUser = userMap.get(post.userId);
+        if (!postUser) return false;
+
+        // 公開アカウントは表示
+        if (!postUser.isPrivate) return true;
+
+        // 自分の投稿は表示
+        if (args.viewerId && post.userId === args.viewerId) return true;
+
+        // フォローしているユーザーの投稿は表示
+        if (args.viewerId && followingIds.has(post.userId)) return true;
+
+        // それ以外の鍵アカウントの投稿は非表示
+        return false;
+      });
+    }
+
+    // 評価フィルタ
+    if (args.filterRating !== undefined) {
+      posts = posts.filter((post) => {
+        return post.evaluation !== undefined && post.evaluation >= args.filterRating!;
+      });
+    }
+
+    // ジャンルフィルタ
+    if (args.filterGenres && args.filterGenres.length > 0) {
+      posts = posts.filter((post) =>
+        args.filterGenres!.some((genre) => post.genres.includes(genre))
+      );
+    }
+
+    // いいね数を集計
+    const likesData = await ctx.db.query("likes").collect();
+    const likesCountMap = new Map<string, number>();
+    for (const like of likesData) {
+      const count = likesCountMap.get(like.noodleId) || 0;
+      likesCountMap.set(like.noodleId, count + 1);
+    }
+
+    // ソート
+    if (args.sortBy === "rating") {
+      posts.sort((a, b) => (b.evaluation || 0) - (a.evaluation || 0));
+    } else if (args.sortBy === "likes") {
+      posts.sort(
+        (a, b) => (likesCountMap.get(b._id) || 0) - (likesCountMap.get(a._id) || 0)
+      );
+    }
+    // "newest"はデフォルトでorder("desc")されている
+
+    // Total count before pagination
+    const totalCount = posts.length;
+
+    // ページネーション
+    const paginatedPosts = posts.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
+
+    // エンリッチメント（ユーザー情報、店舗情報、画像URL、いいね数）
+    const items = await Promise.all(
+      paginatedPosts.map(async (post) => {
+        // 複数画像を優先、なければ単一画像にフォールバック
+        let imageUrl: string | null = null;
+        let imageUrls: string[] = [];
+
+        if (post.imageIds && post.imageIds.length > 0) {
+          const urls = await Promise.all(
+            post.imageIds.map((id) => ctx.storage.getUrl(id))
+          );
+          imageUrls = urls.filter((url): url is string => url !== null);
+          imageUrl = imageUrls[0] || null;
+        } else if (post.imageId) {
+          imageUrl = await ctx.storage.getUrl(post.imageId);
+          if (imageUrl) imageUrls = [imageUrl];
+        }
+
+        // 店舗情報を取得
+        const shop = await ctx.db.get(post.shopId);
+
+        return {
+          ...post,
+          user: userMap.get(post.userId),
+          shop,
+          imageUrl,
+          imageUrls,
+          likesCount: likesCountMap.get(post._id) || 0,
+        };
+      })
+    );
+
+    return {
+      items,
+      totalCount,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
+    };
+  },
+});
