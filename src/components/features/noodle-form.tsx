@@ -183,7 +183,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           imageId,
           removeImage: imageRemoved,
         });
-        router.push(`/noodles/${noodle._id}`);
+        router.push("/noodles");
       } else {
         const result = await createNoodle({
           userId: user._id,
