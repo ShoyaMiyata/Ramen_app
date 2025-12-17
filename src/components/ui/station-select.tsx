@@ -115,11 +115,6 @@ export function StationSelect({
               <div className="text-sm font-medium text-gray-900">
                 {station.name}
               </div>
-              {station.line && (
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {station.line}
-                </div>
-              )}
             </button>
           ))}
         </div>
