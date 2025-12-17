@@ -85,6 +85,14 @@ export default function AdminPage() {
   // 設定更新用state
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
 
+  // マイグレーション用state
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<{
+    shopsUpdated: number;
+    stationsUpdated: number;
+    message: string;
+  } | null>(null);
+
   // バッジシミュレーション用state
   const [selectedUserForBadge, setSelectedUserForBadge] = useState<Id<"users"> | null>(null);
   const [badgeSearchText, setBadgeSearchText] = useState("");
@@ -133,6 +141,7 @@ export default function AdminPage() {
   const sendAnnouncement = useMutation(api.admin.sendAnnouncement);
   const sendAnnouncementToAll = useMutation(api.admin.sendAnnouncementToAll);
   const updateAppSetting = useMutation(api.admin.updateAppSetting);
+  const removeStationSuffix = useMutation(api.shops.removeStationSuffix);
 
   // バッジシミュレーション用API
   const usersForBadge = useQuery(
@@ -379,6 +388,22 @@ export default function AdminPage() {
       console.error("Update setting failed:", error);
     } finally {
       setIsUpdatingSetting(false);
+    }
+  };
+
+  // 駅名マイグレーション実行
+  const handleRemoveStationSuffix = async () => {
+    if (!user?._id) return;
+
+    setIsMigrating(true);
+    setMigrationResult(null);
+    try {
+      const result = await removeStationSuffix();
+      setMigrationResult(result);
+    } catch (error) {
+      console.error("Migration failed:", error);
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -1061,6 +1086,35 @@ export default function AdminPage() {
                     <p className="text-xs text-yellow-700">
                       ⚠️ フォロー機能は現在無効です。鍵アカウントの閲覧制限が解除され、全ユーザーの投稿が公開されています。
                     </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 駅名マイグレーション */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div>
+                  <h3 className="font-medium text-gray-900">駅名データ修正</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    駅名の末尾に「駅」が付いているデータを一括で削除します
+                  </p>
+                </div>
+                <Button
+                  onClick={handleRemoveStationSuffix}
+                  disabled={isMigrating}
+                  className="mt-3 w-full"
+                  variant="outline"
+                >
+                  {isMigrating ? "実行中..." : "駅名を修正"}
+                </Button>
+                {migrationResult && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-700 font-medium">
+                      ✅ {migrationResult.message}
+                    </p>
+                    <div className="mt-1 text-xs text-green-600 space-y-0.5">
+                      <div>店舗データ: {migrationResult.shopsUpdated}件更新</div>
+                      <div>駅データ: {migrationResult.stationsUpdated}件更新</div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -201,6 +201,44 @@ export const getById = query({
   },
 });
 
+// マイグレーション: 駅名から「駅」を削除
+export const removeStationSuffix = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // shopsテーブルから駅名を更新
+    const shops = await ctx.db.query("shops").collect();
+    let shopsUpdated = 0;
+
+    for (const shop of shops) {
+      if (shop.station && shop.station.endsWith("駅")) {
+        await ctx.db.patch(shop._id, {
+          station: shop.station.slice(0, -1),
+        });
+        shopsUpdated++;
+      }
+    }
+
+    // stationsテーブルから駅名を更新
+    const stations = await ctx.db.query("stations").collect();
+    let stationsUpdated = 0;
+
+    for (const station of stations) {
+      if (station.name.endsWith("駅")) {
+        await ctx.db.patch(station._id, {
+          name: station.name.slice(0, -1),
+        });
+        stationsUpdated++;
+      }
+    }
+
+    return {
+      shopsUpdated,
+      stationsUpdated,
+      message: `Updated ${shopsUpdated} shops and ${stationsUpdated} stations`,
+    };
+  },
+});
+
 export const getOrCreate = mutation({
   args: {
     name: v.string(),
