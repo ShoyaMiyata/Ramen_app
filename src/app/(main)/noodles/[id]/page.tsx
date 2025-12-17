@@ -273,13 +273,16 @@ export default function NoodleDetailPage({
           ))}
         </div>
 
-        {/* Visit Date & Prefecture */}
+        {/* Visit Date & Prefecture & Station */}
         <div className="text-sm text-gray-500 space-y-1">
           {noodle.visitDate && (
             <p>訪問日: {formatDate(noodle.visitDate)}</p>
           )}
           {noodle.shop?.prefecture && (
             <p>{getPrefectureName(noodle.shop.prefecture)}</p>
+          )}
+          {noodle.shop?.station && (
+            <p>最寄駅: {noodle.shop.station}</p>
           )}
         </div>
 

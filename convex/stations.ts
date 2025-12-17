@@ -78,6 +78,34 @@ export const getOrCreate = mutation({
   },
 });
 
+// 重複駅データを削除（駅付きを削除）
+export const removeDuplicateStations = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const stations = await ctx.db.query("stations").collect();
+    let deletedCount = 0;
+
+    for (const station of stations) {
+      if (station.name.endsWith("駅")) {
+        // 駅なしバージョンが存在するか確認
+        const withoutSuffix = station.name.slice(0, -1);
+        const existing = await ctx.db
+          .query("stations")
+          .withIndex("by_name", (q) => q.eq("name", withoutSuffix))
+          .first();
+
+        if (existing) {
+          // 駅なしバージョンが存在する場合、駅付きを削除
+          await ctx.db.delete(station._id);
+          deletedCount++;
+        }
+      }
+    }
+
+    return { deletedCount, message: `Deleted ${deletedCount} duplicate stations` };
+  },
+});
+
 // 初期マスタデータを登録（一度だけ実行）
 export const seedInitialStations = mutation({
   args: {},

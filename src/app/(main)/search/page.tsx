@@ -72,6 +72,9 @@ export default function SearchPage() {
 
   // タブ切り替え時にリセット
   const handleTabChange = (tab: Tab) => {
+    // 同じタブをクリックした場合は何もしない
+    if (tab === activeTab) return;
+
     setActiveTab(tab);
     setSearchText("");
     setShopOffset(0);

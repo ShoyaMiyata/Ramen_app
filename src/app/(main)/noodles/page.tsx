@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useMutation } from "convex/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { api } from "../../../../convex/_generated/api";
@@ -13,11 +14,12 @@ import { NoodleCard } from "@/components/features/noodle-card";
 import { GENRES } from "@/lib/constants/genres";
 import { PREFECTURES } from "@/lib/constants/prefectures";
 import { StationSelect } from "@/components/ui/station-select";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type SortOption = "newest" | "rating" | "visitDate";
+type ViewMode = "list" | "gallery";
 const ITEMS_PER_PAGE = 10;
 
 export default function NoodlesPage() {
@@ -35,6 +37,7 @@ export default function NoodlesPage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [minRating, setMinRating] = useState<number | undefined>();
   const [maxRating, setMaxRating] = useState<number | undefined>();
@@ -44,6 +47,12 @@ export default function NoodlesPage() {
   const [offset, setOffset] = useState(0);
   const [allItems, setAllItems] = useState<any[]>([]);
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // プルダウンでリフレッシュ用
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartY = useRef<number>(0);
 
   const noodlesData = useQuery(api.noodles.list, {
     genres: selectedGenres.length > 0 ? selectedGenres : undefined,
@@ -89,6 +98,23 @@ export default function NoodlesPage() {
       setOffset((prev) => prev + ITEMS_PER_PAGE);
     }
   }, [noodlesData?.hasMore]);
+
+  // ギャラリービュー用のスクロール監視
+  useEffect(() => {
+    if (viewMode !== "gallery") return;
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      if (scrollHeight - scrollTop - clientHeight < 500 && noodlesData?.hasMore) {
+        handleLoadMore();
+      }
+    };
+
+    scrollElement.addEventListener("scroll", handleScroll);
+    return () => scrollElement.removeEventListener("scroll", handleScroll);
+  }, [viewMode, noodlesData?.hasMore, handleLoadMore]);
 
   // 仮想スクロール設定
   const virtualizer = useVirtualizer({
@@ -136,6 +162,70 @@ export default function NoodlesPage() {
     }
   }, [virtualizer.getVirtualItems(), allItems.length, handleLoadMore, noodlesData?.hasMore]);
 
+  // プルダウンでリフレッシュ
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    setOffset(0);
+    setAllItems([]);
+
+    // アニメーション用に少し待つ
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    setIsRefreshing(false);
+    setPullDistance(0);
+  }, []);
+
+  // タッチイベント処理
+  useEffect(() => {
+    const scrollElement = parentRef.current;
+    if (!scrollElement) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (scrollElement.scrollTop === 0) {
+        pullStartY.current = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (scrollElement.scrollTop === 0 && pullStartY.current > 0) {
+        const currentY = e.touches[0].clientY;
+        const distance = currentY - pullStartY.current;
+
+        if (distance > 0) {
+          setIsPulling(true);
+          setPullDistance(Math.min(distance, 100));
+
+          // 引っ張りすぎを防ぐ
+          if (distance > 80) {
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (isPulling) {
+        if (pullDistance > 60) {
+          handleRefresh();
+        } else {
+          setPullDistance(0);
+        }
+        setIsPulling(false);
+        pullStartY.current = 0;
+      }
+    };
+
+    scrollElement.addEventListener("touchstart", handleTouchStart);
+    scrollElement.addEventListener("touchmove", handleTouchMove, { passive: false });
+    scrollElement.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      scrollElement.removeEventListener("touchstart", handleTouchStart);
+      scrollElement.removeEventListener("touchmove", handleTouchMove);
+      scrollElement.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isPulling, pullDistance, handleRefresh]);
+
   if (!isLoaded) {
     return <LoadingPage />;
   }
@@ -180,11 +270,34 @@ export default function NoodlesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="font-bold text-xl text-gray-900">みんなの一杯</h1>
-        <Link href="/noodles/new">
-          <Button size="icon" style={{ backgroundColor: themeColor }}>
-            <Plus className="w-5 h-5" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "p-1.5 rounded transition-colors",
+                viewMode === "list" ? "bg-white shadow-sm" : "text-gray-500"
+              )}
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("gallery")}
+              className={cn(
+                "p-1.5 rounded transition-colors",
+                viewMode === "gallery" ? "bg-white shadow-sm" : "text-gray-500"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
+          <Link href="/noodles/new">
+            <Button size="icon" style={{ backgroundColor: themeColor }}>
+              <Plus className="w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
@@ -381,12 +494,100 @@ export default function NoodlesPage() {
               : "まだ投稿がありません"}
           </p>
         </div>
-      ) : (
+      ) : viewMode === "gallery" ? (
+        /* Gallery View */
         <div
           ref={parentRef}
-          className="overflow-auto"
+          className="overflow-auto relative"
+          style={{ height: "calc(100vh - 260px)" }}
+        >
+          {/* Pull to Refresh Indicator */}
+          {(isPulling || isRefreshing) && (
+            <div
+              className="flex items-center justify-center py-4 transition-all duration-200 sticky top-0 bg-gray-50 z-10"
+              style={{
+                opacity: isPulling ? pullDistance / 60 : 1,
+              }}
+            >
+              <RefreshCw
+                className={cn(
+                  "w-5 h-5 transition-transform",
+                  isRefreshing && "animate-spin"
+                )}
+                style={{
+                  color: themeColor,
+                  transform: `rotate(${isPulling && !isRefreshing ? pullDistance * 3.6 : 0}deg)`,
+                }}
+              />
+              <span className="ml-2 text-sm" style={{ color: themeColor }}>
+                {isRefreshing ? "更新中..." : pullDistance > 60 ? "離して更新" : "引っ張って更新"}
+              </span>
+            </div>
+          )}
+          <div className="grid grid-cols-3 gap-1">
+            {allItems
+              .filter((noodle) => noodle.imageUrls && noodle.imageUrls.length > 0)
+              .map((noodle) => (
+                <Link
+                  key={noodle._id}
+                  href={`/noodles/${noodle._id}`}
+                  className="aspect-square relative overflow-hidden bg-gray-100 hover:opacity-90 transition-opacity"
+                >
+                  <Image
+                    src={noodle.imageUrls[0]}
+                    alt={noodle.ramenName}
+                    fill
+                    sizes="33vw"
+                    className="object-cover"
+                  />
+                </Link>
+              ))}
+          </div>
+
+          {/* Load More Indicator */}
+          {noodlesData?.hasMore && (
+            <div className="py-4 text-center">
+              <Loading size="sm" />
+            </div>
+          )}
+
+          {/* Total Count */}
+          {noodlesData?.totalCount !== undefined && (
+            <p className="text-xs text-gray-400 text-center pb-2 pt-2">
+              全{noodlesData.totalCount}件中 {allItems.length}件表示
+            </p>
+          )}
+        </div>
+      ) : (
+        /* List View */
+        <div
+          ref={parentRef}
+          className="overflow-auto relative"
           style={{ height: "calc(100vh - 260px)", contain: "strict" }}
         >
+          {/* Pull to Refresh Indicator */}
+          {(isPulling || isRefreshing) && (
+            <div
+              className="flex items-center justify-center py-4 transition-all duration-200 sticky top-0 bg-gray-50 z-10"
+              style={{
+                opacity: isPulling ? pullDistance / 60 : 1,
+              }}
+            >
+              <RefreshCw
+                className={cn(
+                  "w-5 h-5 transition-transform",
+                  isRefreshing && "animate-spin"
+                )}
+                style={{
+                  color: themeColor,
+                  transform: `rotate(${isPulling && !isRefreshing ? pullDistance * 3.6 : 0}deg)`,
+                }}
+              />
+              <span className="ml-2 text-sm" style={{ color: themeColor }}>
+                {isRefreshing ? "更新中..." : pullDistance > 60 ? "離して更新" : "引っ張って更新"}
+              </span>
+            </div>
+          )}
           <div
             style={{
               height: `${virtualizer.getTotalSize()}px`,
