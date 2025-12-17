@@ -55,7 +55,7 @@ export default function InsightsPage() {
       {/* Header */}
       <div className="flex items-center gap-2">
         <Soup className="w-6 h-6" style={{ color: themeColor }} />
-        <h1 className="font-bold text-2xl text-gray-900">Noodleインサイト</h1>
+        <h1 className="font-bold text-2xl text-gray-900">Nooodleインサイト</h1>
       </div>
 
       {/* Summary Cards Grid */}
