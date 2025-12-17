@@ -99,3 +99,36 @@ export const markAsRead = mutation({
     await ctx.db.patch(args.notificationId, { isRead: true });
   },
 });
+
+// ランクアップ通知をフォロワー全員に送信
+export const createRankUpNotifications = mutation({
+  args: {
+    userId: v.id("users"),
+    rankName: v.string(),
+    rankLevel: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // ユーザーのフォロワーを取得
+    const followers = await ctx.db
+      .query("follows")
+      .withIndex("by_followingId", (q) => q.eq("followingId", args.userId))
+      .collect();
+
+    // 各フォロワーに通知を作成
+    const notifications = await Promise.all(
+      followers.map((follow) =>
+        ctx.db.insert("notifications", {
+          userId: follow.followerId,
+          type: "rank_up",
+          fromUserId: args.userId,
+          targetId: `rank_${args.rankLevel}`,
+          message: `${args.rankName}にランクアップしました！`,
+          isRead: false,
+          createdAt: Date.now(),
+        })
+      )
+    );
+
+    return notifications.length;
+  },
+});

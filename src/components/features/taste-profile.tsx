@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Users, X, Check, ChevronDown } from "lucide-react";
+import { Users, X, Check, ChevronDown, Radar } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { GENRES } from "@/lib/constants/genres";
 
@@ -40,7 +40,10 @@ export function TasteProfile({ userId, showCompare = true }: TasteProfileProps) 
   if (tasteProfile === undefined) {
     return (
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100">
-        <h2 className="font-bold text-gray-900 mb-4">味覚プロファイル</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <Radar className="w-5 h-5" style={{ color: themeColor }} />
+          <h2 className="font-bold text-gray-900">味覚プロファイル</h2>
+        </div>
         <div className="h-52 flex items-center justify-center">
           <div className="w-8 h-8 border-3 border-gray-200 border-t-orange-400 rounded-full animate-spin" />
         </div>
@@ -61,6 +64,7 @@ export function TasteProfile({ userId, showCompare = true }: TasteProfileProps) 
           className="w-full p-4 flex items-center justify-between relative"
         >
           <div className="flex items-center gap-3">
+            <Radar className="w-5 h-5" style={{ color: themeColor }} />
             <h2 className="font-bold text-gray-900">味覚プロファイル</h2>
             {!isExpanded && (
               <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
@@ -132,6 +136,7 @@ export function TasteProfile({ userId, showCompare = true }: TasteProfileProps) 
         className="w-full p-4 flex items-center justify-between relative"
       >
         <div className="flex items-center gap-3">
+          <Radar className="w-5 h-5" style={{ color: themeColor }} />
           <h2 className="font-bold text-gray-900">味覚プロファイル</h2>
           {tasteProfile.topGenre && !isExpanded && (
             <span

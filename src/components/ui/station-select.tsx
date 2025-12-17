@@ -19,7 +19,7 @@ export function StationSelect({
   value = "",
   onChange,
   prefecture,
-  placeholder = "駅名を入力",
+  placeholder = "駅名を入力 (例: 新宿)",
   className,
 }: StationSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,15 +74,23 @@ export function StationSelect({
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
+    let newValue = e.target.value;
+    // 末尾の「駅」を自動削除
+    if (newValue.endsWith("駅")) {
+      newValue = newValue.slice(0, -1);
+    }
     setInputValue(newValue);
     onChange(newValue);
     setIsOpen(true);
   };
 
   const handleSelectStation = (station: Station) => {
-    setInputValue(station.name);
-    onChange(station.name);
+    // 末尾の「駅」を自動削除
+    const stationName = station.name.endsWith("駅")
+      ? station.name.slice(0, -1)
+      : station.name;
+    setInputValue(stationName);
+    onChange(stationName);
     setIsOpen(false);
   };
 

@@ -1,9 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as Checkbox from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { type Rank } from "@/lib/constants/ranks";
 import { RankIcon, RankUpIcon } from "./rank-icon";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface RankUpModalProps {
   fromRank: Rank | null;
@@ -12,7 +18,30 @@ interface RankUpModalProps {
 }
 
 export function RankUpModal({ fromRank, toRank, onClose }: RankUpModalProps) {
+  const { user } = useCurrentUser();
+  const [notifyFollowers, setNotifyFollowers] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const createRankUpNotifications = useMutation(api.notifications.createRankUpNotifications);
+
   if (!fromRank || !toRank) return null;
+
+  const handleClose = async () => {
+    if (notifyFollowers && user?._id) {
+      setIsSending(true);
+      try {
+        await createRankUpNotifications({
+          userId: user._id,
+          rankName: toRank.name,
+          rankLevel: toRank.level,
+        });
+      } catch (error) {
+        console.error("Failed to send rank up notifications:", error);
+      } finally {
+        setIsSending(false);
+      }
+    }
+    onClose();
+  };
 
   return (
     <Dialog.Root open={true} onOpenChange={(open) => !open && onClose()}>
@@ -118,17 +147,41 @@ export function RankUpModal({ fromRank, toRank, onClose }: RankUpModalProps) {
                 </p>
               </motion.div>
 
+              {/* 通知設定 */}
+              <motion.div
+                className="mt-6 relative z-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+              >
+                <label className="flex items-center gap-2 justify-center cursor-pointer">
+                  <Checkbox.Root
+                    checked={notifyFollowers}
+                    onCheckedChange={(checked) => setNotifyFollowers(checked === true)}
+                    className="w-5 h-5 bg-white border-2 border-gray-300 rounded flex items-center justify-center hover:border-orange-400 transition-colors"
+                  >
+                    <Checkbox.Indicator>
+                      <Check className="w-4 h-4 text-orange-500" />
+                    </Checkbox.Indicator>
+                  </Checkbox.Root>
+                  <span className="text-sm text-gray-600">
+                    フォロワーにランクアップを通知する
+                  </span>
+                </label>
+              </motion.div>
+
               {/* 閉じるボタン */}
               <motion.button
-                onClick={onClose}
-                className="mt-6 px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-shadow relative z-10"
+                onClick={handleClose}
+                disabled={isSending}
+                className="mt-4 px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-shadow relative z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.4 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: isSending ? 1 : 1.05 }}
+                whileTap={{ scale: isSending ? 1 : 0.95 }}
               >
-                すごい！
+                {isSending ? "通知中..." : "すごい！"}
               </motion.button>
             </motion.div>
           </motion.div>

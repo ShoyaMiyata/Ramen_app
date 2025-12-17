@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { use } from "react";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
@@ -9,17 +9,21 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { RankDisplay } from "@/components/features/rank-display";
 import { TasteProfile } from "@/components/features/taste-profile";
-import { BadgeDisplay } from "@/components/features/badge-display";
+import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useViewingUser } from "@/hooks/useViewingUser";
+import { GENRES } from "@/lib/constants/genres";
 
 type ViewMode = "list" | "gallery" | "likes";
 
@@ -33,12 +37,39 @@ export default function UserProfilePage({
 
   const router = useRouter();
   const { user: currentUser, isLoaded } = useCurrentUser();
+  const { user: viewingUser, realUser } = useViewingUser();
+  const { themeColor } = useTheme();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [optimisticRequestPending, setOptimisticRequestPending] = useState(false);
   const [offset, setOffset] = useState(0);
   const LIMIT = 10;
+
+  // プロフィール編集用
+  const [isEditNameOpen, setIsEditNameOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [isBadgeListOpen, setIsBadgeListOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // フィルタ用
+  const [showMyFilters, setShowMyFilters] = useState(false);
+  const [mySearchText, setMySearchText] = useState("");
+  const [mySelectedGenres, setMySelectedGenres] = useState<string[]>([]);
+  const [myMinRating, setMyMinRating] = useState<number | undefined>();
+  const [myMaxRating, setMyMaxRating] = useState<number | undefined>();
+
+  const updateName = useMutation(api.users.updateName);
+  const generateUploadUrl = useMutation(api.users.generateUploadUrl);
+  const updateProfileImage = useMutation(api.users.updateProfileImage);
+  const removeProfileImage = useMutation(api.users.removeProfileImage);
+  const profileImageUrl = useQuery(
+    api.users.getProfileImageUrl,
+    userId ? { userId } : "skip"
+  );
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
 
@@ -90,6 +121,10 @@ export default function UserProfilePage({
     canViewProfile?.canView ? { userId } : "skip"
   );
   const followCounts = useQuery(api.follows.getCounts, { userId });
+  const visitStats = useQuery(
+    api.prefectures.getVisitStats,
+    canViewProfile?.canView ? { userId } : "skip"
+  );
   const isFollowing = useQuery(
     api.follows.isFollowing,
     currentUser?._id
@@ -186,24 +221,39 @@ export default function UserProfilePage({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Link href="/users" className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <h1 className="text-lg font-bold text-gray-900">プロフィール</h1>
-      </div>
-
       {/* Profile Card */}
       <div className="bg-white rounded-xl p-4 shadow-sm">
         <div className="flex items-center gap-4">
-          {profileUser.imageUrl ? (
+          {isOwnProfile ? (
+            <button
+              onClick={() => {
+                setEditName(profileUser.name || "");
+                setIsEditNameOpen(true);
+              }}
+              className="relative group"
+            >
+              {profileImageUrl || profileUser.imageUrl ? (
+                <img
+                  src={profileImageUrl || profileUser.imageUrl || ""}
+                  alt={profileUser.name || ""}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Pencil className="w-5 h-5 text-white" />
+              </div>
+            </button>
+          ) : profileImageUrl || profileUser.imageUrl ? (
             <button
               onClick={() => setIsAvatarModalOpen(true)}
               className="focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 rounded-full"
             >
               <img
-                src={profileUser.imageUrl}
+                src={profileImageUrl || profileUser.imageUrl || ""}
                 alt={profileUser.name || ""}
                 className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
               />
@@ -325,24 +375,66 @@ export default function UserProfilePage({
           {/* Conquest Map Link */}
           <Link
             href={`/users/${userId}/map`}
-            className="block bg-white rounded-xl p-4 shadow-sm hover:bg-gray-50 transition-colors"
+            className="block bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative hover:shadow-md transition-all"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700">制覇マップを見る</span>
-              <span className="text-gray-400">→</span>
-            </div>
+            <div
+              className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-5"
+              style={{ backgroundColor: themeColor }}
+            />
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = `/users/${userId}/map`;
+              }}
+              className="w-full p-4 flex items-center justify-between relative"
+            >
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5" style={{ color: themeColor }} />
+                <h2 className="font-bold text-gray-900">制覇マップを見る</h2>
+                {visitStats && visitStats.summary.total > 0 && (
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: themeColor }}
+                  >
+                    {visitStats.summary.total}都道府県
+                  </span>
+                )}
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </button>
           </Link>
 
           {/* My Best */}
           <MyBestDisplay userId={userId} editable={isOwnProfile} />
 
-          {/* Badges */}
-          {badges && badges.length > 0 && (
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h2 className="font-bold text-gray-900 mb-3">獲得バッジ</h2>
-              <BadgeDisplay userBadges={badges} />
-            </div>
+          {/* New Record Button (自分のみ) */}
+          {isOwnProfile && (
+            <Link href="/noodles/new">
+              <Button
+                className="w-full gap-2 text-white"
+                style={{ backgroundColor: themeColor }}
+              >
+                <Plus className="w-5 h-5" />
+                一杯を記録する
+              </Button>
+            </Link>
           )}
+
+          {/* Badges */}
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <button
+              onClick={() => setIsBadgeListOpen(true)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="font-bold text-gray-900">獲得バッジ</h2>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+            {badges && badges.length > 0 ? (
+              <BadgeDisplay userBadges={badges} />
+            ) : (
+              <p className="text-sm text-gray-400">まだバッジがありません</p>
+            )}
+          </div>
 
           {/* Records */}
           <div>
@@ -444,6 +536,201 @@ export default function UserProfilePage({
           </div>
         </>
       )}
+
+      {/* Footer Links (自分のみ表示) */}
+      {isOwnProfile && (
+        <div className="flex items-center justify-center gap-4 py-3 text-sm text-gray-400">
+          <Link
+            href="/settings"
+            className="flex items-center gap-1 hover:text-gray-600 transition-colors"
+          >
+            <Settings className="w-3 h-3" />
+            <span>設定</span>
+          </Link>
+          <span>|</span>
+          <Link
+            href="/mentenance"
+            className="flex items-center gap-1 hover:text-gray-600 transition-colors"
+          >
+            <Wrench className="w-3 h-3" />
+            <span>麺テナンス</span>
+          </Link>
+          {realUser?.isAdmin && (
+            <>
+              <span>|</span>
+              <Link
+                href="/admin"
+                className="flex items-center gap-1 hover:text-gray-600 transition-colors text-purple-600"
+              >
+                <Shield className="w-3 h-3" />
+                <span>管理</span>
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Badge List Modal */}
+      <BadgeListModal
+        open={isBadgeListOpen}
+        onOpenChange={setIsBadgeListOpen}
+        earnedBadgeCodes={badges?.map((b) => b.badgeCode) || []}
+      />
+
+      {/* Edit Profile Dialog */}
+      <Dialog.Root
+        open={isEditNameOpen}
+        onOpenChange={(open) => {
+          setIsEditNameOpen(open);
+          if (!open) {
+            setPreviewImage(null);
+            setSelectedFile(null);
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-50 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <Dialog.Title className="text-lg font-bold text-gray-900">
+                プロフィールを編集
+              </Dialog.Title>
+              <Dialog.Close className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </Dialog.Close>
+            </div>
+            <div className="space-y-4">
+              {/* Profile Image */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {previewImage || profileImageUrl || profileUser.imageUrl ? (
+                    <img
+                      src={previewImage || profileImageUrl || profileUser.imageUrl || ""}
+                      alt="プロフィール画像"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                    style={{ color: themeColor }}
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setPreviewImage(ev.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                {(profileImageUrl || profileUser.imageUrl || previewImage) && (
+                  <button
+                    onClick={async () => {
+                      if (previewImage) {
+                        setPreviewImage(null);
+                        setSelectedFile(null);
+                      } else if (userId) {
+                        setIsUploadingImage(true);
+                        try {
+                          await removeProfileImage({ userId });
+                        } finally {
+                          setIsUploadingImage(false);
+                        }
+                      }
+                    }}
+                    className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    画像を削除
+                  </button>
+                )}
+              </div>
+
+              {/* Name Input */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                  名前
+                </label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="名前を入力"
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsEditNameOpen(false);
+                    setPreviewImage(null);
+                    setSelectedFile(null);
+                  }}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  className="flex-1"
+                  disabled={!editName.trim() || isUploadingImage}
+                  onClick={async () => {
+                    if (!userId || !editName.trim()) return;
+
+                    setIsUploadingImage(true);
+                    try {
+                      // 名前を更新
+                      await updateName({
+                        userId,
+                        name: editName.trim(),
+                      });
+
+                      // 画像がある場合はアップロード
+                      if (selectedFile) {
+                        const uploadUrl = await generateUploadUrl();
+                        const result = await fetch(uploadUrl, {
+                          method: "POST",
+                          headers: { "Content-Type": selectedFile.type },
+                          body: selectedFile,
+                        });
+                        const { storageId } = await result.json();
+                        await updateProfileImage({
+                          userId,
+                          imageId: storageId,
+                        });
+                      }
+
+                      setIsEditNameOpen(false);
+                      setPreviewImage(null);
+                      setSelectedFile(null);
+                    } finally {
+                      setIsUploadingImage(false);
+                    }
+                  }}
+                >
+                  {isUploadingImage ? "保存中..." : "保存"}
+                </Button>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* Avatar Modal */}
       <Dialog.Root open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>

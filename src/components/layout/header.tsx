@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3 } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -125,7 +125,9 @@ export function Header() {
                                 ? `/noodles/${notification.targetId}`
                                 : notification.type === "follow_request"
                                   ? `/follow-requests`
-                                  : `/users/${notification.fromUserId}`;
+                                  : notification.type === "rank_up"
+                                    ? `/users/${notification.fromUserId}`
+                                    : `/users/${notification.fromUserId}`;
 
                           const handleClick = () => {
                             setIsNotificationOpen(false);
@@ -151,6 +153,8 @@ export function Header() {
                                   <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
                                 ) : notification.type === "like" ? (
                                   <Heart className="w-5 h-5" style={{ color: themeColor }} />
+                                ) : notification.type === "rank_up" ? (
+                                  <TrendingUp className="w-5 h-5" style={{ color: themeColor }} />
                                 ) : (
                                   <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
                                 )}
@@ -198,6 +202,11 @@ export function Header() {
                                     {notification.type === "message" && (
                                       <span className="text-gray-600">
                                         さんからメッセージが届きました
+                                      </span>
+                                    )}
+                                    {notification.type === "rank_up" && (
+                                      <span className="text-gray-600">
+                                        さんが{notification.message}
                                       </span>
                                     )}
                                   </p>
@@ -272,8 +281,10 @@ export function BottomNav() {
     realUser?._id ? { userId: realUser._id } : "skip"
   );
 
+  const myProfileHref = realUser?._id ? `/users/${realUser._id}` : "/";
+
   const navItems = [
-    { href: "/", icon: Home, label: "マイページ" },
+    { href: myProfileHref, icon: Home, label: "マイページ", isProfile: true },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
     { href: "/insights", icon: BarChart3, label: "インサイト" },
     { href: "/search", icon: Search, label: "検索" },
@@ -284,7 +295,10 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
       <div className="max-w-md mx-auto flex items-center justify-around h-16">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          // プロフィールページの場合は / または /users/[id] がアクティブ
+          const isActive = item.isProfile
+            ? pathname === "/" || pathname === myProfileHref
+            : pathname === item.href;
           const Icon = item.icon;
           return (
             <Link

@@ -54,33 +54,20 @@ export default function UserMapPage({
 
   return (
     <div className="space-y-4 pb-4">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Link
-          href={`/users/${userId}`}
-          className="p-2 -ml-2 hover:bg-gray-100 rounded-lg"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <h1 className="font-bold text-lg text-gray-900">
-          {profileUser.name || "ユーザー"}の制覇マップ
-        </h1>
-      </div>
-
       {/* Stats Summary */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy className="w-4 h-4" style={{ color: themeColor }} />
-          <span className="font-bold text-gray-900">統計</span>
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy className="w-5 h-5" style={{ color: themeColor }} />
+          <span className="font-bold text-gray-900">制覇統計</span>
         </div>
         <div className="grid grid-cols-4 gap-2">
-          <div className="text-center p-3 bg-gray-50 rounded-xl">
+          <div className="text-center p-3 bg-white/50 rounded-xl border border-gray-100">
             <div className="text-2xl font-bold" style={{ color: themeColor }}>
               {summary.total}
             </div>
             <div className="text-xs text-gray-500">制覇</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded-xl">
+          <div className="text-center p-3 bg-white/50 rounded-xl border border-gray-100">
             <div
               className="text-2xl font-bold"
               style={{ color: BADGE_TIERS.bronze.color }}
@@ -89,7 +76,7 @@ export default function UserMapPage({
             </div>
             <div className="text-xs text-gray-500">銅</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded-xl">
+          <div className="text-center p-3 bg-white/50 rounded-xl border border-gray-100">
             <div
               className="text-2xl font-bold"
               style={{ color: BADGE_TIERS.silver.color }}
@@ -98,7 +85,7 @@ export default function UserMapPage({
             </div>
             <div className="text-xs text-gray-500">銀</div>
           </div>
-          <div className="text-center p-3 bg-gray-50 rounded-xl">
+          <div className="text-center p-3 bg-white/50 rounded-xl border border-gray-100">
             <div
               className="text-2xl font-bold"
               style={{ color: BADGE_TIERS.gold.color }}
@@ -111,8 +98,8 @@ export default function UserMapPage({
       </div>
 
       {/* Region Progress */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h2 className="font-bold text-gray-900 mb-3">地方別進捗</h2>
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h2 className="font-bold text-gray-900 mb-4">地方別進捗</h2>
         <div className="space-y-3">
           {REGIONS.map((region) => {
             const regionPrefectures = getPrefecturesByRegion(region.code);
@@ -160,8 +147,8 @@ export default function UserMapPage({
       <BadgeCollection userId={userId} showLocked />
 
       {/* Prefecture List by Region */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <h2 className="font-bold text-gray-900 mb-3">都道府県一覧</h2>
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h2 className="font-bold text-gray-900 mb-4">都道府県一覧</h2>
         <div className="space-y-4">
           {REGIONS.map((region) => {
             const regionPrefectures = getPrefecturesByRegion(region.code);
