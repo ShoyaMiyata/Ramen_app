@@ -33,30 +33,6 @@ const HERO_IMAGES = [
     url: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=1920&h=1080&fit=crop&q=80',
     alt: '塩ラーメン',
   },
-  {
-    url: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=1920&h=1080&fit=crop&q=80',
-    alt: '担々麺',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=1920&h=1080&fit=crop&q=80',
-    alt: 'つけ麺',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=1920&h=1080&fit=crop&q=80',
-    alt: '海老ワンタン麺',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1606728035253-49e8a23146de?w=1920&h=1080&fit=crop&q=80',
-    alt: '油そば',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1569368247796-5e622c1f1e9b?w=1920&h=1080&fit=crop&q=80',
-    alt: 'チャーシュー麺',
-  },
-  {
-    url: 'https://images.unsplash.com/photo-1617093727239-8c06682c8fb5?w=1920&h=1080&fit=crop&q=80',
-    alt: '背脂ラーメン',
-  },
 ];
 
 const Hero: React.FC = () => {

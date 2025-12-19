@@ -54,7 +54,9 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   // 単一画像
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(noodle?.imageUrl || null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    noodle?.r2ImageUrl || noodle?.imageUrl || null
+  );
   const [existingImageId] = useState<Id<"_storage"> | null>(noodle?.imageId || null);
   const [imageRemoved, setImageRemoved] = useState(false);
 
@@ -80,7 +82,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const createNoodle = useMutation(api.noodles.create);
   const updateNoodle = useMutation(api.noodles.update);
   const checkBadges = useMutation(api.badges.checkAndAward);
-  const generateUploadUrl = useMutation(api.noodles.generateUploadUrl);
 
   const currentShopCount = userNoodles
     ? new Set(userNoodles.items.map((n: any) => n.shopId)).size
@@ -124,7 +125,21 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   };
 
   // 画像削除
-  const handleRemoveImage = () => {
+  const handleRemoveImage = async () => {
+    // R2から画像を削除（既存の画像がある場合）
+    if (noodle?.r2ImageKey) {
+      try {
+        await fetch("/api/upload", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: noodle.r2ImageKey }),
+        });
+      } catch (error) {
+        console.error("Failed to delete R2 image:", error);
+        // エラーが発生しても続行
+      }
+    }
+
     setImageFile(null);
     setImagePreview(null);
     setImageRemoved(true);
@@ -151,7 +166,21 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       let imageKey: string | undefined;
 
       if (imageFile) {
-        // Cloudflare R2にアップロード
+        // 既存のR2画像がある場合は削除
+        if (noodle?.r2ImageKey) {
+          try {
+            await fetch("/api/upload", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ key: noodle.r2ImageKey }),
+            });
+          } catch (error) {
+            console.error("Failed to delete old R2 image:", error);
+            // エラーが発生しても続行
+          }
+        }
+
+        // Cloudflare R2に新しい画像をアップロード
         const formData = new FormData();
         formData.append("file", imageFile);
 

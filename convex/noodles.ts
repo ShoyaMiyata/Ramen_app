@@ -403,8 +403,10 @@ export const create = mutation({
     visitDate: v.optional(v.number()),
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
-    imageId: v.optional(v.id("_storage")), // 後方互換用
-    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（最大5枚）
+    imageId: v.optional(v.id("_storage")), // 後方互換用（非推奨）
+    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（非推奨）
+    r2ImageUrl: v.optional(v.string()), // Cloudflare R2画像URL
+    r2ImageKey: v.optional(v.string()), // R2オブジェクトキー（削除用）
   },
   handler: async (ctx, args) => {
     // プラン制限チェック
@@ -422,8 +424,10 @@ export const create = mutation({
       visitDate: args.visitDate,
       comment: args.comment,
       evaluation: args.evaluation,
-      imageId: args.imageId,
-      imageIds: args.imageIds,
+      imageId: args.imageId, // 後方互換
+      imageIds: args.imageIds, // 後方互換
+      r2ImageUrl: args.r2ImageUrl, // R2画像URL
+      r2ImageKey: args.r2ImageKey, // R2削除用キー
       createdAt: Date.now(),
     });
 
@@ -506,8 +510,10 @@ export const update = mutation({
     visitDate: v.optional(v.number()),
     comment: v.optional(v.string()),
     evaluation: v.optional(v.number()),
-    imageId: v.optional(v.id("_storage")), // 後方互換用
-    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像
+    imageId: v.optional(v.id("_storage")), // 後方互換用（非推奨）
+    imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（非推奨）
+    r2ImageUrl: v.optional(v.string()), // R2画像URL
+    r2ImageKey: v.optional(v.string()), // R2オブジェクトキー
     removeImage: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -515,12 +521,36 @@ export const update = mutation({
     if (!existing) throw new Error("Record not found");
     if (existing.userId !== args.userId) throw new Error("Unauthorized");
 
-    // 画像の処理（複数画像対応）
+    // 画像の処理（R2対応）
     let newImageIds: typeof existing.imageIds = existing.imageIds;
     let newImageId: typeof existing.imageId = existing.imageId;
+    let newR2ImageUrl: string | undefined = existing.r2ImageUrl;
+    let newR2ImageKey: string | undefined = existing.r2ImageKey;
 
     if (args.removeImage) {
       // 画像全削除の場合
+      // Convex Storage（後方互換）
+      if (existing.imageIds) {
+        for (const id of existing.imageIds) {
+          await ctx.storage.delete(id);
+        }
+      }
+      if (existing.imageId) {
+        await ctx.storage.delete(existing.imageId);
+      }
+      newImageIds = undefined;
+      newImageId = undefined;
+
+      // R2画像は削除しない（API経由で削除する必要がある）
+      // フロントエンドで /api/upload DELETE を呼び出す
+      newR2ImageUrl = undefined;
+      newR2ImageKey = undefined;
+    } else if (args.r2ImageUrl !== undefined) {
+      // 新しいR2画像が指定された場合
+      newR2ImageUrl = args.r2ImageUrl;
+      newR2ImageKey = args.r2ImageKey;
+
+      // Convex Storageの古い画像は削除（後方互換）
       if (existing.imageIds) {
         for (const id of existing.imageIds) {
           await ctx.storage.delete(id);
@@ -532,8 +562,7 @@ export const update = mutation({
       newImageIds = undefined;
       newImageId = undefined;
     } else if (args.imageIds !== undefined) {
-      // 新しい複数画像が指定された場合
-      // 古い画像で新しいリストにないものを削除
+      // 後方互換: 複数画像（Convex Storage）
       const newIdSet = new Set(args.imageIds);
       if (existing.imageIds) {
         for (const id of existing.imageIds) {
@@ -546,9 +575,9 @@ export const update = mutation({
         await ctx.storage.delete(existing.imageId);
       }
       newImageIds = args.imageIds.length > 0 ? args.imageIds : undefined;
-      newImageId = undefined; // imageIds を使う場合は imageId は不要
+      newImageId = undefined;
     } else if (args.imageId && args.imageId !== existing.imageId) {
-      // 後方互換: 単一画像の場合
+      // 後方互換: 単一画像（Convex Storage）
       if (existing.imageId) {
         await ctx.storage.delete(existing.imageId);
       }
@@ -564,6 +593,8 @@ export const update = mutation({
       evaluation: args.evaluation,
       imageId: newImageId,
       imageIds: newImageIds,
+      r2ImageUrl: newR2ImageUrl,
+      r2ImageKey: newR2ImageKey,
     });
 
     return args.id;
