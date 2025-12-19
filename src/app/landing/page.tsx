@@ -9,7 +9,7 @@ import Footer from '@/components/landing/Footer';
 
 export const metadata = {
   title: 'Nooodle - その一杯を、伝説にせよ。',
-  description: '食べた数だけ強くなる。ラーメン好きのための究極の記録・共有アプリ。あなたの「麺生」を可視化し、目指せ『麺極』！',
+  description: '食べた数だけ好きになる。ラーメン好きのための究極の記録・共有アプリ。あなたの「麺生」を可視化し、目指せ『麺極』！',
 };
 
 export default function LandingPage() {

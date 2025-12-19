@@ -21,7 +21,7 @@ const Footer: React.FC = () => {
               <span className="font-bold text-xl text-white">{APP_NAME}</span>
             </div>
             <p className="text-sm text-gray-400">
-              食べた数だけ強くなる。<br />
+              食べた数だけ好きになる。<br />
               ラーメン好きのための記録アプリ。
             </p>
           </div>
