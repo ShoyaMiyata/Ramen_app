@@ -130,9 +130,11 @@ export default function AdminPage() {
     user?._id && activeTab === "settings" ? { adminUserId: user._id } : "skip"
   );
   const followEnabled = useQuery(api.follows.getFollowEnabled);
+  const postLoginDestination = useQuery(api.appSettings.getPostLoginDestination);
   const sendAnnouncement = useMutation(api.admin.sendAnnouncement);
   const sendAnnouncementToAll = useMutation(api.admin.sendAnnouncementToAll);
   const updateAppSetting = useMutation(api.admin.updateAppSetting);
+  const updatePostLoginDestination = useMutation(api.appSettings.updatePostLoginDestination);
 
   // バッジシミュレーション用API
   const usersForBadge = useQuery(
@@ -377,6 +379,23 @@ export default function AdminPage() {
       });
     } catch (error) {
       console.error("Update setting failed:", error);
+    } finally {
+      setIsUpdatingSetting(false);
+    }
+  };
+
+  // ログイン後の遷移先切り替え
+  const handleTogglePostLoginDestination = async () => {
+    if (!user?._id || !postLoginDestination) return;
+
+    setIsUpdatingSetting(true);
+    try {
+      const newDestination = postLoginDestination === "dashboard" ? "landing" : "dashboard";
+      await updatePostLoginDestination({
+        destination: newDestination,
+      });
+    } catch (error) {
+      console.error("Update post-login destination failed:", error);
     } finally {
       setIsUpdatingSetting(false);
     }
@@ -1030,6 +1049,41 @@ export default function AdminPage() {
           {/* Settings Tab */}
           {activeTab === "settings" && (
             <div className="space-y-4">
+              {/* ログイン後の遷移先設定 */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900">ログイン後の遷移先</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {postLoginDestination === "dashboard"
+                        ? "現在: マイページに遷移"
+                        : "現在: ランディングページに遷移"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleTogglePostLoginDestination}
+                    disabled={isUpdatingSetting || !postLoginDestination}
+                    className={cn(
+                      "relative w-12 h-7 rounded-full transition-colors flex-shrink-0",
+                      postLoginDestination === "dashboard" ? "bg-blue-500" : "bg-purple-500",
+                      isUpdatingSetting && "opacity-50"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow transition-transform",
+                        postLoginDestination === "landing" && "translate-x-5"
+                      )}
+                    />
+                  </button>
+                </div>
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    💡 トグルをオフ（左）: マイページ / オン（右）: ランディングページ
+                  </p>
+                </div>
+              </div>
+
               {/* フォロー機能のオンオフ */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between">
