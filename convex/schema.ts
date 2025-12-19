@@ -15,9 +15,15 @@ export default defineSchema({
     onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
     isPrivate: v.optional(v.boolean()), // 鍵アカウントフラグ
     lastTimelineVisit: v.optional(v.number()), // 最後にタイムラインを訪問した日時
+    // Stripe決済情報
+    plan: v.optional(v.string()), // "free" | "premium"
+    stripeCustomerId: v.optional(v.string()), // Stripe Customer ID
+    subscriptionId: v.optional(v.string()), // Stripe Subscription ID
+    subscriptionStatus: v.optional(v.string()), // "active" | "canceled" | "past_due" など
   })
     .index("by_clerkId", ["clerkId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_stripeCustomerId", ["stripeCustomerId"]),
 
   shops: defineTable({
     name: v.string(),
@@ -41,6 +47,9 @@ export default defineSchema({
     imageId: v.optional(v.id("_storage")), // 単一画像（後方互換）
     imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（最大5枚）
     createdAt: v.optional(v.number()), // 作成日時（ソート用）
+    // Cloudflare R2画像情報
+    r2ImageUrl: v.optional(v.string()), // R2に保存された画像のURL
+    r2ImageKey: v.optional(v.string()), // R2のオブジェクトキー（削除時に使用）
   })
     .index("by_userId", ["userId"])
     .index("by_shopId", ["shopId"])
@@ -199,4 +208,19 @@ export default defineSchema({
   })
     .index("by_name", ["name"])
     .index("by_prefecture", ["prefecture"]),
+
+  // お問い合わせ
+  contacts: defineTable({
+    name: v.string(), // お問い合わせ者の名前
+    email: v.string(), // メールアドレス
+    category: v.string(), // "bug" | "feature" | "account" | "subscription" | "other"
+    subject: v.string(), // 件名
+    message: v.string(), // お問い合わせ内容
+    status: v.optional(v.string()), // "new" | "in_progress" | "resolved"
+    userId: v.optional(v.id("users")), // ログインユーザーの場合のみ
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_status", ["status"])
+    .index("by_createdAt", ["createdAt"]),
 });

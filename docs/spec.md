@@ -1,9 +1,5 @@
 # ラーメン記録アプリ 要件定義書
 
-**作成日:** 2025年12月6日
-**バージョン:** 1.0
-**作成方法:** リバースエンジニアリングによる既存コードからの抽出
-
 ---
 
 ## 1. 概要
@@ -523,19 +519,115 @@ export const BADGES = {
 
 ---
 
-## 11. 将来拡張候補（現時点では未実装）
+## 11. 決済・サブスクリプション機能（Stripe）
+
+### 11.1 概要
+Stripeを使用したサブスクリプション型の課金システム。ユーザーがプレミアムプランに登録することで、追加機能を利用可能にする。
+
+### 11.2 プラン体系
+
+| プラン | 月額料金 | 機能 |
+|--------|---------|------|
+| Free | ¥0 | 投稿30件/月、お気に入り50件、基本バッジ |
+| Premium | ¥500 | 投稿無制限、お気に入り無制限、Premium限定バッジ、データエクスポート |
+
+### 11.3 機能要件
+
+#### 11.3.1 サブスクリプション登録
+| 項目 | 内容 |
+|------|------|
+| 機能ID | F-013 |
+| 機能名 | サブスクリプション登録 |
+| 概要 | ユーザーがPremiumプランに登録する |
+| 処理 | Stripe Checkoutセッションを作成し、決済ページにリダイレクト |
+| 連携 | ClerkのuserIdをStripeのcustomerIdと紐付け |
+| 出力 | 決済完了後、Webhookでユーザーのplanフィールドを更新 |
+| 制約 | ログイン必須 |
+
+#### 11.3.2 サブスクリプション管理
+| 項目 | 内容 |
+|------|------|
+| 機能ID | F-014 |
+| 機能名 | サブスクリプション管理 |
+| 概要 | 現在のプラン確認、キャンセル、再開 |
+| 処理 | Stripe Customer Portalへリダイレクト |
+| 制約 | ログイン必須、Premiumユーザーのみ |
+
+#### 11.3.3 Webhook処理
+| 項目 | 内容 |
+|------|------|
+| 機能ID | F-015 |
+| 機能名 | Stripe Webhook処理 |
+| 概要 | Stripeからのイベントを受信し、ユーザー情報を更新 |
+| 処理対象イベント | checkout.session.completed, customer.subscription.updated, customer.subscription.deleted |
+| 処理内容 | Convexのusersテーブルのplan, stripeCustomerId, subscriptionIdを更新 |
+| セキュリティ | Stripe署名検証必須 |
+
+### 11.4 データモデル拡張
+
+#### 11.4.1 users テーブル拡張
+| フィールド | Convex型 | 必須 | 説明 |
+|-----------|---------|------|------|
+| plan | v.optional(v.string()) | NO | "free" または "premium" (デフォルト: "free") |
+| stripeCustomerId | v.optional(v.string()) | NO | Stripe Customer ID |
+| subscriptionId | v.optional(v.string()) | NO | Stripe Subscription ID |
+| subscriptionStatus | v.optional(v.string()) | NO | "active", "canceled", "past_due" など |
+
+### 11.5 Convex Functions追加
+
+#### Query
+| 関数名 | ファイル | 説明 |
+|--------|----------|------|
+| subscriptions.getStatus | convex/subscriptions.ts | 現在のサブスクリプション状態を取得 |
+
+#### Mutation
+| 関数名 | ファイル | 説明 |
+|--------|----------|------|
+| subscriptions.createCheckoutSession | convex/subscriptions.ts | Stripe Checkoutセッション作成 |
+| subscriptions.createPortalSession | convex/subscriptions.ts | Stripe Customer Portalセッション作成 |
+| subscriptions.updateFromWebhook | convex/subscriptions.ts | Webhook経由でユーザー情報を更新 |
+
+#### HTTP Endpoints
+| エンドポイント | ファイル | 説明 |
+|---------------|----------|------|
+| POST /stripe/webhook | convex/http.ts | Stripe Webhookエンドポイント |
+
+### 11.6 環境変数
+
+```env
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_PREMIUM_PRICE_ID=price_...
+```
+
+---
+
+## 12. 技術スタック更新
+
+### 12.1 決済・サブスクリプション
+
+| 技術 | バージョン | 用途 |
+|------|-----------|------|
+| Stripe | latest | 決済処理・サブスクリプション管理 |
+
+---
+
+## 13. 将来拡張候補（現時点では未実装）
 
 以下は将来的に追加が検討される可能性のある機能：
 
-1. **画像アップロード機能** - Convex File Storage でラーメン写真をアップロード
-2. **ユーザープロフィール編集** - Clerk UserProfile コンポーネント活用
-3. **コメント機能** - 他ユーザーの記録にコメント投稿
-4. **フォロー機能** - ユーザー間のフォロー関係
+1. **AI分析機能** - OpenAI APIを使用した味の分析・おすすめ提案（Premium限定）
+2. **画像AI認識** - アップロード画像からラーメンの種類を自動判定
+3. **Cloudflare R2移行** - 画像ストレージをR2に移行（CDN配信高速化）
+4. **ユーザープロフィール編集** - Clerk UserProfile コンポーネント活用
 5. **地図連携** - 店舗の位置情報表示（Google Maps API）
 6. **SNS共有** - Twitter/Instagram等への共有（Web Share API）
 7. **プッシュ通知** - お気に入り登録時の通知（PWA対応）
 8. **管理者機能** - 不適切な投稿の管理（Clerk Organization活用）
 9. **PWA対応** - オフライン対応、ホーム画面追加
+10. **データエクスポート** - CSV/PDF形式でデータをダウンロード（Premium限定）
 
 ---
 

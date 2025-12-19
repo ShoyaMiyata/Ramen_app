@@ -16,7 +16,7 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -540,6 +540,14 @@ export default function UserProfilePage({
       {/* Footer Links (自分のみ表示) */}
       {isOwnProfile && (
         <div className="flex items-center justify-center gap-4 py-3 text-sm text-gray-400">
+          <Link
+            href="/landing"
+            className="flex items-center gap-1 hover:text-ramen-600 hover:font-medium transition-colors"
+          >
+            <Info className="w-3 h-3" />
+            <span>Nooodleについて</span>
+          </Link>
+          <span>|</span>
           <Link
             href="/settings"
             className="flex items-center gap-1 hover:text-gray-600 transition-colors"

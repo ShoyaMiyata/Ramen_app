@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { canCreateNoodle } from "./lib/planLimits";
 
 // フォロー機能が有効かどうかを確認するヘルパー
 async function isFollowEnabled(ctx: { db: any }) {
@@ -406,6 +407,12 @@ export const create = mutation({
     imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（最大5枚）
   },
   handler: async (ctx, args) => {
+    // プラン制限チェック
+    const limitCheck = await canCreateNoodle(ctx.db, args.userId);
+    if (!limitCheck.allowed) {
+      throw new Error(limitCheck.reason || "投稿できません");
+    }
+
     // 投稿を作成
     const noodleId = await ctx.db.insert("noodles", {
       userId: args.userId,

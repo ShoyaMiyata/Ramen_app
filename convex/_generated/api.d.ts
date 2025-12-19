@@ -13,9 +13,12 @@ import type * as badges from "../badges.js";
 import type * as chat from "../chat.js";
 import type * as commentLikes from "../commentLikes.js";
 import type * as comments from "../comments.js";
+import type * as contacts from "../contacts.js";
 import type * as feedbacks from "../feedbacks.js";
 import type * as follows from "../follows.js";
+import type * as http from "../http.js";
 import type * as insights from "../insights.js";
+import type * as lib_planLimits from "../lib/planLimits.js";
 import type * as likes from "../likes.js";
 import type * as myBests from "../myBests.js";
 import type * as noodles from "../noodles.js";
@@ -25,6 +28,8 @@ import type * as ranking from "../ranking.js";
 import type * as seed from "../seed.js";
 import type * as shops from "../shops.js";
 import type * as stations from "../stations.js";
+import type * as stats from "../stats.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 
 import type {
@@ -39,9 +44,12 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   commentLikes: typeof commentLikes;
   comments: typeof comments;
+  contacts: typeof contacts;
   feedbacks: typeof feedbacks;
   follows: typeof follows;
+  http: typeof http;
   insights: typeof insights;
+  "lib/planLimits": typeof lib_planLimits;
   likes: typeof likes;
   myBests: typeof myBests;
   noodles: typeof noodles;
@@ -51,6 +59,8 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   shops: typeof shops;
   stations: typeof stations;
+  stats: typeof stats;
+  subscriptions: typeof subscriptions;
   users: typeof users;
 }>;
 

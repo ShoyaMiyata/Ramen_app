@@ -27,6 +27,8 @@
 |------|------|
 | Convex | リアルタイムデータベース・バックエンド |
 | Next.js API Routes | REST API エンドポイント |
+| @convex-dev/stripe | Convex-Stripe統合コンポーネント |
+| @aws-sdk/client-s3 | S3互換クライアント (Cloudflare R2アクセス) |
 
 ## 認証・外部サービス
 
@@ -35,6 +37,8 @@
 | Clerk | ユーザー認証・セッション管理 |
 | OpenAI | AI チャット・記事生成 (GPT-4o-mini) |
 | Qiita | 記事投稿 (OAuth連携) |
+| Stripe | 決済・サブスクリプション管理 |
+| Cloudflare R2 | 画像ストレージ (S3互換) |
 
 ## 開発ツール
 

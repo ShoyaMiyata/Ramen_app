@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Settings, ChevronLeft, Lock, UserPlus, Bell } from "lucide-react";
+import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -136,6 +136,30 @@ export default function SettingsPage() {
             <span className="text-gray-400">→</span>
           </div>
         </Link>
+      )}
+
+      {/* Admin Section */}
+      {user.isAdmin && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="font-medium text-gray-900 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-purple-600" />
+              <span className="text-purple-600">管理者メニュー</span>
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-100">
+            <Link
+              href="/admin/contacts"
+              className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-5 h-5 text-gray-500" />
+                <span className="font-medium text-gray-900">お問い合わせ管理</span>
+              </div>
+              <span className="text-gray-400">→</span>
+            </Link>
+          </div>
+        </div>
       )}
 
       {/* Notifications Settings (placeholder) */}

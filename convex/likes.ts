@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { canCreateLike } from "./lib/planLimits";
 
 export const getByUser = query({
   args: { userId: v.id("users") },
@@ -142,6 +143,12 @@ export const toggle = mutation({
     if (existing) {
       await ctx.db.delete(existing._id);
       return { liked: false };
+    }
+
+    // プラン制限チェック（新規お気に入り追加時のみ）
+    const limitCheck = await canCreateLike(ctx.db, args.userId);
+    if (!limitCheck.allowed) {
+      throw new Error(limitCheck.reason || "お気に入りを追加できません");
     }
 
     await ctx.db.insert("likes", {
