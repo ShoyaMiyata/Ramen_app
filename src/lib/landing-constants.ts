@@ -31,9 +31,9 @@ export interface Badge {
 }
 
 export const APP_NAME = "Nooodle";
-export const TAGLINE = "その一杯を、伝説にせよ。";
+export const TAGLINE = "あなたのラーメン記録を、もっと楽しく。";
 
-export const HERO_DESCRIPTION = "食べた数だけ強くなる。ラーメン好きのための究極の記録・共有アプリ。あなたの「麺生」を可視化し、目指せ『麺極』！";
+export const HERO_DESCRIPTION = "食べたラーメンを記録して、思い出を振り返る。お気に入りの一杯を共有して、新しい美味しさに出会える。ラーメン好きのための記録・共有アプリ。";
 
 export const FEATURES: Feature[] = [
   {
@@ -51,7 +51,7 @@ export const FEATURES: Feature[] = [
   {
     id: 'rank',
     title: '麺位十二階システム',
-    description: '訪問店舗数に応じてランクアップ。初級の「麺見習い」から、最高位の「麺極」まで、頂点を目指せ。',
+    description: '訪問店舗数に応じてランクが上がっていきます。記録を続けながら、自分の成長を楽しめます。',
     icon: Trophy,
   },
   {
@@ -63,18 +63,18 @@ export const FEATURES: Feature[] = [
 ];
 
 export const RANKS: Rank[] = [
-  { level: 1, name: '麺見習い', color: 'bg-gray-400', description: 'まずはここから。記念すべき一杯目を記録せよ。', requiredShops: 0 },
-  { level: 2, name: '麺徒', color: 'bg-amber-700', description: '旅の始まり。地元の味を探索中。', requiredShops: 3 },
-  { level: 3, name: '麺士', color: 'bg-green-500', description: '地元の名店は押さえた。', requiredShops: 10 },
-  { level: 4, name: '麺師', color: 'bg-blue-500', description: '遠征も始めた実力者。', requiredShops: 25 },
-  { level: 5, name: '麺匠', color: 'bg-purple-500', description: 'ラーメンの真髄を知る者。', requiredShops: 50 },
-  { level: 6, name: '麺豪', color: 'bg-orange-500', description: '全国各地を食べ歩く強者。', requiredShops: 75 },
-  { level: 7, name: '麺聖', color: 'bg-red-500', description: '伝説となりつつある存在。', requiredShops: 100 },
-  { level: 8, name: '麺仙', color: 'bg-slate-400', description: '超越者の領域。', requiredShops: 150 },
-  { level: 9, name: '麺王', color: 'bg-yellow-400', description: 'ラーメン界の王者。', requiredShops: 200 },
-  { level: 10, name: '麺帝', color: 'bg-gray-300', description: '頂点に立つ者。', requiredShops: 300 },
-  { level: 11, name: '麺神', color: 'bg-cyan-300', description: '神の領域へ到達。', requiredShops: 500 },
-  { level: 12, name: '麺極', color: 'bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500', description: '全てを啜り尽くした伝説の存在。', requiredShops: 1000 },
+  { level: 1, name: '麺見習い', color: 'bg-gray-400', description: 'ラーメン記録のスタート。', requiredShops: 0 },
+  { level: 2, name: '麺徒', color: 'bg-amber-700', description: '近所のお店を探索中。', requiredShops: 3 },
+  { level: 3, name: '麺士', color: 'bg-green-500', description: '地元の名店を知り尽くす。', requiredShops: 10 },
+  { level: 4, name: '麺師', color: 'bg-blue-500', description: '少し遠出も楽しんでいる。', requiredShops: 25 },
+  { level: 5, name: '麺匠', color: 'bg-purple-500', description: '様々な味を知る通。', requiredShops: 50 },
+  { level: 6, name: '麺豪', color: 'bg-orange-500', description: '全国のラーメンを食べ歩く。', requiredShops: 75 },
+  { level: 7, name: '麺聖', color: 'bg-red-500', description: '周りから一目置かれる存在。', requiredShops: 100 },
+  { level: 8, name: '麺仙', color: 'bg-slate-400', description: 'ラーメン愛が深まる。', requiredShops: 150 },
+  { level: 9, name: '麺王', color: 'bg-yellow-400', description: 'ラーメン好きの鏡。', requiredShops: 200 },
+  { level: 10, name: '麺帝', color: 'bg-gray-300', description: '記録の積み重ねが凄い。', requiredShops: 300 },
+  { level: 11, name: '麺神', color: 'bg-cyan-300', description: '圧倒的な記録数。', requiredShops: 500 },
+  { level: 12, name: '麺極', color: 'bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500', description: '数え切れないほどの思い出。', requiredShops: 1000 },
 ];
 
 // ランディングページ用に一部のランクのみ表示

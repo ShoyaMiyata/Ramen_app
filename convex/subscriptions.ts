@@ -71,7 +71,7 @@ export const createCheckoutSession = action({
     successUrl: v.string(),
     cancelUrl: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ sessionId: string; url: string | null }> => {
     const stripe = getStripeClient();
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -144,7 +144,7 @@ export const createPortalSession = action({
   args: {
     returnUrl: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ url: string }> => {
     const stripe = getStripeClient();
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {

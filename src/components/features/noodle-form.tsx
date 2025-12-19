@@ -146,20 +146,32 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
     setIsSubmitting(true);
     try {
-      // 画像アップロード
-      let imageId: Id<"_storage"> | undefined;
+      // 画像アップロード（R2使用）
+      let imageUrl: string | undefined;
+      let imageKey: string | undefined;
 
       if (imageFile) {
-        const uploadUrl = await generateUploadUrl();
-        const uploadResponse = await fetch(uploadUrl, {
+        // Cloudflare R2にアップロード
+        const formData = new FormData();
+        formData.append("file", imageFile);
+
+        const uploadResponse = await fetch("/api/upload", {
           method: "POST",
-          headers: { "Content-Type": imageFile.type },
-          body: imageFile,
+          body: formData,
         });
-        const { storageId } = await uploadResponse.json();
-        imageId = storageId;
-      } else if (existingImageId && !imageRemoved) {
-        imageId = existingImageId;
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || "画像のアップロードに失敗しました");
+        }
+
+        const { url, key } = await uploadResponse.json();
+        imageUrl = url;
+        imageKey = key;
+      } else if (noodle?.r2ImageUrl && !imageRemoved) {
+        // 既存の画像をそのまま使用
+        imageUrl = noodle.r2ImageUrl;
+        imageKey = noodle.r2ImageKey;
       }
 
       const shopId = await getOrCreateShop({
@@ -180,7 +192,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          imageId,
+          r2ImageUrl: imageUrl,
+          r2ImageKey: imageKey,
           removeImage: imageRemoved,
         });
         router.push("/noodles");
@@ -193,7 +206,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          imageId,
+          r2ImageUrl: imageUrl,
+          r2ImageKey: imageKey,
         });
 
         const noodleId = result.noodleId;

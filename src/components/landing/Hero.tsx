@@ -1,14 +1,76 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Smartphone } from 'lucide-react';
 import { TAGLINE, HERO_DESCRIPTION } from '@/lib/landing-constants';
 import Link from 'next/link';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 
+// ヒーロー画像の配列
+const HERO_IMAGES = [
+  {
+    url: 'https://images.unsplash.com/photo-1591814468924-caf88d1232e1?w=1920&h=1080&fit=crop&q=80',
+    alt: '箸で持ち上げる本格ラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1557872943-16a5ac26437e?w=1920&h=1080&fit=crop&q=80',
+    alt: '伝統的な醤油ラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1623341214825-9f4f963727da?w=1920&h=1080&fit=crop&q=80',
+    alt: '特製醤油ラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1920&h=1080&fit=crop&q=80',
+    alt: '濃厚とんこつラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1632709810780-b5a4343cebec?w=1920&h=1080&fit=crop&q=80',
+    alt: '味噌ラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=1920&h=1080&fit=crop&q=80',
+    alt: '塩ラーメン',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=1920&h=1080&fit=crop&q=80',
+    alt: '担々麺',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1612927601601-6638404737ce?w=1920&h=1080&fit=crop&q=80',
+    alt: 'つけ麺',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=1920&h=1080&fit=crop&q=80',
+    alt: '海老ワンタン麺',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1606728035253-49e8a23146de?w=1920&h=1080&fit=crop&q=80',
+    alt: '油そば',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1569368247796-5e622c1f1e9b?w=1920&h=1080&fit=crop&q=80',
+    alt: 'チャーシュー麺',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1617093727239-8c06682c8fb5?w=1920&h=1080&fit=crop&q=80',
+    alt: '背脂ラーメン',
+  },
+];
+
 const Hero: React.FC = () => {
   const stats = useQuery(api.stats.getLandingStats);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // 5秒ごとに画像を切り替え
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // 数字のフォーマット関数
   const formatNumber = (num: number) => {
@@ -24,11 +86,16 @@ const Hero: React.FC = () => {
     <section className="relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1920&h=1080&fit=crop"
-          alt="Delicious Ramen"
-          className="w-full h-full object-cover"
-        />
+        {HERO_IMAGES.map((image, index) => (
+          <img
+            key={index}
+            src={image.url}
+            alt={image.alt}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        ))}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-ramen-900/90" />
       </div>
 
@@ -87,6 +154,22 @@ const Hero: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Image Indicators */}
+      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-20 flex gap-2">
+        {HERO_IMAGES.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentImageIndex(index)}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              index === currentImageIndex
+                ? 'bg-white w-8'
+                : 'bg-white/50 hover:bg-white/75'
+            }`}
+            aria-label={`画像 ${index + 1} に切り替え`}
+          />
+        ))}
       </div>
 
       {/* Decorative Wave at bottom */}
