@@ -3,8 +3,13 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const CallToAction: React.FC = () => {
+  const { user } = useCurrentUser();
+
+  // ログイン済みユーザーの場合は直接マイページへのリンク、未ログインの場合は /
+  const appLink = user?._id ? `/users/${user._id}` : '/';
   return (
     <section className="py-24 bg-gradient-to-br from-ramen-600 to-ramen-800 text-white relative overflow-hidden">
       {/* Background decorative elements */}
@@ -23,7 +28,7 @@ const CallToAction: React.FC = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
-            href="/"
+            href={appLink}
             className="px-10 py-4 bg-white text-ramen-600 text-lg font-bold rounded-xl transition-all shadow-2xl hover:shadow-3xl hover:-translate-y-1 flex items-center gap-2"
           >
             アプリを開く

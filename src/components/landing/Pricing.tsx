@@ -4,8 +4,13 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { PLANS } from '@/lib/landing-constants';
 import Link from 'next/link';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 const Pricing: React.FC = () => {
+  const { user } = useCurrentUser();
+
+  // ログイン済みユーザーの場合は直接マイページへのリンク、未ログインの場合は /
+  const appLink = user?._id ? `/users/${user._id}` : '/';
   return (
     <section id="pricing" className="py-24 bg-ramen-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -50,7 +55,7 @@ const Pricing: React.FC = () => {
               </ul>
 
               <Link
-                href={plan.recommended ? '/settings/subscription' : '/'}
+                href={plan.recommended ? '/settings/subscription' : appLink}
                 className={`block w-full py-4 text-center rounded-xl font-bold transition-colors ${
                   plan.recommended
                     ? 'bg-ramen-600 hover:bg-ramen-700 text-white shadow-lg'
