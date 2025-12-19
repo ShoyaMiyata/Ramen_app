@@ -6,6 +6,7 @@ import { TAGLINE, HERO_DESCRIPTION } from '@/lib/landing-constants';
 import Link from 'next/link';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 // ヒーロー画像の配列
 const HERO_IMAGES = [
@@ -37,6 +38,7 @@ const HERO_IMAGES = [
 
 const Hero: React.FC = () => {
   const stats = useQuery(api.stats.getLandingStats);
+  const { user } = useCurrentUser();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // 5秒ごとに画像を切り替え
@@ -47,6 +49,9 @@ const Hero: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // ログイン済みユーザーの場合は直接マイページへのリンク、未ログインの場合は /
+  const appLink = user?._id ? `/users/${user._id}` : '/';
 
   // 数字のフォーマット関数
   const formatNumber = (num: number) => {
@@ -92,7 +97,7 @@ const Hero: React.FC = () => {
 
           <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
             <Link
-              href="/"
+              href={appLink}
               className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-ramen-600 hover:bg-ramen-500 text-white text-base sm:text-lg font-bold rounded-xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2"
             >
               <Smartphone className="w-4 h-4 sm:w-5 sm:h-5" />
