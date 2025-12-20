@@ -92,6 +92,22 @@ export default function GroupDetailPage({
         <h1 className="text-xl font-bold text-gray-900 flex-1 truncate">
           {group.name}
         </h1>
+        {group.isCreator && (
+          <div className="flex gap-2">
+            <Link href={`/groups/${groupId}/edit`}>
+              <Button variant="outline" size="icon">
+                <Edit className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Group Info */}
