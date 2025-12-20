@@ -388,7 +388,7 @@ export const get = query({
     const memberUserIds = new Set(members.map((m) => m.userId));
     const allNoodles = await ctx.db.query("noodles").collect();
     const memberNoodlesCount = allNoodles.filter((n) =>
-      memberUserIds.has(n.userId) && !n.deletedAt
+      memberUserIds.has(n.userId)
     ).length;
 
     return {
@@ -497,7 +497,7 @@ export const getByUser = query({
 
         const memberUserIds = new Set(groupMembers.map((m) => m.userId));
         const memberNoodlesCount = allNoodles.filter((n) =>
-          memberUserIds.has(n.userId) && !n.deletedAt
+          memberUserIds.has(n.userId)
         ).length;
 
         return {
