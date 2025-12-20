@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare } from "lucide-react";
+import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare, Eye, Users as UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -15,12 +15,14 @@ export default function SettingsPage() {
   const { themeColor } = useTheme();
 
   const updatePrivacy = useMutation(api.users.updatePrivacy);
+  const updatePostVisibility = useMutation(api.users.updatePostVisibility);
   const pendingRequestCount = useQuery(
     api.follows.getPendingRequestCount,
     user?._id ? { userId: user._id } : "skip"
   );
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   const handlePrivacyToggle = async () => {
     if (!user) return;
@@ -32,6 +34,19 @@ export default function SettingsPage() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleVisibilityChange = async (visibility: "public" | "followers_and_groups") => {
+    if (!user) return;
+    setIsUpdatingVisibility(true);
+    try {
+      await updatePostVisibility({
+        userId: user._id,
+        postVisibility: visibility,
+      });
+    } finally {
+      setIsUpdatingVisibility(false);
     }
   };
 
@@ -113,6 +128,88 @@ export default function SettingsPage() {
               <li>タイムラインにはフォロワーにのみ表示</li>
               <li>フォローには承認が必要</li>
             </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Post Visibility Settings */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="font-medium text-gray-900 flex items-center gap-2">
+            <Eye className="w-4 h-4" />
+            投稿の公開範囲
+          </h2>
+        </div>
+
+        <div className="p-4 space-y-3">
+          {/* Public Option */}
+          <button
+            onClick={() => handleVisibilityChange("public")}
+            disabled={isUpdatingVisibility}
+            className={cn(
+              "w-full p-4 rounded-lg border-2 transition-colors text-left",
+              (!user.postVisibility || user.postVisibility === "public")
+                ? "border-orange-500 bg-orange-50"
+                : "border-gray-200 hover:border-gray-300"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                (!user.postVisibility || user.postVisibility === "public")
+                  ? "border-orange-500"
+                  : "border-gray-300"
+              )}>
+                {(!user.postVisibility || user.postVisibility === "public") && (
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">タイムラインに表示する</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  全てのユーザーのタイムラインに投稿が表示されます
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Followers and Groups Only Option */}
+          <button
+            onClick={() => handleVisibilityChange("followers_and_groups")}
+            disabled={isUpdatingVisibility}
+            className={cn(
+              "w-full p-4 rounded-lg border-2 transition-colors text-left",
+              user.postVisibility === "followers_and_groups"
+                ? "border-orange-500 bg-orange-50"
+                : "border-gray-200 hover:border-gray-300"
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5",
+                user.postVisibility === "followers_and_groups"
+                  ? "border-orange-500"
+                  : "border-gray-300"
+              )}>
+                {user.postVisibility === "followers_and_groups" && (
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">グループとフォロワーのみ</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  フォロワーとグループメンバーのみがあなたの投稿を見られます
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Info Box */}
+          <div className="p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800 flex items-start gap-2">
+              <UsersIcon className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>グループ内では設定に関わらず、メンバー全員に投稿が表示されます</span>
+            </p>
           </div>
         </div>
       </div>

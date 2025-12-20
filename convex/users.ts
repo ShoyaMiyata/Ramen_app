@@ -325,6 +325,28 @@ export const updatePrivacy = mutation({
   },
 });
 
+// 投稿の公開範囲設定を更新
+export const updatePostVisibility = mutation({
+  args: {
+    userId: v.id("users"),
+    postVisibility: v.string(), // "public" | "followers_and_groups"
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    if (args.postVisibility !== "public" && args.postVisibility !== "followers_and_groups") {
+      throw new Error("Invalid postVisibility value");
+    }
+
+    await ctx.db.patch(args.userId, {
+      postVisibility: args.postVisibility,
+    });
+
+    return args.userId;
+  },
+});
+
 // フォロー機能が有効かどうかを確認するヘルパー
 async function isFollowEnabled(ctx: { db: any }) {
   const setting = await ctx.db

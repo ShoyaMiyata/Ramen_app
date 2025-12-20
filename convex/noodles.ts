@@ -60,6 +60,23 @@ export const list = query({
         followingIds = new Set(following.map((f) => f.followingId));
       }
 
+      // 閲覧者が参加しているグループのメンバーIDを取得
+      let groupMemberIds: Set<string> = new Set();
+      if (args.viewerId) {
+        const viewerGroups = await ctx.db
+          .query("groupMembers")
+          .withIndex("by_user", (q) => q.eq("userId", args.viewerId!))
+          .collect();
+
+        for (const viewerGroup of viewerGroups) {
+          const membersInGroup = await ctx.db
+            .query("groupMembers")
+            .withIndex("by_group", (q) => q.eq("groupId", viewerGroup.groupId))
+            .collect();
+          membersInGroup.forEach((m) => groupMemberIds.add(m.userId));
+        }
+      }
+
       // 鍵アカウントのユーザーの投稿を除外（自分・フォロー中は除く）
       noodles = noodles.filter((noodle) => {
         const noodleUser = userMap.get(noodle.userId);
@@ -76,6 +93,30 @@ export const list = query({
 
         // それ以外の鍵アカウントの投稿は非表示
         return false;
+      });
+
+      // postVisibility設定による公開範囲フィルタ
+      noodles = noodles.filter((noodle) => {
+        const noodleUser = userMap.get(noodle.userId);
+        if (!noodleUser) return false;
+
+        // postVisibility が "followers_and_groups" の場合
+        if (noodleUser.postVisibility === "followers_and_groups") {
+          // 自分の投稿は表示
+          if (args.viewerId && noodle.userId === args.viewerId) return true;
+
+          // フォロワーには表示
+          if (args.viewerId && followingIds.has(noodle.userId)) return true;
+
+          // 同じグループのメンバーには表示
+          if (args.viewerId && groupMemberIds.has(noodle.userId)) return true;
+
+          // それ以外には非表示
+          return false;
+        }
+
+        // "public" または undefined の場合は表示
+        return true;
       });
     }
 
@@ -865,6 +906,150 @@ export const getByShop = query({
       totalCount,
       hasMore,
       nextOffset: hasMore ? offset + limit : null,
+    };
+  },
+});
+
+// グループのタイムラインを取得
+export const getByGroup = query({
+  args: {
+    groupId: v.id("groups"),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+    sortBy: v.optional(v.union(v.literal("recent"), v.literal("popular"))),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const offset = args.offset ?? 0;
+
+    // グループのメンバーIDリストを取得
+    const groupMembers = await ctx.db
+      .query("groupMembers")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+    const memberUserIds = new Set(groupMembers.map((m) => m.userId));
+
+    // メンバーが投稿した全ての投稿を取得
+    let noodles = await ctx.db.query("noodles").order("desc").collect();
+    noodles = noodles.filter((noodle) => memberUserIds.has(noodle.userId));
+
+    // いいね数を集計（popular sort用）
+    const likesData = await ctx.db.query("likes").collect();
+    const likesCountMap = new Map<string, number>();
+    for (const like of likesData) {
+      const count = likesCountMap.get(like.noodleId) || 0;
+      likesCountMap.set(like.noodleId, count + 1);
+    }
+
+    // ソート
+    if (args.sortBy === "popular") {
+      noodles.sort((a, b) => (likesCountMap.get(b._id) || 0) - (likesCountMap.get(a._id) || 0));
+    }
+    // "recent"はデフォルトでorder("desc")されている（createdAtの降順）
+
+    // Total count before pagination
+    const totalCount = noodles.length;
+
+    // ページネーション
+    const paginatedNoodles = noodles.slice(offset, offset + limit);
+    const hasMore = offset + limit < totalCount;
+
+    // ユーザー情報と店舗情報を取得
+    const users = await ctx.db.query("users").collect();
+    const userMap = new Map(users.map((u) => [u._id, u]));
+    const shops = await ctx.db.query("shops").collect();
+    const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+    // エンリッチメント
+    const items = await Promise.all(
+      paginatedNoodles.map(async (noodle) => {
+        // 画像URL取得（R2優先）
+        let imageUrl: string | null = null;
+        let imageUrls: string[] = [];
+
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+          imageUrls = [noodle.r2ImageUrl];
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
+          const urls = await Promise.all(
+            noodle.imageIds.map((id) => ctx.storage.getUrl(id))
+          );
+          imageUrls = urls.filter((url): url is string => url !== null);
+          imageUrl = imageUrls[0] || null;
+        } else if (noodle.imageId) {
+          imageUrl = await ctx.storage.getUrl(noodle.imageId);
+          if (imageUrl) imageUrls = [imageUrl];
+        }
+
+        return {
+          ...noodle,
+          user: userMap.get(noodle.userId),
+          shop: shopMap.get(noodle.shopId),
+          imageUrl,
+          imageUrls,
+          likesCount: likesCountMap.get(noodle._id) || 0,
+        };
+      })
+    );
+
+    return {
+      items,
+      totalCount,
+      hasMore,
+      nextOffset: hasMore ? offset + limit : null,
+    };
+  },
+});
+
+// グループの統計情報を取得
+export const getGroupStats = query({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    // グループのメンバーIDリストを取得
+    const groupMembers = await ctx.db
+      .query("groupMembers")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+    const memberUserIds = new Set(groupMembers.map((m) => m.userId));
+
+    // メンバーが投稿した全ての投稿を取得
+    let noodles = await ctx.db.query("noodles").collect();
+    noodles = noodles.filter((noodle) => memberUserIds.has(noodle.userId));
+
+    const totalNoodles = noodles.length;
+
+    if (totalNoodles === 0) {
+      return {
+        totalNoodles: 0,
+        avgRating: null,
+        topGenres: [],
+      };
+    }
+
+    // 平均評価を計算
+    const ratedNoodles = noodles.filter((n) => n.evaluation !== undefined);
+    const avgRating = ratedNoodles.length > 0
+      ? Math.round((ratedNoodles.reduce((sum, n) => sum + (n.evaluation || 0), 0) / ratedNoodles.length) * 10) / 10
+      : null;
+
+    // ジャンル別集計
+    const genreCount = new Map<string, number>();
+    for (const noodle of noodles) {
+      for (const genre of noodle.genres) {
+        genreCount.set(genre, (genreCount.get(genre) || 0) + 1);
+      }
+    }
+
+    // トップ3ジャンル
+    const topGenres = Array.from(genreCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([genre, count]) => ({ genre, count }));
+
+    return {
+      totalNoodles,
+      avgRating,
+      topGenres,
     };
   },
 });

@@ -15,6 +15,7 @@ export default defineSchema({
     onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
     isPrivate: v.optional(v.boolean()), // 鍵アカウントフラグ
     lastTimelineVisit: v.optional(v.number()), // 最後にタイムラインを訪問した日時
+    postVisibility: v.optional(v.string()), // "public" | "followers_and_groups" 投稿の公開範囲
     // Stripe決済情報
     plan: v.optional(v.string()), // "free" | "premium"
     stripeCustomerId: v.optional(v.string()), // Stripe Customer ID
@@ -50,6 +51,7 @@ export default defineSchema({
     // Cloudflare R2画像情報
     r2ImageUrl: v.optional(v.string()), // R2に保存された画像のURL
     r2ImageKey: v.optional(v.string()), // R2のオブジェクトキー（削除時に使用）
+    groupIds: v.optional(v.array(v.id("groups"))), // グループ共有
   })
     .index("by_userId", ["userId"])
     .index("by_shopId", ["shopId"])
@@ -223,4 +225,31 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_status", ["status"])
     .index("by_createdAt", ["createdAt"]),
+
+  // グループ
+  groups: defineTable({
+    name: v.string(), // グループ名
+    description: v.string(), // 説明
+    coverImageId: v.optional(v.id("_storage")), // カバー画像
+    creatorId: v.id("users"), // 作成者のユーザーID
+    createdAt: v.number(),
+    memberCount: v.number(), // メンバー数（キャッシュ）
+    noodleCount: v.number(), // 投稿数（キャッシュ）
+  })
+    .index("by_creator", ["creatorId"])
+    .index("by_createdAt", ["createdAt"])
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["creatorId"],
+    }),
+
+  // グループメンバー
+  groupMembers: defineTable({
+    groupId: v.id("groups"),
+    userId: v.id("users"),
+    joinedAt: v.number(),
+  })
+    .index("by_group", ["groupId"])
+    .index("by_user", ["userId"])
+    .index("by_group_and_user", ["groupId", "userId"]),
 });

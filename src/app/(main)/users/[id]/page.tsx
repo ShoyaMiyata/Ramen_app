@@ -16,7 +16,7 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info, Wand2 } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -24,7 +24,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { GENRES } from "@/lib/constants/genres";
-import { AIImageGenerator } from "@/components/features/ai-image-generator";
 
 type ViewMode = "list" | "gallery" | "likes";
 
@@ -55,7 +54,6 @@ export default function UserProfilePage({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   // フィルタ用
   const [showMyFilters, setShowMyFilters] = useState(false);
@@ -121,6 +119,10 @@ export default function UserProfilePage({
   const badges = useQuery(
     api.badges.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
+  );
+  const userGroups = useQuery(
+    api.groups.getByUser,
+    currentUser?._id === userId && canViewProfile?.canView ? { userId } : "skip"
   );
   const followCounts = useQuery(api.follows.getCounts, { userId });
   const visitStats = useQuery(
@@ -438,6 +440,78 @@ export default function UserProfilePage({
             )}
           </div>
 
+          {/* Groups */}
+          {isOwnProfile && (
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <Link
+                href="/groups"
+                className="w-full flex items-center justify-between mb-3 group"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5" style={{ color: themeColor }} />
+                  <h2 className="font-bold text-gray-900">参加グループ</h2>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+              </Link>
+              {userGroups && userGroups.length > 0 ? (
+                <div className="space-y-2">
+                  {userGroups.slice(0, 3).map((group) => (
+                    <Link
+                      key={group._id}
+                      href={`/groups/${group._id}`}
+                      className="block p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {group.coverImageUrl ? (
+                          <img
+                            src={group.coverImageUrl}
+                            alt={group.name}
+                            className="w-10 h-10 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${themeColor}20` }}
+                          >
+                            <Users className="w-5 h-5" style={{ color: themeColor }} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{group.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {group.memberCount}人のメンバー
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {userGroups.length > 3 && (
+                    <Link
+                      href="/groups"
+                      className="block text-center py-2 text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      すべて見る ({userGroups.length}グループ)
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-400 mb-2">まだグループに参加していません</p>
+                  <Link href="/groups">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      style={{ borderColor: themeColor, color: themeColor }}
+                    >
+                      <Users className="w-4 h-4" />
+                      グループを探す
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Records */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -610,36 +684,7 @@ export default function UserProfilePage({
               </Dialog.Close>
             </div>
             <div className="space-y-4">
-              {/* Tab Buttons */}
-              <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
-                <button
-                  onClick={() => setShowAIGenerator(false)}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
-                    !showAIGenerator
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  <Camera className="w-4 h-4" />
-                  ファイルから選択
-                </button>
-                <button
-                  onClick={() => setShowAIGenerator(true)}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
-                    showAIGenerator
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  <Wand2 className="w-4 h-4" />
-                  AIで生成
-                </button>
-              </div>
-
               {/* Profile Image Upload */}
-              {!showAIGenerator ? (
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative">
                     {previewImage || profileImageUrl || profileUser.imageUrl ? (
@@ -700,18 +745,6 @@ export default function UserProfilePage({
                     </button>
                   )}
                 </div>
-              ) : (
-                /* AI Image Generator */
-                <AIImageGenerator
-                  onImageGenerated={(storageId) => {
-                    // モーダルを閉じる（画像は自動で更新される）
-                    setIsEditNameOpen(false);
-                    setPreviewImage(null);
-                    setSelectedFile(null);
-                    setShowAIGenerator(false);
-                  }}
-                />
-              )}
 
               {/* Name Input */}
               <div>

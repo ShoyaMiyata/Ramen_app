@@ -9,7 +9,6 @@
  */
 
 import type * as admin from "../admin.js";
-import type * as aiImages from "../aiImages.js";
 import type * as appSettings from "../appSettings.js";
 import type * as badges from "../badges.js";
 import type * as chat from "../chat.js";
@@ -18,6 +17,8 @@ import type * as comments from "../comments.js";
 import type * as contacts from "../contacts.js";
 import type * as feedbacks from "../feedbacks.js";
 import type * as follows from "../follows.js";
+import type * as groupMembers from "../groupMembers.js";
+import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as insights from "../insights.js";
 import type * as lib_planLimits from "../lib/planLimits.js";
@@ -42,7 +43,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
-  aiImages: typeof aiImages;
   appSettings: typeof appSettings;
   badges: typeof badges;
   chat: typeof chat;
@@ -51,6 +51,8 @@ declare const fullApi: ApiFromModules<{
   contacts: typeof contacts;
   feedbacks: typeof feedbacks;
   follows: typeof follows;
+  groupMembers: typeof groupMembers;
+  groups: typeof groups;
   http: typeof http;
   insights: typeof insights;
   "lib/planLimits": typeof lib_planLimits;
