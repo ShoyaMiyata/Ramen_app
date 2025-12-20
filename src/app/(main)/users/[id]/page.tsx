@@ -16,7 +16,7 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info, Wand2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { GENRES } from "@/lib/constants/genres";
+import { AIImageGenerator } from "@/components/features/ai-image-generator";
 
 type ViewMode = "list" | "gallery" | "likes";
 
@@ -54,6 +55,7 @@ export default function UserProfilePage({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   // フィルタ用
   const [showMyFilters, setShowMyFilters] = useState(false);
@@ -608,67 +610,108 @@ export default function UserProfilePage({
               </Dialog.Close>
             </div>
             <div className="space-y-4">
-              {/* Profile Image */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="relative">
-                  {previewImage || profileImageUrl || profileUser.imageUrl ? (
-                    <img
-                      src={previewImage || profileImageUrl || profileUser.imageUrl || ""}
-                      alt="プロフィール画像"
-                      className="w-24 h-24 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-10 h-10 text-gray-400" />
-                    </div>
+              {/* Tab Buttons */}
+              <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                <button
+                  onClick={() => setShowAIGenerator(false)}
+                  className={cn(
+                    "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
+                    !showAIGenerator
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
                   )}
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
-                    style={{ color: themeColor }}
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setSelectedFile(file);
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        setPreviewImage(ev.target?.result as string);
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-                {(profileImageUrl || profileUser.imageUrl || previewImage) && (
-                  <button
-                    onClick={async () => {
-                      if (previewImage) {
-                        setPreviewImage(null);
-                        setSelectedFile(null);
-                      } else if (userId) {
-                        setIsUploadingImage(true);
-                        try {
-                          await removeProfileImage({ userId });
-                        } finally {
-                          setIsUploadingImage(false);
-                        }
+                >
+                  <Camera className="w-4 h-4" />
+                  ファイルから選択
+                </button>
+                <button
+                  onClick={() => setShowAIGenerator(true)}
+                  className={cn(
+                    "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2",
+                    showAIGenerator
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  <Wand2 className="w-4 h-4" />
+                  AIで生成
+                </button>
+              </div>
+
+              {/* Profile Image Upload */}
+              {!showAIGenerator ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative">
+                    {previewImage || profileImageUrl || profileUser.imageUrl ? (
+                      <img
+                        src={previewImage || profileImageUrl || profileUser.imageUrl || ""}
+                        alt="プロフィール画像"
+                        className="w-24 h-24 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-10 h-10 text-gray-400" />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                      style={{ color: themeColor }}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setSelectedFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          setPreviewImage(ev.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
                       }
                     }}
-                    className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    画像を削除
-                  </button>
-                )}
-              </div>
+                  />
+                  {(profileImageUrl || profileUser.imageUrl || previewImage) && (
+                    <button
+                      onClick={async () => {
+                        if (previewImage) {
+                          setPreviewImage(null);
+                          setSelectedFile(null);
+                        } else if (userId) {
+                          setIsUploadingImage(true);
+                          try {
+                            await removeProfileImage({ userId });
+                          } finally {
+                            setIsUploadingImage(false);
+                          }
+                        }
+                      }}
+                      className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      画像を削除
+                    </button>
+                  )}
+                </div>
+              ) : (
+                /* AI Image Generator */
+                <AIImageGenerator
+                  onImageGenerated={(storageId) => {
+                    // モーダルを閉じる（画像は自動で更新される）
+                    setIsEditNameOpen(false);
+                    setPreviewImage(null);
+                    setSelectedFile(null);
+                    setShowAIGenerator(false);
+                  }}
+                />
+              )}
 
               {/* Name Input */}
               <div>

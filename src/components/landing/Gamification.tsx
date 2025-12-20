@@ -22,12 +22,12 @@ const Gamification: React.FC = () => {
 
           {/* Rank System */}
           <div className="w-full lg:w-1/2">
-            <h2 className="text-ramen-600 font-bold tracking-wide uppercase text-sm mb-2">Gamification</h2>
+            <h2 className="text-ramen-600 font-bold tracking-wide uppercase text-sm mb-2">Rank System</h2>
             <h3 className="text-4xl font-extrabold text-gray-900 mb-6">
-              極めろ、麺位十二階。
+              記録が増えると、ランクアップ
             </h3>
             <p className="text-lg text-gray-600 mb-10">
-              訪問店舗数がそのままステータスに。階位が上がるにつれて、アプリ内のテーマカラーやアイコンが豪華に進化します。
+              訪問したお店の数に応じてランクが上がります。ランクが上がると、アプリ内のテーマカラーが変わります。
             </p>
 
             <div className="space-y-4">
@@ -44,7 +44,7 @@ const Gamification: React.FC = () => {
                   <div className="ml-5 flex-1">
                     <div className="flex justify-between items-center">
                       <h4 className="font-bold text-gray-900">{rank.name}</h4>
-                      {idx === FEATURED_RANKS.length - 1 && <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">LEGEND</span>}
+                      {idx === FEATURED_RANKS.length - 1 && <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">最高ランク</span>}
                     </div>
                     <p className="text-sm text-gray-500 mt-1">{rank.description}</p>
                     <p className="text-xs text-gray-400 mt-1">{rank.requiredShops}店舗〜</p>
@@ -62,9 +62,9 @@ const Gamification: React.FC = () => {
           {/* Badges System */}
           <div className="w-full lg:w-1/2 bg-gray-50 p-8 rounded-3xl border border-gray-100 shadow-inner">
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">コレクター魂に火をつける</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">バッジを集めよう</h3>
               <p className="text-gray-500">
-                特定の条件クリアで獲得できる「称号バッジ」。レアバッジをプロフィールに飾って自慢しよう。
+                記録を続けていると、自動的にバッジが獲得できます。プロフィールに表示して、あなたのラーメン好きをアピール。
               </p>
             </div>
 

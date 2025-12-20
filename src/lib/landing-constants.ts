@@ -50,8 +50,8 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'rank',
-    title: '麺位十二階システム',
-    description: '訪問店舗数に応じてランクが上がっていきます。記録を続けながら、自分の成長を楽しめます。',
+    title: 'ランクアップ機能',
+    description: '訪問したお店の数に応じてランクが上がります。記録を続けるモチベーションになります。',
     icon: Trophy,
   },
   {
@@ -88,10 +88,10 @@ export const FEATURED_RANKS: Rank[] = [
 export const BADGES: Badge[] = [
   { id: 'first_post', name: 'はじめの一杯', description: '初めての投稿', iconName: '🍜' },
   { id: 'regular', name: '常連さん', description: '10投稿達成', iconName: '🏠' },
-  { id: 'explorer', name: '冒険家', description: '10店舗訪問', iconName: '🗺️' },
-  { id: 'jiro', name: '二郎戦士', description: '二郎系を20杯記録', iconName: '⛰️' },
-  { id: 'tonkotsu', name: 'とんこつ狂', description: 'とんこつを20杯記録', iconName: '🍖' },
-  { id: 'expert', name: '目利き', description: 'お気に入りされた数10回', iconName: '👁️' },
+  { id: 'explorer', name: 'お店探訪', description: '10店舗訪問', iconName: '🗺️' },
+  { id: 'jiro', name: '二郎好き', description: '二郎系を20杯記録', iconName: '⛰️' },
+  { id: 'tonkotsu', name: 'とんこつ好き', description: 'とんこつを20杯記録', iconName: '🍖' },
+  { id: 'expert', name: '人気投稿者', description: 'お気に入りされた数10回', iconName: '👁️' },
 ];
 
 export const PLANS: PricingPlan[] = [

@@ -34,12 +34,6 @@ const Pricing: React.FC = () => {
                   : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white'
               }`}
             >
-              {plan.recommended && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-ramen-500 text-white px-4 py-1 rounded-full text-sm font-bold shadow-lg">
-                  人気No.1
-                </div>
-              )}
-
               <div className="text-center">
                 <h4 className="text-xl font-bold mb-2">{plan.name}</h4>
                 <div className="text-4xl font-extrabold mb-6">{plan.price}</div>
