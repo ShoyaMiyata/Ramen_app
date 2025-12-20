@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -48,10 +48,13 @@ export function Header() {
     return `${days}日前`;
   };
 
+  // ログイン済みユーザーの場合は自分のマイページへ、未ログインの場合は /
+  const homeHref = realUser?._id ? `/users/${realUser._id}` : "/";
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <Soup className="w-6 h-6" style={{ color: themeColor }} />
           <span className="font-bold text-lg">Nooodle</span>
         </Link>
@@ -127,7 +130,9 @@ export function Header() {
                                   ? `/follow-requests`
                                   : notification.type === "rank_up"
                                     ? `/users/${notification.fromUserId}`
-                                    : `/users/${notification.fromUserId}`;
+                                    : notification.type === "group_added"
+                                      ? `/groups/${notification.targetId}`
+                                      : `/users/${notification.fromUserId}`;
 
                           const handleClick = () => {
                             setIsNotificationOpen(false);
@@ -155,6 +160,8 @@ export function Header() {
                                   <Heart className="w-5 h-5" style={{ color: themeColor }} />
                                 ) : notification.type === "rank_up" ? (
                                   <TrendingUp className="w-5 h-5" style={{ color: themeColor }} />
+                                ) : notification.type === "group_added" ? (
+                                  <Users className="w-5 h-5" style={{ color: themeColor }} />
                                 ) : (
                                   <UserPlus className="w-5 h-5" style={{ color: themeColor }} />
                                 )}
@@ -207,6 +214,11 @@ export function Header() {
                                     {notification.type === "rank_up" && (
                                       <span className="text-gray-600">
                                         さんが{notification.message}
+                                      </span>
+                                    )}
+                                    {notification.type === "group_added" && (
+                                      <span className="text-gray-600">
+                                        さんがあなたを「{notification.message}」に追加しました
                                       </span>
                                     )}
                                   </p>
