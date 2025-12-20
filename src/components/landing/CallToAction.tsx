@@ -20,11 +20,11 @@ const CallToAction: React.FC = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
         <h2 className="text-3xl md:text-5xl font-extrabold mb-6">
-          今すぐ、あなたの麺生を記録しよう
+          今日から、ラーメン記録を始めよう
         </h2>
         <p className="text-lg md:text-xl text-ramen-100 mb-10 leading-relaxed">
-          毎日の一杯が、あなたの伝説になる。<br />
-          Nooodleで、ラーメン愛好家としての旅を始めませんか？
+          食べたラーメンを記録して、思い出を振り返る。<br />
+          Nooodleで、あなただけのラーメン記録を残しませんか？
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link
