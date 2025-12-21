@@ -225,10 +225,10 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
           removeImage: imageRemoved,
+          isArchived: isArchived || undefined,
         });
         router.push("/noodles");
       } else {
-        console.log("[NoodleForm] Creating noodle with isArchived:", isArchived);
         const result = await createNoodle({
           userId: user._id,
           shopId,
@@ -239,7 +239,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           evaluation: evaluation ?? undefined,
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
-          isArchived: isArchived ? true : undefined, // 明示的にtrueまたはundefined
+          isArchived: isArchived || undefined,
         });
 
         const noodleId = result.noodleId;

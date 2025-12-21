@@ -454,9 +454,6 @@ export const create = mutation({
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
   },
   handler: async (ctx, args) => {
-    // デバッグ: isArchivedの値を確認
-    console.log("[noodles.create] isArchived:", args.isArchived);
-
     // プラン制限チェック
     const limitCheck = await canCreateNoodle(ctx.db, args.userId);
     if (!limitCheck.allowed) {
@@ -564,6 +561,7 @@ export const update = mutation({
     r2ImageUrl: v.optional(v.string()), // R2画像URL
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー
     removeImage: v.optional(v.boolean()),
+    isArchived: v.optional(v.boolean()), // アーカイブフラグ
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
@@ -644,6 +642,7 @@ export const update = mutation({
       imageIds: newImageIds,
       r2ImageUrl: newR2ImageUrl,
       r2ImageKey: newR2ImageKey,
+      isArchived: args.isArchived, // アーカイブフラグを更新
     });
 
     return args.id;
@@ -702,12 +701,8 @@ export const getArchivedByUser = query({
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
-    console.log(`[getArchivedByUser] Total noodles: ${noodles.length}`);
-    console.log(`[getArchivedByUser] isArchived values:`, noodles.map(n => ({ id: n._id, isArchived: n.isArchived })));
-
     // アーカイブされた投稿のみフィルタ
     const archivedNoodles = noodles.filter((n) => n.isArchived === true);
-    console.log(`[getArchivedByUser] Archived count: ${archivedNoodles.length}`);
 
     // 店舗情報と画像URLを付与
     const shops = await ctx.db.query("shops").collect();
