@@ -694,12 +694,12 @@ export default function UserProfilePage({
                   <div className="space-y-3">
                     {archivedNoodles.map((noodle) => (
                       <div key={noodle._id} className="relative">
-                        <div className="absolute left-3 top-3 z-10">
+                        <div className="absolute left-2 top-2 z-10">
                           <input
                             type="checkbox"
                             checked={selectedArchiveIds.has(noodle._id)}
                             onChange={() => toggleArchiveSelection(noodle._id)}
-                            className="h-5 w-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 shadow-lg"
+                            className="h-4 w-4 text-gray-400 border-gray-200 rounded focus:ring-gray-300 opacity-60 hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
                           />
                         </div>

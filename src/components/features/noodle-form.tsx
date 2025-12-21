@@ -243,12 +243,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
         const noodleId = result.noodleId;
 
-        // アーカイブ投稿の場合は演出をスキップ
-        if (isArchived) {
-          router.push(`/noodles/${noodleId}`);
-          return;
-        }
-
         // ランクアップ判定
         const isNewShop = !userNoodles?.items.some((n: any) => n.shopId === shopId);
         if (isNewShop && prevShopCountRef.current !== null) {
