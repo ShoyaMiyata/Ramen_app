@@ -76,13 +76,20 @@ export function PrefectureSelect({
         </div>
         <div className="flex items-center gap-1">
           {value && (
-            <button
-              type="button"
+            <span
+              role="button"
+              tabIndex={0}
               onClick={handleClear}
-              className="p-0.5 hover:bg-gray-100 rounded"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleClear(e as any);
+                }
+              }}
+              className="p-0.5 hover:bg-gray-100 rounded cursor-pointer"
             >
               <X className="w-3.5 h-3.5 text-gray-400" />
-            </button>
+            </span>
           )}
           <ChevronDown
             className={cn(
