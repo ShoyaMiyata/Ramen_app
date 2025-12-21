@@ -600,7 +600,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
             {isSubmitting && !isDraft ? (
               <Loading size="sm" className="text-white" />
             ) : noodle ? (
-              "更新する"
+              noodle.isDraft ? "公開する" : "更新する"
             ) : (
               "この一杯を記録"
             )}
