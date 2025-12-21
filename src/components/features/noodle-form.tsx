@@ -52,6 +52,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     noodle?.evaluation ?? null
   );
   const [isArchived, setIsArchived] = useState(noodle?.isArchived || false);
+  const [isDraft, setIsDraft] = useState(noodle?.isDraft || false);
 
   // 単一画像
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -226,6 +227,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           r2ImageKey: imageKey,
           removeImage: imageRemoved,
           isArchived: isArchived || undefined,
+          isDraft: isDraft || undefined,
         });
         router.push("/noodles");
       } else {
@@ -240,6 +242,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
           isArchived: isArchived || undefined,
+          isDraft: isDraft || undefined,
         });
 
         const noodleId = result.noodleId;
@@ -554,22 +557,52 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           </label>
         </div>
 
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={
-            isSubmitting || !shopName || !ramenName || genres.length === 0
-          }
-        >
-          {isSubmitting ? (
-            <Loading size="sm" className="text-white" />
-          ) : noodle ? (
-            "更新する"
-          ) : (
-            "この一杯を記録"
-          )}
-        </Button>
+        {/* Submit Buttons */}
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1"
+            disabled={
+              isSubmitting || !shopName || !ramenName || genres.length === 0
+            }
+            onClick={() => {
+              setIsDraft(true);
+              setTimeout(() => {
+                const form = document.querySelector('form');
+                if (form) form.requestSubmit();
+              }, 0);
+            }}
+          >
+            {isSubmitting && isDraft ? (
+              <Loading size="sm" />
+            ) : (
+              "下書き保存"
+            )}
+          </Button>
+          <Button
+            type="button"
+            className="flex-1"
+            disabled={
+              isSubmitting || !shopName || !ramenName || genres.length === 0
+            }
+            onClick={() => {
+              setIsDraft(false);
+              setTimeout(() => {
+                const form = document.querySelector('form');
+                if (form) form.requestSubmit();
+              }, 0);
+            }}
+          >
+            {isSubmitting && !isDraft ? (
+              <Loading size="sm" className="text-white" />
+            ) : noodle ? (
+              "更新する"
+            ) : (
+              "この一杯を記録"
+            )}
+          </Button>
+        </div>
       </form>
 
       <NewBadgeModal badge={newBadge} onClose={handleBadgeModalClose} />

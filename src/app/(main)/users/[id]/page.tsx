@@ -17,7 +17,7 @@ import { TasteProfile } from "@/components/features/taste-profile";
 import { BadgeDisplay, BadgeListModal } from "@/components/features/badge-display";
 import { Gallery } from "@/components/features/gallery";
 import { MyBestDisplay } from "@/components/features/my-best";
-import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info, Users } from "lucide-react";
+import { ArrowLeft, Grid3X3, List, Crown, Sparkles, MessageCircle, X, Lock, Clock, Heart, Pencil, Camera, Trash2, User, Plus, ChevronRight, SlidersHorizontal, MapPin, Settings, Wrench, Shield, Info, Users, FilePen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -26,7 +26,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { GENRES } from "@/lib/constants/genres";
 
-type ViewMode = "list" | "gallery" | "likes" | "archive";
+type ViewMode = "list" | "gallery" | "likes" | "archive" | "drafts";
 
 export default function UserProfilePage({
   params,
@@ -66,6 +66,9 @@ export default function UserProfilePage({
   // アーカイブ一括選択用
   const [selectedArchiveIds, setSelectedArchiveIds] = useState<Set<Id<"noodles">>>(new Set());
 
+  // 下書き一括選択用
+  const [selectedDraftIds, setSelectedDraftIds] = useState<Set<Id<"noodles">>>(new Set());
+
   const updateName = useMutation(api.users.updateName);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   const updateProfileImage = useMutation(api.users.updateProfileImage);
@@ -77,6 +80,8 @@ export default function UserProfilePage({
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
   const unarchiveNoodles = useMutation(api.noodles.unarchiveNoodles);
+  const publishDrafts = useMutation(api.noodles.publishDrafts);
+  const deleteDrafts = useMutation(api.noodles.deleteDrafts);
 
   const profileUser = useQuery(api.users.getById, { id: userId });
   const canViewProfile = useQuery(api.users.canViewProfile, {
@@ -97,6 +102,10 @@ export default function UserProfilePage({
   );
   const archivedNoodles = useQuery(
     api.noodles.getArchivedByUser,
+    currentUser?._id === userId ? { userId } : "skip"
+  );
+  const draftNoodles = useQuery(
+    api.noodles.getDraftsByUser,
     currentUser?._id === userId ? { userId } : "skip"
   );
 
@@ -165,6 +174,55 @@ export default function UserProfilePage({
       console.error("Failed to unarchive:", error);
     }
   };
+
+  const toggleDraftSelection = (noodleId: Id<"noodles">) => {
+    setSelectedDraftIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(noodleId)) {
+        newSet.delete(noodleId);
+      } else {
+        newSet.add(noodleId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAllDrafts = () => {
+    if (!draftNoodles) return;
+    if (selectedDraftIds.size === draftNoodles.length) {
+      setSelectedDraftIds(new Set());
+    } else {
+      setSelectedDraftIds(new Set(draftNoodles.map(n => n._id)));
+    }
+  };
+
+  const handlePublishDrafts = async () => {
+    if (!currentUser || selectedDraftIds.size === 0) return;
+    try {
+      await publishDrafts({
+        noodleIds: Array.from(selectedDraftIds),
+        userId: currentUser._id,
+      });
+      setSelectedDraftIds(new Set());
+    } catch (error) {
+      console.error("Failed to publish drafts:", error);
+    }
+  };
+
+  const handleDeleteDrafts = async () => {
+    if (!currentUser || selectedDraftIds.size === 0) return;
+    if (!confirm(`選択した${selectedDraftIds.size}件の下書きを削除しますか？`)) return;
+    try {
+      await deleteDrafts({
+        noodleIds: Array.from(selectedDraftIds),
+        userId: currentUser._id,
+      });
+      setSelectedDraftIds(new Set());
+    } catch (error) {
+      console.error("Failed to delete drafts:", error);
+    }
+  };
+
   const badges = useQuery(
     api.badges.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
@@ -602,18 +660,32 @@ export default function UserProfilePage({
                   <Heart className="w-4 h-4" />
                 </button>
                 {isOwnProfile && (
-                  <button
-                    onClick={() => setViewMode("archive")}
-                    className={cn(
-                      "p-1.5 rounded",
-                      viewMode === "archive"
-                        ? "bg-white text-orange-500 shadow-sm"
-                        : "text-gray-400"
-                    )}
-                    title="アーカイブ"
-                  >
-                    <Clock className="w-4 h-4" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setViewMode("archive")}
+                      className={cn(
+                        "p-1.5 rounded",
+                        viewMode === "archive"
+                          ? "bg-white text-orange-500 shadow-sm"
+                          : "text-gray-400"
+                      )}
+                      title="アーカイブ"
+                    >
+                      <Clock className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode("drafts")}
+                      className={cn(
+                        "p-1.5 rounded",
+                        viewMode === "drafts"
+                          ? "bg-white text-orange-500 shadow-sm"
+                          : "text-gray-400"
+                      )}
+                      title="下書き"
+                    >
+                      <FilePen className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -699,6 +771,82 @@ export default function UserProfilePage({
                             type="checkbox"
                             checked={selectedArchiveIds.has(noodle._id)}
                             onChange={() => toggleArchiveSelection(noodle._id)}
+                            className="h-4 w-4 text-gray-400 border-gray-200 rounded focus:ring-gray-300 opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <NoodleCard
+                          noodle={noodle}
+                          showUser={false}
+                          currentUserId={currentUser?._id}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            ) : viewMode === "drafts" ? (
+              draftNoodles === undefined ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <p className="text-gray-400">読み込み中...</p>
+                </div>
+              ) : draftNoodles.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <FilePen className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-500">下書きはありません</p>
+                </div>
+              ) : (
+                <>
+                  {/* 下書き操作バー */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm mb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={draftNoodles.length > 0 && selectedDraftIds.size === draftNoodles.length}
+                          onChange={toggleSelectAllDrafts}
+                          className="h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {selectedDraftIds.size > 0
+                            ? `${selectedDraftIds.size}件選択中`
+                            : "全て選択"}
+                        </span>
+                      </div>
+                      {selectedDraftIds.size > 0 && (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handlePublishDrafts}
+                            size="sm"
+                            style={{
+                              backgroundColor: themeColor,
+                              color: "white",
+                            }}
+                          >
+                            公開する
+                          </Button>
+                          <Button
+                            onClick={handleDeleteDrafts}
+                            size="sm"
+                            variant="outline"
+                            className="text-red-500 border-red-200 hover:bg-red-50"
+                          >
+                            削除
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 下書き一覧 */}
+                  <div className="space-y-3">
+                    {draftNoodles.map((noodle) => (
+                      <div key={noodle._id} className="relative">
+                        <div className="absolute left-2 top-2 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedDraftIds.has(noodle._id)}
+                            onChange={() => toggleDraftSelection(noodle._id)}
                             className="h-4 w-4 text-gray-400 border-gray-200 rounded focus:ring-gray-300 opacity-60 hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
                           />

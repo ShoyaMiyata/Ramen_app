@@ -42,8 +42,8 @@ export const list = query({
 
     let noodles = await ctx.db.query("noodles").order("desc").collect();
 
-    // アーカイブされた投稿を除外（タイムラインには表示しない）
-    noodles = noodles.filter((noodle) => !noodle.isArchived);
+    // アーカイブされた投稿と下書きを除外（タイムラインには表示しない）
+    noodles = noodles.filter((noodle) => !noodle.isArchived && !noodle.isDraft);
 
     // ユーザー情報を取得（後でエンリッチメントにも使用）
     const users = await ctx.db.query("users").collect();
@@ -452,6 +452,7 @@ export const create = mutation({
     r2ImageUrl: v.optional(v.string()), // Cloudflare R2画像URL
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー（削除用）
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
+    isDraft: v.optional(v.boolean()), // 下書きフラグ（未公開）
   },
   handler: async (ctx, args) => {
     // プラン制限チェック
@@ -474,6 +475,7 @@ export const create = mutation({
       r2ImageUrl: args.r2ImageUrl, // R2画像URL
       r2ImageKey: args.r2ImageKey, // R2削除用キー
       isArchived: args.isArchived, // アーカイブフラグ
+      isDraft: args.isDraft, // 下書きフラグ
       createdAt: Date.now(),
     });
 
@@ -562,6 +564,7 @@ export const update = mutation({
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー
     removeImage: v.optional(v.boolean()),
     isArchived: v.optional(v.boolean()), // アーカイブフラグ
+    isDraft: v.optional(v.boolean()), // 下書きフラグ
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
@@ -643,6 +646,7 @@ export const update = mutation({
       r2ImageUrl: newR2ImageUrl,
       r2ImageKey: newR2ImageKey,
       isArchived: args.isArchived, // アーカイブフラグを更新
+      isDraft: args.isDraft, // 下書きフラグを更新
     });
 
     return args.id;
@@ -749,6 +753,99 @@ export const unarchiveNoodles = mutation({
       if (noodle.userId !== args.userId) continue;
 
       await ctx.db.patch(noodleId, { isArchived: false });
+    }
+  },
+});
+
+// 下書き一覧を取得
+export const getDraftsByUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const noodles = await ctx.db
+      .query("noodles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // 下書きのみフィルタ
+    const draftNoodles = noodles.filter((n) => n.isDraft === true);
+
+    // 店舗情報と画像URLを付与
+    const shops = await ctx.db.query("shops").collect();
+    const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+    const items = await Promise.all(
+      draftNoodles.map(async (noodle) => {
+        let imageUrl: string | null = null;
+
+        // R2画像を優先
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
+          imageUrl = (await ctx.storage.getUrl(noodle.imageIds[0])) || null;
+        } else if (noodle.imageId) {
+          imageUrl = (await ctx.storage.getUrl(noodle.imageId)) || null;
+        }
+
+        return {
+          ...noodle,
+          shop: shopMap.get(noodle.shopId) || null,
+          imageUrl,
+        };
+      })
+    );
+
+    // 作成日時の降順でソート
+    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    return items;
+  },
+});
+
+// 下書きを公開（一括対応）
+export const publishDrafts = mutation({
+  args: {
+    noodleIds: v.array(v.id("noodles")),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (!noodle) continue;
+      if (noodle.userId !== args.userId) continue;
+
+      await ctx.db.patch(noodleId, { isDraft: false });
+    }
+  },
+});
+
+// 下書きを削除（一括対応）
+export const deleteDrafts = mutation({
+  args: {
+    noodleIds: v.array(v.id("noodles")),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (!noodle) continue;
+      if (noodle.userId !== args.userId) continue;
+
+      // 画像削除（R2）
+      if (noodle.r2ImageKey) {
+        // フロントエンドで削除するので、ここでは何もしない
+      }
+
+      // Convex Storage画像削除（後方互換）
+      if (noodle.imageIds) {
+        for (const id of noodle.imageIds) {
+          await ctx.storage.delete(id);
+        }
+      }
+      if (noodle.imageId) {
+        await ctx.storage.delete(noodle.imageId);
+      }
+
+      await ctx.db.delete(noodleId);
     }
   },
 });
