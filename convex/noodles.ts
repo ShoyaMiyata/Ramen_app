@@ -207,11 +207,14 @@ export const list = query({
 
     const items = await Promise.all(
       paginatedNoodles.map(async (noodle) => {
-        // 複数画像を優先、なければ単一画像にフォールバック
+        // 画像URL取得（R2優先）
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.imageIds && noodle.imageIds.length > 0) {
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+          imageUrls = [noodle.r2ImageUrl];
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
           const urls = await Promise.all(
             noodle.imageIds.map((id) => ctx.storage.getUrl(id))
           );
@@ -250,11 +253,14 @@ export const getById = query({
     const user = await ctx.db.get(noodle.userId);
     const shop = await ctx.db.get(noodle.shopId);
 
-    // 複数画像を優先、なければ単一画像にフォールバック
+    // 画像URL取得（R2優先）
     let imageUrl: string | null = null;
     let imageUrls: string[] = [];
 
-    if (noodle.imageIds && noodle.imageIds.length > 0) {
+    if (noodle.r2ImageUrl) {
+      imageUrl = noodle.r2ImageUrl;
+      imageUrls = [noodle.r2ImageUrl];
+    } else if (noodle.imageIds && noodle.imageIds.length > 0) {
       const urls = await Promise.all(
         noodle.imageIds.map((id) => ctx.storage.getUrl(id))
       );
@@ -360,11 +366,14 @@ export const getByUser = query({
 
     const results = await Promise.all(
       noodles.map(async (noodle) => {
-        // 複数画像を優先、なければ単一画像にフォールバック
+        // 画像URL取得（R2優先）
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.imageIds && noodle.imageIds.length > 0) {
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+          imageUrls = [noodle.r2ImageUrl];
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
           const urls = await Promise.all(
             noodle.imageIds.map((id) => ctx.storage.getUrl(id))
           );
@@ -403,18 +412,22 @@ export const getGalleryByUser = query({
       .order("desc")
       .collect();
 
-    // 画像あり（imageIds または imageId）のみ
-    const withImages = noodles.filter((n) => (n.imageIds && n.imageIds.length > 0) || n.imageId);
+    // 画像あり（r2ImageUrl、imageIds または imageId）のみ
+    const withImages = noodles.filter((n) => n.r2ImageUrl || (n.imageIds && n.imageIds.length > 0) || n.imageId);
 
     const shops = await ctx.db.query("shops").collect();
     const shopMap = new Map(shops.map((s) => [s._id, s]));
 
     const results = await Promise.all(
       withImages.map(async (noodle) => {
+        // 画像URL取得（R2優先）
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.imageIds && noodle.imageIds.length > 0) {
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+          imageUrls = [noodle.r2ImageUrl];
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
           const urls = await Promise.all(
             noodle.imageIds.map((id) => ctx.storage.getUrl(id))
           );
@@ -1037,11 +1050,14 @@ export const getByShop = query({
     // エンリッチメント（ユーザー情報、店舗情報、画像URL、いいね数）
     const items = await Promise.all(
       paginatedPosts.map(async (post) => {
-        // 複数画像を優先、なければ単一画像にフォールバック
+        // 画像URL取得（R2優先）
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (post.imageIds && post.imageIds.length > 0) {
+        if (post.r2ImageUrl) {
+          imageUrl = post.r2ImageUrl;
+          imageUrls = [post.r2ImageUrl];
+        } else if (post.imageIds && post.imageIds.length > 0) {
           const urls = await Promise.all(
             post.imageIds.map((id) => ctx.storage.getUrl(id))
           );
