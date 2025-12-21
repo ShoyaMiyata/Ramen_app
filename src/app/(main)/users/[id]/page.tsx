@@ -26,7 +26,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { GENRES } from "@/lib/constants/genres";
 
-type ViewMode = "list" | "gallery" | "likes";
+type ViewMode = "list" | "gallery" | "likes" | "archive";
 
 export default function UserProfilePage({
   params,
@@ -63,6 +63,9 @@ export default function UserProfilePage({
   const [myMinRating, setMyMinRating] = useState<number | undefined>();
   const [myMaxRating, setMyMaxRating] = useState<number | undefined>();
 
+  // アーカイブ一括選択用
+  const [selectedArchiveIds, setSelectedArchiveIds] = useState<Set<Id<"noodles">>>(new Set());
+
   const updateName = useMutation(api.users.updateName);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   const updateProfileImage = useMutation(api.users.updateProfileImage);
@@ -73,6 +76,7 @@ export default function UserProfilePage({
   );
 
   const getOrCreateRoom = useMutation(api.chat.getOrCreateRoom);
+  const unarchiveNoodles = useMutation(api.noodles.unarchiveNoodles);
 
   const profileUser = useQuery(api.users.getById, { id: userId });
   const canViewProfile = useQuery(api.users.canViewProfile, {
@@ -90,6 +94,10 @@ export default function UserProfilePage({
   const likedNoodles = useQuery(
     api.likes.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
+  );
+  const archivedNoodles = useQuery(
+    api.noodles.getArchivedByUser,
+    currentUser?._id === userId ? { userId } : "skip"
   );
 
   // 正確な店舗数を取得（全件データから計算）
@@ -118,6 +126,43 @@ export default function UserProfilePage({
   const loadMore = () => {
     if (noodlesData?.hasMore) {
       setOffset(prev => prev + LIMIT);
+    }
+  };
+
+  // アーカイブ選択の切り替え
+  const toggleArchiveSelection = (noodleId: Id<"noodles">) => {
+    setSelectedArchiveIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(noodleId)) {
+        newSet.delete(noodleId);
+      } else {
+        newSet.add(noodleId);
+      }
+      return newSet;
+    });
+  };
+
+  // 全選択/全解除
+  const toggleSelectAll = () => {
+    if (!archivedNoodles) return;
+    if (selectedArchiveIds.size === archivedNoodles.length) {
+      setSelectedArchiveIds(new Set());
+    } else {
+      setSelectedArchiveIds(new Set(archivedNoodles.map(n => n._id)));
+    }
+  };
+
+  // アーカイブ解除
+  const handleUnarchive = async () => {
+    if (!currentUser || selectedArchiveIds.size === 0) return;
+    try {
+      await unarchiveNoodles({
+        noodleIds: Array.from(selectedArchiveIds),
+        userId: currentUser._id,
+      });
+      setSelectedArchiveIds(new Set());
+    } catch (error) {
+      console.error("Failed to unarchive:", error);
     }
   };
   const badges = useQuery(
@@ -556,6 +601,20 @@ export default function UserProfilePage({
                 >
                   <Heart className="w-4 h-4" />
                 </button>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => setViewMode("archive")}
+                    className={cn(
+                      "p-1.5 rounded",
+                      viewMode === "archive"
+                        ? "bg-white text-orange-500 shadow-sm"
+                        : "text-gray-400"
+                    )}
+                    title="アーカイブ"
+                  >
+                    <Clock className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -587,6 +646,72 @@ export default function UserProfilePage({
                     />
                   ))}
                 </div>
+              )
+            ) : viewMode === "archive" ? (
+              archivedNoodles === undefined ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <p className="text-gray-400">読み込み中...</p>
+                </div>
+              ) : archivedNoodles.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center">
+                  <Clock className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-500">アーカイブした投稿はありません</p>
+                </div>
+              ) : (
+                <>
+                  {/* アーカイブ操作バー */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm mb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={archivedNoodles.length > 0 && selectedArchiveIds.size === archivedNoodles.length}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {selectedArchiveIds.size > 0
+                            ? `${selectedArchiveIds.size}件選択中`
+                            : "全て選択"}
+                        </span>
+                      </div>
+                      {selectedArchiveIds.size > 0 && (
+                        <Button
+                          onClick={handleUnarchive}
+                          size="sm"
+                          style={{
+                            backgroundColor: themeColor,
+                            color: "white",
+                          }}
+                        >
+                          アーカイブ解除
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* アーカイブ一覧 */}
+                  <div className="space-y-3">
+                    {archivedNoodles.map((noodle) => (
+                      <div key={noodle._id} className="relative">
+                        <div className="absolute left-3 top-3 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedArchiveIds.has(noodle._id)}
+                            onChange={() => toggleArchiveSelection(noodle._id)}
+                            className="h-5 w-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 shadow-lg"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <NoodleCard
+                          noodle={noodle}
+                          showUser={false}
+                          currentUserId={currentUser?._id}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
               )
             ) : allLoadedNoodles.length > 0 ? (
               <>

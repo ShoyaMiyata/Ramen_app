@@ -690,6 +690,67 @@ export const remove = mutation({
   },
 });
 
+// アーカイブされた投稿を取得
+export const getArchivedByUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const noodles = await ctx.db
+      .query("noodles")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // アーカイブされた投稿のみフィルタ
+    const archivedNoodles = noodles.filter((n) => n.isArchived === true);
+
+    // 店舗情報と画像URLを付与
+    const shops = await ctx.db.query("shops").collect();
+    const shopMap = new Map(shops.map((s) => [s._id, s]));
+
+    const items = await Promise.all(
+      archivedNoodles.map(async (noodle) => {
+        let imageUrl: string | null = null;
+
+        // R2画像を優先
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+        } else if (noodle.imageIds && noodle.imageIds.length > 0) {
+          imageUrl = (await ctx.storage.getUrl(noodle.imageIds[0])) || null;
+        } else if (noodle.imageId) {
+          imageUrl = (await ctx.storage.getUrl(noodle.imageId)) || null;
+        }
+
+        return {
+          ...noodle,
+          shop: shopMap.get(noodle.shopId) || null,
+          imageUrl,
+        };
+      })
+    );
+
+    // 作成日時の降順でソート
+    items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    return items;
+  },
+});
+
+// アーカイブを解除（一括対応）
+export const unarchiveNoodles = mutation({
+  args: {
+    noodleIds: v.array(v.id("noodles")),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (!noodle) continue;
+      if (noodle.userId !== args.userId) continue;
+
+      await ctx.db.patch(noodleId, { isArchived: false });
+    }
+  },
+});
+
 // 画像アップロード用URL生成
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
