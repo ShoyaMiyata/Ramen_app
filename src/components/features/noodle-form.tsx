@@ -96,10 +96,26 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log("画像選択:", {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
+    });
+
     setIsCompressing(true);
 
     try {
-      const compressedFile = await compressImage(file);
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.8
+      });
+
+      console.log("画像圧縮完了:", {
+        originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        compressedSize: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
+        ratio: `${((compressedFile.size / file.size) * 100).toFixed(1)}%`
+      });
 
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -109,7 +125,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
       setImageFile(compressedFile);
       setImageRemoved(false);
-    } catch {
+    } catch (error) {
+      console.error("画像圧縮エラー:", error);
       // 圧縮失敗時は元のファイルを使用
       const reader = new FileReader();
       reader.onload = (ev) => {
@@ -183,6 +200,12 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         }
 
         // Cloudflare R2に新しい画像をアップロード
+        console.log("画像アップロード開始:", {
+          name: imageFile.name,
+          type: imageFile.type,
+          size: `${(imageFile.size / 1024 / 1024).toFixed(2)}MB`
+        });
+
         const formData = new FormData();
         formData.append("file", imageFile);
 
@@ -192,11 +215,17 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         });
 
         if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || "画像のアップロードに失敗しました");
+          const errorData = await uploadResponse.json().catch(() => ({ error: "不明なエラー" }));
+          const errorMsg = `画像のアップロードに失敗しました: ${errorData.error}`;
+          console.error("アップロードエラー:", errorMsg, {
+            status: uploadResponse.status,
+            statusText: uploadResponse.statusText
+          });
+          throw new Error(errorMsg);
         }
 
         const { url, key } = await uploadResponse.json();
+        console.log("画像アップロード成功:", { url, key });
         imageUrl = url;
         imageKey = key;
       } else if (noodle?.r2ImageUrl && !imageRemoved) {
