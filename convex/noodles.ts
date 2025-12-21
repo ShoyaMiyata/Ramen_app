@@ -454,6 +454,9 @@ export const create = mutation({
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
   },
   handler: async (ctx, args) => {
+    // デバッグ: isArchivedの値を確認
+    console.log("[noodles.create] isArchived:", args.isArchived);
+
     // プラン制限チェック
     const limitCheck = await canCreateNoodle(ctx.db, args.userId);
     if (!limitCheck.allowed) {

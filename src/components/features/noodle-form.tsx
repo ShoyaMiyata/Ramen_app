@@ -228,6 +228,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         });
         router.push("/noodles");
       } else {
+        console.log("[NoodleForm] Creating noodle with isArchived:", isArchived);
         const result = await createNoodle({
           userId: user._id,
           shopId,
@@ -238,7 +239,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           evaluation: evaluation ?? undefined,
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
-          isArchived,
+          isArchived: isArchived || undefined, // falseの場合はundefined、trueの場合はtrue
         });
 
         const noodleId = result.noodleId;
