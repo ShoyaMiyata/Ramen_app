@@ -7,6 +7,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useUserStats } from "@/hooks/useUserStats";
 import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,9 @@ export default function UserProfilePage({
     api.likes.getByUser,
     canViewProfile?.canView ? { userId } : "skip"
   );
+
+  // 正確な店舗数を取得（全件データから計算）
+  const userStats = useUserStats(userId);
 
   // 既読データを保持
   type NoodleItem = NonNullable<typeof noodlesData>["items"][number];
@@ -177,9 +181,8 @@ export default function UserProfilePage({
   }
 
   const isOwnProfile = currentUser?._id === userId;
-  const shopCount = allLoadedNoodles.length > 0
-    ? new Set(allLoadedNoodles.map((n) => n.shopId)).size
-    : 0;
+  // 正確な店舗数（全件から計算）
+  const shopCount = userStats.shopCount;
   const isPrivateAccount = profileUser?.isPrivate ?? false;
   const canView = canViewProfile?.canView ?? false;
   const isRequestPending = followRequestStatus === "pending" || optimisticRequestPending;
