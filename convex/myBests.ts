@@ -33,9 +33,14 @@ export const getByUser = query({
         if (!noodle) return null;
 
         const shop = await ctx.db.get(noodle.shopId);
-        const imageUrl = noodle.imageId
-          ? await ctx.storage.getUrl(noodle.imageId)
-          : null;
+
+        // 画像URL取得（R2優先）
+        let imageUrl: string | null = null;
+        if (noodle.r2ImageUrl) {
+          imageUrl = noodle.r2ImageUrl;
+        } else if (noodle.imageId) {
+          imageUrl = await ctx.storage.getUrl(noodle.imageId);
+        }
 
         return {
           ...myBest,
