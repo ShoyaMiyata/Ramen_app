@@ -559,27 +559,30 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
         {/* Submit Buttons */}
         <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            disabled={
-              isSubmitting || !shopName || !ramenName || genres.length === 0
-            }
-            onClick={() => {
-              setIsDraft(true);
-              setTimeout(() => {
-                const form = document.querySelector('form');
-                if (form) form.requestSubmit();
-              }, 0);
-            }}
-          >
-            {isSubmitting && isDraft ? (
-              <Loading size="sm" />
-            ) : (
-              "下書き保存"
-            )}
-          </Button>
+          {/* 下書きボタン: 新規投稿または元々下書きだった投稿のみ表示 */}
+          {(!noodle || noodle.isDraft) && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              disabled={
+                isSubmitting || !shopName || !ramenName || genres.length === 0
+              }
+              onClick={() => {
+                setIsDraft(true);
+                setTimeout(() => {
+                  const form = document.querySelector('form');
+                  if (form) form.requestSubmit();
+                }, 0);
+              }}
+            >
+              {isSubmitting && isDraft ? (
+                <Loading size="sm" />
+              ) : (
+                "下書き保存"
+              )}
+            </Button>
+          )}
           <Button
             type="button"
             className="flex-1"
