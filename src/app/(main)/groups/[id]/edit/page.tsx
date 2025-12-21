@@ -41,14 +41,18 @@ export default function GroupEditPage({
 
   // グループデータが読み込まれたら、初期値を設定
   useEffect(() => {
-    if (group && name === "" && description === "") {
-      setName(group.name);
-      setDescription(group.description);
-      if (group.coverImageUrl) {
+    if (group) {
+      if (name === "") {
+        setName(group.name);
+      }
+      if (description === "") {
+        setDescription(group.description);
+      }
+      if (group.coverImageUrl && !previewUrl) {
         setPreviewUrl(group.coverImageUrl);
       }
     }
-  }, [group]);
+  }, [group, name, description, previewUrl]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
