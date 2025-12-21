@@ -52,6 +52,7 @@ export default defineSchema({
     r2ImageUrl: v.optional(v.string()), // R2に保存された画像のURL
     r2ImageKey: v.optional(v.string()), // R2のオブジェクトキー（削除時に使用）
     groupIds: v.optional(v.array(v.id("groups"))), // グループ共有
+    isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
   })
     .index("by_userId", ["userId"])
     .index("by_shopId", ["shopId"])

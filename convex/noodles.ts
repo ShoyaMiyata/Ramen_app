@@ -42,6 +42,9 @@ export const list = query({
 
     let noodles = await ctx.db.query("noodles").order("desc").collect();
 
+    // アーカイブされた投稿を除外（タイムラインには表示しない）
+    noodles = noodles.filter((noodle) => !noodle.isArchived);
+
     // ユーザー情報を取得（後でエンリッチメントにも使用）
     const users = await ctx.db.query("users").collect();
     const userMap = new Map(users.map((u) => [u._id, u]));
@@ -448,6 +451,7 @@ export const create = mutation({
     imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（非推奨）
     r2ImageUrl: v.optional(v.string()), // Cloudflare R2画像URL
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー（削除用）
+    isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
   },
   handler: async (ctx, args) => {
     // プラン制限チェック
@@ -469,6 +473,7 @@ export const create = mutation({
       imageIds: args.imageIds, // 後方互換
       r2ImageUrl: args.r2ImageUrl, // R2画像URL
       r2ImageKey: args.r2ImageKey, // R2削除用キー
+      isArchived: args.isArchived, // アーカイブフラグ
       createdAt: Date.now(),
     });
 

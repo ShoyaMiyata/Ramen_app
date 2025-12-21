@@ -51,6 +51,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [evaluation, setEvaluation] = useState<number | null>(
     noodle?.evaluation ?? null
   );
+  const [isArchived, setIsArchived] = useState(noodle?.isArchived || false);
 
   // 単一画像
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -237,6 +238,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           evaluation: evaluation ?? undefined,
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
+          isArchived,
         });
 
         const noodleId = result.noodleId;
@@ -532,6 +534,26 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           <p className="text-xs text-gray-400 mt-1 text-right">
             {comment.length}/1000
           </p>
+        </div>
+
+        {/* Archive Option */}
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isArchived}
+              onChange={(e) => setIsArchived(e.target.checked)}
+              className="mt-1 h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-900">
+                アーカイブ投稿
+              </span>
+              <p className="text-xs text-gray-600 mt-1">
+                タイムラインには表示せず、自分のプロフィールにのみ記録します。
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Submit Button */}

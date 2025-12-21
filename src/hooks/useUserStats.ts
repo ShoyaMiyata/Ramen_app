@@ -6,13 +6,13 @@ import { Id } from "../../convex/_generated/dataModel";
 import { getRankByShopCount } from "@/lib/constants/ranks";
 
 export function useUserStats(userId: Id<"users"> | undefined) {
-  const noodles = useQuery(
-    api.noodles.getByUser,
+  const userStats = useQuery(
+    api.users.getUserStats,
     userId ? { userId } : "skip"
   );
   const badges = useQuery(api.badges.getByUser, userId ? { userId } : "skip");
 
-  if (!noodles || !badges) {
+  if (!userStats || !badges) {
     return {
       postCount: 0,
       shopCount: 0,
@@ -22,12 +22,11 @@ export function useUserStats(userId: Id<"users"> | undefined) {
     };
   }
 
-  const uniqueShops = new Set(noodles.items.map((n) => n.shopId)).size;
-  const rank = getRankByShopCount(uniqueShops);
+  const rank = getRankByShopCount(userStats.visitedShopsCount);
 
   return {
-    postCount: noodles.totalCount,
-    shopCount: uniqueShops,
+    postCount: userStats.totalPosts,
+    shopCount: userStats.visitedShopsCount,
     rank,
     badges,
     isLoading: false,
