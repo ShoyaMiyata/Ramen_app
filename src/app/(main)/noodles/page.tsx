@@ -78,6 +78,14 @@ export default function NoodlesPage() {
   // データが来たら追加
   useEffect(() => {
     if (noodlesData?.items) {
+      console.log("🔍 Noodles data received:", noodlesData.items.slice(0, 2).map(item => ({
+        _id: item._id,
+        ramenName: item.ramenName,
+        imageUrl: item.imageUrl,
+        r2ImageUrl: item.r2ImageUrl,
+        imageId: item.imageId
+      })));
+
       if (offset === 0) {
         setAllItems(noodlesData.items);
       } else {
