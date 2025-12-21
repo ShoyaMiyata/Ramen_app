@@ -537,21 +537,18 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         </div>
 
         {/* Archive Option */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <label className="flex items-start gap-3 cursor-pointer">
+        <div className="bg-gray-50 border border-gray-200 rounded p-2">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={isArchived}
               onChange={(e) => setIsArchived(e.target.checked)}
-              className="mt-1 h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+              className="h-3 w-3 text-gray-400 border-gray-300 rounded focus:ring-gray-300"
             />
-            <div>
-              <span className="text-sm font-medium text-gray-900">
-                アーカイブ投稿
+            <div className="flex-1">
+              <span className="text-xs text-gray-600">
+                アーカイブ投稿（タイムライン非表示）
               </span>
-              <p className="text-xs text-gray-600 mt-1">
-                タイムラインには表示せず、自分のプロフィールにのみ記録します。
-              </p>
             </div>
           </label>
         </div>
