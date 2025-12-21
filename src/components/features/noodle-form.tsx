@@ -239,7 +239,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           evaluation: evaluation ?? undefined,
           r2ImageUrl: imageUrl,
           r2ImageKey: imageKey,
-          isArchived: isArchived || undefined, // falseの場合はundefined、trueの場合はtrue
+          isArchived: isArchived ? true : undefined, // 明示的にtrueまたはundefined
         });
 
         const noodleId = result.noodleId;

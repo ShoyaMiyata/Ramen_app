@@ -702,8 +702,12 @@ export const getArchivedByUser = query({
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .collect();
 
+    console.log(`[getArchivedByUser] Total noodles: ${noodles.length}`);
+    console.log(`[getArchivedByUser] isArchived values:`, noodles.map(n => ({ id: n._id, isArchived: n.isArchived })));
+
     // アーカイブされた投稿のみフィルタ
     const archivedNoodles = noodles.filter((n) => n.isArchived === true);
+    console.log(`[getArchivedByUser] Archived count: ${archivedNoodles.length}`);
 
     // 店舗情報と画像URLを付与
     const shops = await ctx.db.query("shops").collect();
