@@ -6,16 +6,20 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare, Eye, Users as UsersIcon } from "lucide-react";
+import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare, Eye, Users as UsersIcon, Palette } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { useUserStats } from "@/hooks/useUserStats";
+import { ThemeSelector } from "@/components/features/theme-selector";
 
 export default function SettingsPage() {
   const { user, isLoaded } = useCurrentUser();
   const { themeColor } = useTheme();
+  const { rank } = useUserStats(user?._id);
 
   const updatePrivacy = useMutation(api.users.updatePrivacy);
   const updatePostVisibility = useMutation(api.users.updatePostVisibility);
+  const updateThemeLevel = useMutation(api.users.updateThemeLevel);
   const pendingRequestCount = useQuery(
     api.follows.getPendingRequestCount,
     user?._id ? { userId: user._id } : "skip"
@@ -23,6 +27,7 @@ export default function SettingsPage() {
 
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
+  const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
 
   const handlePrivacyToggle = async () => {
     if (!user) return;
@@ -47,6 +52,19 @@ export default function SettingsPage() {
       });
     } finally {
       setIsUpdatingVisibility(false);
+    }
+  };
+
+  const handleThemeSelect = async (level: number) => {
+    if (!user) return;
+    setIsUpdatingTheme(true);
+    try {
+      await updateThemeLevel({
+        userId: user._id,
+        themeLevel: level,
+      });
+    } finally {
+      setIsUpdatingTheme(false);
     }
   };
 
@@ -258,6 +276,27 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Theme Color Settings */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="font-medium text-gray-900 flex items-center gap-2">
+            <Palette className="w-4 h-4" />
+            テーマカラー
+          </h2>
+        </div>
+        <div className="p-4">
+          <p className="text-sm text-gray-500 mb-4">
+            ランクを上げると新しいテーマカラーが解放されます
+          </p>
+          <ThemeSelector
+            currentRank={rank}
+            selectedThemeLevel={user.selectedThemeLevel}
+            onThemeSelect={handleThemeSelect}
+            isUpdating={isUpdatingTheme}
+          />
+        </div>
+      </div>
 
       {/* Notifications Settings (placeholder) */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden opacity-50">
