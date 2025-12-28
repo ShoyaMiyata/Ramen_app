@@ -1,4 +1,5 @@
 import { mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 /**
  * 全テーブルのuserIdを一括更新
@@ -24,7 +25,7 @@ export const fixAllUserIds = mutation({
     for (const noodle of noodles) {
       const newUserId = USER_ID_MAPPING[noodle.userId];
       if (newUserId) {
-        await ctx.db.patch(noodle._id, { userId: newUserId });
+        await ctx.db.patch(noodle._id, { userId: newUserId as Id<"users"> });
         noodlesUpdated++;
       }
     }
@@ -36,7 +37,7 @@ export const fixAllUserIds = mutation({
     for (const like of likes) {
       const newUserId = USER_ID_MAPPING[like.userId];
       if (newUserId) {
-        await ctx.db.patch(like._id, { userId: newUserId });
+        await ctx.db.patch(like._id, { userId: newUserId as Id<"users"> });
         likesUpdated++;
       }
     }
@@ -48,7 +49,7 @@ export const fixAllUserIds = mutation({
     for (const badge of userBadges) {
       const newUserId = USER_ID_MAPPING[badge.userId];
       if (newUserId) {
-        await ctx.db.patch(badge._id, { userId: newUserId });
+        await ctx.db.patch(badge._id, { userId: newUserId as Id<"users"> });
         badgesUpdated++;
       }
     }
@@ -60,7 +61,7 @@ export const fixAllUserIds = mutation({
     for (const myBest of myBests) {
       const newUserId = USER_ID_MAPPING[myBest.userId];
       if (newUserId) {
-        await ctx.db.patch(myBest._id, { userId: newUserId });
+        await ctx.db.patch(myBest._id, { userId: newUserId as Id<"users"> });
         myBestsUpdated++;
       }
     }
@@ -74,8 +75,8 @@ export const fixAllUserIds = mutation({
       const newFollowingId = USER_ID_MAPPING[follow.followingId];
       if (newFollowerId || newFollowingId) {
         await ctx.db.patch(follow._id, {
-          followerId: newFollowerId || follow.followerId,
-          followingId: newFollowingId || follow.followingId,
+          followerId: (newFollowerId || follow.followerId) as Id<"users">,
+          followingId: (newFollowingId || follow.followingId) as Id<"users">,
         });
         followsUpdated++;
       }
@@ -90,8 +91,8 @@ export const fixAllUserIds = mutation({
       const newTargetId = USER_ID_MAPPING[request.targetId];
       if (newRequesterId || newTargetId) {
         await ctx.db.patch(request._id, {
-          requesterId: newRequesterId || request.requesterId,
-          targetId: newTargetId || request.targetId,
+          requesterId: (newRequesterId || request.requesterId) as Id<"users">,
+          targetId: (newTargetId || request.targetId) as Id<"users">,
         });
         followRequestsUpdated++;
       }
@@ -104,7 +105,7 @@ export const fixAllUserIds = mutation({
     for (const feedback of feedbacks) {
       const newUserId = USER_ID_MAPPING[feedback.userId];
       if (newUserId) {
-        await ctx.db.patch(feedback._id, { userId: newUserId });
+        await ctx.db.patch(feedback._id, { userId: newUserId as Id<"users"> });
         feedbacksUpdated++;
       }
     }
@@ -116,7 +117,7 @@ export const fixAllUserIds = mutation({
     for (const steam of feedbackSteams) {
       const newUserId = USER_ID_MAPPING[steam.userId];
       if (newUserId) {
-        await ctx.db.patch(steam._id, { userId: newUserId });
+        await ctx.db.patch(steam._id, { userId: newUserId as Id<"users"> });
         steamsUpdated++;
       }
     }
@@ -130,8 +131,8 @@ export const fixAllUserIds = mutation({
       const newFromUserId = notification.fromUserId ? USER_ID_MAPPING[notification.fromUserId] : undefined;
       if (newUserId || newFromUserId) {
         await ctx.db.patch(notification._id, {
-          userId: newUserId || notification.userId,
-          fromUserId: newFromUserId || notification.fromUserId,
+          userId: (newUserId || notification.userId) as Id<"users">,
+          fromUserId: newFromUserId ? (newFromUserId as Id<"users">) : notification.fromUserId,
         });
         notificationsUpdated++;
       }
@@ -144,7 +145,7 @@ export const fixAllUserIds = mutation({
     for (const comment of comments) {
       const newUserId = USER_ID_MAPPING[comment.userId];
       if (newUserId) {
-        await ctx.db.patch(comment._id, { userId: newUserId });
+        await ctx.db.patch(comment._id, { userId: newUserId as Id<"users"> });
         commentsUpdated++;
       }
     }
@@ -156,7 +157,7 @@ export const fixAllUserIds = mutation({
     for (const commentLike of commentLikes) {
       const newUserId = USER_ID_MAPPING[commentLike.userId];
       if (newUserId) {
-        await ctx.db.patch(commentLike._id, { userId: newUserId });
+        await ctx.db.patch(commentLike._id, { userId: newUserId as Id<"users"> });
         commentLikesUpdated++;
       }
     }
@@ -166,7 +167,7 @@ export const fixAllUserIds = mutation({
     const chatRooms = await ctx.db.query("chatRooms").collect();
     let chatRoomsUpdated = 0;
     for (const room of chatRooms) {
-      const newParticipants = room.participants.map((userId) => USER_ID_MAPPING[userId] || userId);
+      const newParticipants = room.participants.map((userId) => (USER_ID_MAPPING[userId] || userId) as Id<"users">);
       if (JSON.stringify(newParticipants) !== JSON.stringify(room.participants)) {
         await ctx.db.patch(room._id, { participants: newParticipants });
         chatRoomsUpdated++;
@@ -180,7 +181,7 @@ export const fixAllUserIds = mutation({
     for (const message of chatMessages) {
       const newSenderId = USER_ID_MAPPING[message.senderId];
       if (newSenderId) {
-        await ctx.db.patch(message._id, { senderId: newSenderId });
+        await ctx.db.patch(message._id, { senderId: newSenderId as Id<"users"> });
         chatMessagesUpdated++;
       }
     }
@@ -192,7 +193,7 @@ export const fixAllUserIds = mutation({
     for (const badge of prefectureBadges) {
       const newUserId = USER_ID_MAPPING[badge.userId];
       if (newUserId) {
-        await ctx.db.patch(badge._id, { userId: newUserId });
+        await ctx.db.patch(badge._id, { userId: newUserId as Id<"users"> });
         prefectureUpdated++;
       }
     }
@@ -205,7 +206,7 @@ export const fixAllUserIds = mutation({
       if (station.registeredBy) {
         const newUserId = USER_ID_MAPPING[station.registeredBy];
         if (newUserId) {
-          await ctx.db.patch(station._id, { registeredBy: newUserId });
+          await ctx.db.patch(station._id, { registeredBy: newUserId as Id<"users"> });
           stationsUpdated++;
         }
       }
@@ -219,7 +220,7 @@ export const fixAllUserIds = mutation({
       if (contact.userId) {
         const newUserId = USER_ID_MAPPING[contact.userId];
         if (newUserId) {
-          await ctx.db.patch(contact._id, { userId: newUserId });
+          await ctx.db.patch(contact._id, { userId: newUserId as Id<"users"> });
           contactsUpdated++;
         }
       }
@@ -232,7 +233,7 @@ export const fixAllUserIds = mutation({
     for (const group of groups) {
       const newCreatorId = USER_ID_MAPPING[group.creatorId];
       if (newCreatorId) {
-        await ctx.db.patch(group._id, { creatorId: newCreatorId });
+        await ctx.db.patch(group._id, { creatorId: newCreatorId as Id<"users"> });
         groupsUpdated++;
       }
     }
@@ -244,7 +245,7 @@ export const fixAllUserIds = mutation({
     for (const member of groupMembers) {
       const newUserId = USER_ID_MAPPING[member.userId];
       if (newUserId) {
-        await ctx.db.patch(member._id, { userId: newUserId });
+        await ctx.db.patch(member._id, { userId: newUserId as Id<"users"> });
         groupMembersUpdated++;
       }
     }
@@ -257,7 +258,7 @@ export const fixAllUserIds = mutation({
       if (setting.updatedBy) {
         const newUserId = USER_ID_MAPPING[setting.updatedBy];
         if (newUserId) {
-          await ctx.db.patch(setting._id, { updatedBy: newUserId });
+          await ctx.db.patch(setting._id, { updatedBy: newUserId as Id<"users"> });
           appSettingsUpdated++;
         }
       }
