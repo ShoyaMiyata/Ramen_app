@@ -16,14 +16,14 @@ async function restoreShoya() {
       limit: 1
     });
 
-    const users = Array.isArray(usersResponse) ? usersResponse : usersResponse.data || [];
+    const users = Array.isArray(usersResponse) ? usersResponse : (usersResponse as { data?: unknown[] }).data || [];
 
     if (users.length === 0) {
       console.log("❌ Shoya Miyata not found in Clerk");
       return;
     }
 
-    const user = users[0];
+    const user = users[0] as any;
 
     console.log("Found user:", {
       clerkId: user.id,

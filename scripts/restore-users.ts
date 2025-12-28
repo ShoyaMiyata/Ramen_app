@@ -15,7 +15,7 @@ async function restoreUsers() {
 
     console.log("Response:", JSON.stringify(usersResponse, null, 2).substring(0, 500));
 
-    const users = Array.isArray(usersResponse) ? usersResponse : usersResponse.data || [];
+    const users = Array.isArray(usersResponse) ? usersResponse : (usersResponse as { data?: unknown[] }).data || [];
 
     console.log(`📦 Found ${users.length} users in Clerk`);
 

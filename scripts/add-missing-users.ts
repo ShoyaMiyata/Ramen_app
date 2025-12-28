@@ -11,7 +11,7 @@ async function addMissingUsers() {
   try {
     console.log("🔍 Step 1: Fetching all users from Clerk...");
     const clerkUsersResponse = await clerkClient.users.getUserList({ limit: 500 });
-    const clerkUsers = Array.isArray(clerkUsersResponse) ? clerkUsersResponse : clerkUsersResponse.data || [];
+    const clerkUsers = Array.isArray(clerkUsersResponse) ? clerkUsersResponse : (clerkUsersResponse as { data?: unknown[] }).data || [];
 
     console.log(`   Found ${clerkUsers.length} users in Clerk`);
 
@@ -53,11 +53,12 @@ async function addMissingUsers() {
     console.log("\n🔄 Step 4: Adding missing users to Convex...");
 
     for (const user of missingUsers) {
+      const clerkUser = user as any;
       const userData = {
-        clerkId: user.id,
-        name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || "Unknown",
-        email: user.emailAddresses[0]?.emailAddress || "",
-        imageUrl: user.imageUrl,
+        clerkId: clerkUser.id,
+        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || clerkUser.username || "Unknown",
+        email: clerkUser.emailAddresses[0]?.emailAddress || "",
+        imageUrl: clerkUser.imageUrl,
       };
 
       try {

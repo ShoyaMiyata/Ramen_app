@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 /**
  * ClerkIdから新しいuserIdへのマッピングを作成
@@ -58,7 +59,7 @@ export const migrateNoodleUserIds = mutation({
           const newUserId = clerkIdToNewId[clerkId];
 
           if (newUserId) {
-            await ctx.db.patch(noodle._id, { userId: newUserId });
+            await ctx.db.patch(noodle._id, { userId: newUserId as Id<"users"> });
             updated++;
             break;
           }
