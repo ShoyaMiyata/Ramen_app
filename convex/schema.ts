@@ -11,6 +11,8 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     selectedThemeLevel: v.optional(v.number()), // 選択したテーマカラーのランクレベル
+    selectedThemeId: v.optional(v.string()), // 選択したテーマID（使用しないが後方互換性のため残す）
+    themeTickets: v.optional(v.number()), // テーマチケット数（使用しないが後方互換性のため残す）
     isAdmin: v.optional(v.boolean()), // 管理者フラグ
     onboardingComplete: v.optional(v.boolean()), // 初回セットアップ完了フラグ
     isPrivate: v.optional(v.boolean()), // 鍵アカウントフラグ
