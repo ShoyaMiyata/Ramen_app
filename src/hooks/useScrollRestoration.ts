@@ -10,7 +10,7 @@ export function useScrollRestoration() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isRestoringRef = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const containerRef = useRef<Element | null>(null);
 
   // pathname + search params で一意のキーを生成
