@@ -27,10 +27,13 @@ export default function HomePage() {
         router.replace("/landing");
         return;
       }
+      // 2回目以降の未認証ユーザーはサインインページへ
+      router.replace("/sign-in");
+      return;
     }
 
     // 認証済みユーザーの場合、管理者設定に基づいてリダイレクト
-    if (isLoaded && user?._id && postLoginDestination) {
+    if (isLoaded && user?._id) {
       if (postLoginDestination === "landing") {
         router.replace("/landing");
       } else {
