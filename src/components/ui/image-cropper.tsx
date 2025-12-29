@@ -5,7 +5,17 @@ import Cropper from "react-easy-crop";
 import { Area } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { X } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+
+const ASPECT_RATIOS = [
+  { label: "自由", value: undefined, icon: "⬜" },
+  { label: "正方形 (1:1)", value: 1, icon: "◻️" },
+  { label: "横長 (4:3)", value: 4 / 3, icon: "▭" },
+  { label: "ワイド (16:9)", value: 16 / 9, icon: "▬" },
+  { label: "縦長 (3:4)", value: 3 / 4, icon: "▯" },
+] as const;
 
 interface ImageCropperProps {
   image: string;
@@ -18,10 +28,11 @@ export function ImageCropper({
   image,
   onCropComplete,
   onCancel,
-  aspectRatio = 1,
+  aspectRatio: initialAspectRatio = 1,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [aspectRatio, setAspectRatio] = useState<number | undefined>(initialAspectRatio);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -53,6 +64,8 @@ export function ImageCropper({
       setIsProcessing(false);
     }
   };
+
+  const currentRatio = ASPECT_RATIOS.find(r => r.value === aspectRatio) || ASPECT_RATIOS[0];
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
@@ -88,27 +101,52 @@ export function ImageCropper({
           showGrid={true}
           zoomWithScroll={true}
         />
+
+        {/* アスペクト比選択ボタン（画面右下に配置） */}
+        <div className="absolute bottom-6 right-6">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button
+                className="bg-black/60 backdrop-blur-sm text-white p-3 rounded-full hover:bg-black/80 transition-all shadow-lg"
+                disabled={isProcessing}
+              >
+                <Maximize2 className="w-6 h-6" />
+              </button>
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                className="bg-black/95 backdrop-blur-md rounded-2xl p-2 shadow-xl border border-white/10 min-w-[200px] z-50"
+                sideOffset={8}
+                align="end"
+              >
+                {ASPECT_RATIOS.map((ratio) => (
+                  <DropdownMenu.Item
+                    key={ratio.label}
+                    onClick={() => setAspectRatio(ratio.value)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer outline-none transition-colors",
+                      aspectRatio === ratio.value
+                        ? "bg-orange-500/20 text-orange-400"
+                        : "text-white hover:bg-white/10"
+                    )}
+                  >
+                    <span className="text-xl">{ratio.icon}</span>
+                    <span className="text-sm font-medium">{ratio.label}</span>
+                    {aspectRatio === ratio.value && (
+                      <span className="ml-auto text-orange-400">✓</span>
+                    )}
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </div>
       </div>
 
-      {/* ズームコントロール */}
-      <div className="bg-black/80 p-6 pb-8 shrink-0 safe-area-inset-bottom">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-white text-sm font-medium">ズーム</label>
-            <span className="text-white text-sm">{zoom.toFixed(1)}x</span>
-          </div>
-          <Slider
-            value={[zoom]}
-            onValueChange={(value) => setZoom(value[0])}
-            min={1}
-            max={3}
-            step={0.1}
-            className="w-full"
-          />
-        </div>
-
-        {/* ヒント */}
-        <p className="text-gray-400 text-xs text-center mt-4">
+      {/* ヒント */}
+      <div className="bg-black/80 p-4 pb-8 shrink-0 safe-area-inset-bottom">
+        <p className="text-gray-400 text-xs text-center">
           指でドラッグして位置調整、ピンチで拡大縮小
         </p>
       </div>
