@@ -12,11 +12,13 @@ import { Trophy, Store, FileText, Heart, Soup, Crown, Sparkles } from "lucide-re
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import * as Tabs from "@radix-ui/react-tabs";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 type Period = "weekly" | "monthly" | "all";
 type RankingType = "shops" | "posts" | "popularPosts" | "popularUsers";
 
 export default function RankingPage() {
+  useScrollRestoration();
   const { isLoaded } = useCurrentUser();
   const { themeColor } = useTheme();
   const [period, setPeriod] = useState<Period>("all");

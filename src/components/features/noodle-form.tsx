@@ -21,6 +21,7 @@ import { NewBadgeModal, HiddenBadgeCompleteModal } from "./badge-display";
 import { RankUpModal } from "./rank-up-modal";
 import { PrefectureSelect } from "@/components/ui/prefecture-select";
 import { StationSelect } from "@/components/ui/station-select";
+import { ImageCropper } from "@/components/ui/image-cropper";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
@@ -90,8 +91,10 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     : 0;
 
   const [isCompressing, setIsCompressing] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
-  // 画像選択と圧縮
+  // 画像選択 - トリミング画面を表示
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -102,21 +105,50 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
     });
 
+    // 画像をトリミング用にプレビュー
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImageToCrop(ev.target?.result as string);
+      setShowCropper(true);
+    };
+    reader.readAsDataURL(file);
+
+    // input をリセット
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // トリミング完了
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setShowCropper(false);
+    setImageToCrop(null);
     setIsCompressing(true);
 
     try {
-      const compressedFile = await compressImage(file, {
+      // Blobをファイルに変換
+      const croppedFile = new File([croppedBlob], "cropped-image.jpg", {
+        type: "image/jpeg",
+      });
+
+      console.log("トリミング完了:", {
+        size: `${(croppedFile.size / 1024 / 1024).toFixed(2)}MB`
+      });
+
+      // 圧縮処理
+      const compressedFile = await compressImage(croppedFile, {
         maxWidth: 1200,
         maxHeight: 1200,
         quality: 0.8
       });
 
       console.log("画像圧縮完了:", {
-        originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        originalSize: `${(croppedFile.size / 1024 / 1024).toFixed(2)}MB`,
         compressedSize: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
-        ratio: `${((compressedFile.size / file.size) * 100).toFixed(1)}%`
+        ratio: `${((compressedFile.size / croppedFile.size) * 100).toFixed(1)}%`
       });
 
+      // プレビュー表示
       const reader = new FileReader();
       reader.onload = (ev) => {
         setImagePreview(ev.target?.result as string);
@@ -126,21 +158,16 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       setImageFile(compressedFile);
       setImageRemoved(false);
     } catch (error) {
-      console.error("画像圧縮エラー:", error);
-      // 圧縮失敗時は元のファイルを使用
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImagePreview(ev.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-      setImageFile(file);
-      setImageRemoved(false);
+      console.error("画像処理エラー:", error);
     } finally {
       setIsCompressing(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
+  };
+
+  // トリミングキャンセル
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setImageToCrop(null);
   };
 
   // 画像削除
@@ -347,6 +374,16 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   return (
     <>
+      {/* 画像トリミングモーダル */}
+      {showCropper && imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={4 / 3}
+        />
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 写真 */}
         <div>

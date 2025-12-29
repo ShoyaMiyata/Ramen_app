@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { GENRES } from "@/lib/constants/genres";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 type ViewMode = "list" | "gallery" | "likes" | "archive" | "drafts";
 
@@ -41,6 +42,9 @@ export default function UserProfilePage({
   const { user: viewingUser, realUser } = useViewingUser();
   const { themeColor } = useTheme();
   const [viewMode, setViewMode] = useState<ViewMode>("gallery");
+
+  // スクロール位置の復元
+  useScrollRestoration();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [optimisticRequestPending, setOptimisticRequestPending] = useState(false);
@@ -477,7 +481,10 @@ export default function UserProfilePage({
       {canView && (
         <>
           {/* Rank Display */}
-          <RankDisplay shopCount={shopCount} />
+          <RankDisplay
+            shopCount={shopCount}
+            userId={currentUser?._id === userId ? userId : undefined}
+          />
 
           {/* Taste Profile */}
           <TasteProfile userId={userId} />

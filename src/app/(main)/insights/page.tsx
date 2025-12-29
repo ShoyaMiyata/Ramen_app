@@ -30,8 +30,10 @@ import {
   RatingPieChart,
 } from "@/components/features/insights";
 import { LockedFeatureCard } from "@/components/features/rank-restriction";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 export default function InsightsPage() {
+  useScrollRestoration();
   const { themeColor } = useTheme();
 
   // アクセス制御

@@ -7,8 +7,10 @@ import { LoadingPage, Loading } from "@/components/ui/loading";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { Heart } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 export default function LikesPage() {
+  useScrollRestoration();
   const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
 

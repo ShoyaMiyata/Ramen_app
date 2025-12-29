@@ -17,6 +17,7 @@ import { StationSelect } from "@/components/ui/station-select";
 import { Plus, Search, SlidersHorizontal, X, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 type SortOption = "newest" | "rating" | "visitDate";
 type ViewMode = "list" | "gallery";
@@ -26,6 +27,9 @@ export default function NoodlesPage() {
   const { user, realUser, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
   const updateTimelineVisit = useMutation(api.users.updateTimelineVisit);
+
+  // スクロール位置の復元
+  useScrollRestoration();
 
   // タイムライン訪問時刻を更新（実際のユーザーで）
   useEffect(() => {

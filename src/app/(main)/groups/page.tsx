@@ -9,8 +9,10 @@ import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Users, FileText, Search, Image as ImageIcon } from "lucide-react";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 export default function GroupsPage() {
+  useScrollRestoration();
   const { user, isLoaded } = useCurrentUser();
   const [searchText, setSearchText] = useState("");
 

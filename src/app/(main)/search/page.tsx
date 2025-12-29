@@ -13,10 +13,12 @@ import { UserCard } from "@/components/features/user-card";
 import { ShopCard } from "@/components/features/shop-card";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils/cn";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 type Tab = "users" | "shops";
 
 export default function SearchPage() {
+  useScrollRestoration();
   const searchParams = useSearchParams();
   const { user, isLoaded } = useViewingUser();
   const { themeColor } = useTheme();
