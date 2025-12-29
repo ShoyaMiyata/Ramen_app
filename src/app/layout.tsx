@@ -50,6 +50,8 @@ export default function RootLayout({
   return (
     <ClerkProvider
       localization={jaJP}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
       signInFallbackRedirectUrl="/onboarding"
       signUpFallbackRedirectUrl="/onboarding"
     >
