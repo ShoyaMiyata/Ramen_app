@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -19,21 +19,31 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // リダイレクト処理をuseEffectに移動
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    // 未ログイン
+    if (!user) {
+      router.push("/sign-in");
+      return;
+    }
+
+    // すでにオンボーディング完了済み
+    if (user.onboardingComplete) {
+      router.push("/");
+      return;
+    }
+  }, [user, isLoaded, router]);
+
   // ローディング中
   if (!isLoaded) {
     return <LoadingPage />;
   }
 
-  // 未ログイン
-  if (!user) {
-    router.push("/sign-in");
-    return null;
-  }
-
-  // すでにオンボーディング完了済み
-  if (user.onboardingComplete) {
-    router.push("/");
-    return null;
+  // 未ログイン or オンボーディング完了済み
+  if (!user || user.onboardingComplete) {
+    return <LoadingPage />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
