@@ -3,6 +3,7 @@
 import { RANKS, Rank } from "@/lib/constants/ranks";
 import { cn } from "@/lib/utils/cn";
 import { X, Check, Lock } from "lucide-react";
+import { RankIcon } from "./rank-icon";
 
 interface RankListModalProps {
   isOpen: boolean;
@@ -84,20 +85,8 @@ export function RankListModal({
               >
                 {/* ランクアイコン */}
                 <div className="relative flex-shrink-0">
-                  <div
-                    className={cn(
-                      "w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-md",
-                      !isUnlocked && "grayscale"
-                    )}
-                    style={
-                      isUnlocked
-                        ? {
-                            background: rank.gradient || rank.color,
-                          }
-                        : { background: "#d1d5db" }
-                    }
-                  >
-                    {rank.emoji}
+                  <div className={cn(!isUnlocked && "grayscale")}>
+                    <RankIcon rank={rank} size="lg" animate={false} />
                   </div>
                   {!isUnlocked && (
                     <div className="absolute top-0 right-0 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
