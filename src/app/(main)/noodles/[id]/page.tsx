@@ -195,21 +195,19 @@ export default function NoodleDetailPage({
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">前</span>
               </Link>
             ) : (
-              <div className="w-10 sm:w-16" />
+              <div className="w-10" />
             )}
             {adjacentPosts.next ? (
               <Link
                 href={`/noodles/${adjacentPosts.next._id}`}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
               >
-                <span className="hidden sm:inline">次</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             ) : (
-              <div className="w-10 sm:w-16" />
+              <div className="w-10" />
             )}
           </div>
         )}

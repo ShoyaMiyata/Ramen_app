@@ -1,149 +1,198 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 // グローバルにスクロール位置を保存
-const globalScrollPositions = new Map<string, number>();
+const scrollPositions = new Map<string, number>();
 
 export function useScrollRestoration() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isRestoringRef = useRef(false);
-  const hasRestoredRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const containerRef = useRef<Element | null>(null);
+
+  // pathname + search params で一意のキーを生成
+  const key = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : "");
 
   useEffect(() => {
-    console.log("[ScrollRestore] pathname:", pathname);
+    // スクロールコンテナを取得（MutationObserverで待機）
+    const findScrollContainer = (): Promise<Element> => {
+      return new Promise((resolve) => {
+        const check = () => {
+          const container = document.querySelector('[data-scroll-container="true"]');
+          if (container) {
+            console.log('[Scroll] Container found!');
+            containerRef.current = container;
+            resolve(container);
+          } else {
+            console.log('[Scroll] Container not found, waiting...');
+          }
+        };
 
-    // 復元は一度だけ
-    if (!hasRestoredRef.current) {
-      // 保存されたスクロール位置を取得
-      let savedScroll = globalScrollPositions.get(pathname);
-      if (!savedScroll) {
-        const stored = sessionStorage.getItem(`scroll-${pathname}`);
-        if (stored) {
-          savedScroll = parseInt(stored, 10);
-        }
-      }
+        // 即座にチェック
+        check();
 
-      console.log("[ScrollRestore] savedScroll:", savedScroll);
-
-      if (savedScroll && savedScroll > 0) {
-        hasRestoredRef.current = true;
-        isRestoringRef.current = true;
-
-        const restore = () => {
-          // windowのスクロールを試みる
-          window.scrollTo(0, savedScroll);
-
-          // カスタムスクロール要素も探す
-          const scrollContainers = document.querySelectorAll('[style*="overflow"]');
-          scrollContainers.forEach((container) => {
-            if (container.scrollHeight > container.clientHeight) {
-              container.scrollTop = savedScroll;
+        // 見つからない場合はMutationObserverで監視
+        if (!containerRef.current) {
+          const observer = new MutationObserver(() => {
+            check();
+            if (containerRef.current) {
+              observer.disconnect();
             }
           });
 
-          console.log("[ScrollRestore] scrollTo:", savedScroll, "window:", window.scrollY);
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+          });
+
+          // 1秒後に強制終了
+          setTimeout(() => {
+            observer.disconnect();
+            if (!containerRef.current) {
+              console.log('[Scroll] Container not found after timeout, using window');
+            }
+          }, 1000);
+        }
+      });
+    };
+
+    // 現在のスクロール位置を取得
+    const getCurrentScroll = (): number => {
+      if (containerRef.current) {
+        return containerRef.current.scrollTop;
+      }
+      return window.scrollY;
+    };
+
+    // スクロール位置を設定
+    const setScroll = (position: number) => {
+      if (containerRef.current) {
+        containerRef.current.scrollTop = position;
+      } else {
+        window.scrollTo(0, position);
+      }
+    };
+
+    // 保存されたスクロール位置を取得
+    const savedScroll = scrollPositions.get(key) ||
+      parseInt(sessionStorage.getItem(`scroll-${key}`) || "0", 10);
+
+    console.log('[Scroll] Restoring for key:', key, 'savedScroll:', savedScroll);
+
+    // 初期化処理
+    const initialize = async () => {
+      // コンテナを見つける
+      await findScrollContainer();
+
+      // スクロール位置の復元
+      if (savedScroll > 0 && containerRef.current) {
+        isRestoringRef.current = true;
+
+        const attemptRestore = () => {
+          if (!containerRef.current) return false;
+
+          const maxScroll = containerRef.current.scrollHeight - containerRef.current.clientHeight;
+          console.log('[Scroll] Attempting restore - maxScroll:', maxScroll, 'target:', savedScroll);
+
+          if (maxScroll >= savedScroll * 0.8) {
+            setScroll(savedScroll);
+            const currentScroll = getCurrentScroll();
+            console.log('[Scroll] Restored to:', currentScroll);
+
+            setTimeout(() => {
+              isRestoringRef.current = false;
+            }, 200);
+            return true;
+          }
+          return false;
         };
 
-        // 即座に実行
-        restore();
+        // 段階的に復元を試行
+        const timings = [0, 50, 100, 200, 400];
+        let restored = false;
 
-        // 複数のタイミングで実行（DOMの読み込みを待つ）
-        const timings = [0, 10, 50, 100, 150, 200, 300, 500, 700, 1000];
-        timings.forEach((delay) => {
-          setTimeout(restore, delay);
-        });
-
-        setTimeout(() => {
-          isRestoringRef.current = false;
-        }, 1100);
-      }
-    }
-
-    // スクロール位置を保存する関数
-    let lastSavedScroll = 0;
-    const saveScroll = () => {
-      if (!isRestoringRef.current) {
-        // windowのスクロール位置を確認
-        let currentScroll = window.scrollY;
-
-        // windowがスクロールしていない場合、カスタムスクロール要素を探す
-        if (currentScroll === 0) {
-          const scrollContainers = document.querySelectorAll('[style*="overflow"]');
-          for (const container of scrollContainers) {
-            if (container.scrollTop > 0) {
-              currentScroll = container.scrollTop;
-              break;
-            }
+        for (const delay of timings) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+          if (!restored && isRestoringRef.current) {
+            restored = attemptRestore();
+            if (restored) break;
           }
         }
 
-        if (currentScroll > 0 && Math.abs(currentScroll - lastSavedScroll) > 10) {
-          globalScrollPositions.set(pathname, currentScroll);
-          sessionStorage.setItem(`scroll-${pathname}`, currentScroll.toString());
-          lastSavedScroll = currentScroll;
-          console.log("[ScrollRestore] saved:", pathname, "=", currentScroll);
+        setTimeout(() => {
+          isRestoringRef.current = false;
+        }, 800);
+      }
+
+      // スクロール位置を保存
+      let lastSaved = 0;
+      const saveScroll = () => {
+        if (isRestoringRef.current) return;
+
+        const current = getCurrentScroll();
+
+        // 10px以上の変化があれば保存
+        if (Math.abs(current - lastSaved) > 10) {
+          scrollPositions.set(key, current);
+          sessionStorage.setItem(`scroll-${key}`, current.toString());
+          lastSaved = current;
+          console.log('[Scroll] Saved position:', current, 'for key:', key);
         }
+      };
+
+      // スクロールイベントハンドラー
+      const handleScroll = () => {
+        if (isRestoringRef.current) return;
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(saveScroll, 100);
+      };
+
+      // イベントリスナーを設定
+      if (containerRef.current) {
+        console.log('[Scroll] Listening to container scroll');
+        containerRef.current.addEventListener("scroll", handleScroll, { passive: true } as any);
+      } else {
+        console.log('[Scroll] Listening to window scroll');
+        window.addEventListener("scroll", handleScroll, { passive: true });
       }
+
+      // 定期的に保存
+      const saveInterval = setInterval(saveScroll, 300);
+
+      // クリーンアップ関数を返す
+      return () => {
+        clearTimeout(scrollTimeoutRef.current);
+        clearInterval(saveInterval);
+
+        if (containerRef.current) {
+          containerRef.current.removeEventListener("scroll", handleScroll as any);
+        } else {
+          window.removeEventListener("scroll", handleScroll);
+        }
+
+        // 最終保存
+        if (!isRestoringRef.current) {
+          const final = getCurrentScroll();
+          if (final > 0) {
+            scrollPositions.set(key, final);
+            sessionStorage.setItem(`scroll-${key}`, final.toString());
+            console.log('[Scroll] Final save:', final, 'for key:', key);
+          }
+        }
+      };
     };
 
-    // 定期的に保存（200ms）
-    const saveInterval = setInterval(saveScroll, 200);
+    let cleanup: (() => void) | undefined;
 
-    // windowのスクロールイベント
-    const handleWindowScroll = () => {
-      if (!isRestoringRef.current) {
-        saveScroll();
-      }
-    };
-
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
-
-    // カスタムスクロール要素のイベントも監視
-    let scrollContainerObserver: MutationObserver | null = null;
-
-    const setupScrollListeners = () => {
-      const scrollContainers = document.querySelectorAll('[style*="overflow"]');
-      scrollContainers.forEach((container) => {
-        container.addEventListener("scroll", saveScroll, { passive: true } as any);
-      });
-    };
-
-    // DOM変更を監視して新しいスクロール要素を検知
-    scrollContainerObserver = new MutationObserver(() => {
-      setupScrollListeners();
+    initialize().then(fn => {
+      cleanup = fn;
     });
 
-    if (document.body) {
-      scrollContainerObserver.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["style"],
-      });
-    }
-
-    setupScrollListeners();
-
     return () => {
-      window.removeEventListener("scroll", handleWindowScroll);
-      clearInterval(saveInterval);
-      scrollContainerObserver?.disconnect();
-
-      // カスタムスクロール要素のリスナーを削除
-      const scrollContainers = document.querySelectorAll('[style*="overflow"]');
-      scrollContainers.forEach((container) => {
-        container.removeEventListener("scroll", saveScroll as any);
-      });
-
-      // クリーンアップ時に最終位置を保存
-      saveScroll();
+      if (cleanup) cleanup();
     };
-  }, [pathname]);
-
-  // pathnameが変わったら復元フラグをリセット
-  useEffect(() => {
-    hasRestoredRef.current = false;
-  }, [pathname]);
+  }, [key]);
 }

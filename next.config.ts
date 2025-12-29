@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
     deviceSizes: [320, 420, 640, 750, 828],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
+  experimental: {
+    // カスタムスクロール復元を使用するため無効化
+    scrollRestoration: false,
+  },
 };
 
 export default nextConfig;

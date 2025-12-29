@@ -510,6 +510,7 @@ export default function NoodlesPage() {
         /* Gallery View */
         <div
           ref={parentRef}
+          data-scroll-container="true"
           className="overflow-auto relative"
           style={{ height: "calc(100vh - 260px)" }}
         >
@@ -574,8 +575,9 @@ export default function NoodlesPage() {
         /* List View */
         <div
           ref={parentRef}
+          data-scroll-container="true"
           className="overflow-auto relative"
-          style={{ height: "calc(100vh - 260px)", contain: "strict" }}
+          style={{ height: "calc(100vh - 260px)" }}
         >
           {/* Pull to Refresh Indicator */}
           {(isPulling || isRefreshing) && (
