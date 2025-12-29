@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
 import { getPrefectureName } from "@/lib/utils/prefecture";
-import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,10 +37,17 @@ export default function NoodleDetailPage({
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+
   const noodleId = id as Id<"noodles">;
 
   const noodle = useQuery(api.noodles.getById, {
     id: noodleId,
+  });
+
+  // 前後の投稿を取得
+  const adjacentPosts = useQuery(api.noodles.getAdjacentPosts, {
+    currentId: noodleId,
+    viewerId: user?._id,
   });
 
   const commentsData = useQuery(api.comments.getByNoodle, { noodleId, limit: 20 });
@@ -166,16 +173,47 @@ export default function NoodleDetailPage({
     return formatDate(timestamp);
   };
 
+
   return (
-    <div className="space-y-4">
-      {/* Back Button */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span className="text-sm">戻る</span>
-      </button>
+    <div className="space-y-4 relative">
+      {/* Navigation Bar */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/noodles"
+          className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">投稿一覧</span>
+        </Link>
+
+        {/* Navigation Buttons */}
+        {adjacentPosts && (adjacentPosts.prev || adjacentPosts.next) && (
+          <div className="flex items-center gap-2">
+            {adjacentPosts.prev ? (
+              <Link
+                href={`/noodles/${adjacentPosts.prev._id}`}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">前</span>
+              </Link>
+            ) : (
+              <div className="w-10 sm:w-16" />
+            )}
+            {adjacentPosts.next ? (
+              <Link
+                href={`/noodles/${adjacentPosts.next._id}`}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+              >
+                <span className="hidden sm:inline">次</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <div className="w-10 sm:w-16" />
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Main Content */}
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">

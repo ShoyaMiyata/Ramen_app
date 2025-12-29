@@ -1234,3 +1234,59 @@ export const getGroupStats = query({
     };
   },
 });
+
+// 前後の投稿を取得
+export const getAdjacentPosts = query({
+  args: {
+    currentId: v.id("noodles"),
+    viewerId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    // 全ての投稿を取得（タイムライン順）
+    let noodles = await ctx.db.query("noodles").order("desc").collect();
+
+    // アーカイブと下書きを除外
+    noodles = noodles.filter((n) => !n.isArchived && !n.isDraft);
+
+    // フォロー機能が有効な場合、閲覧者のフィルタリング
+    if (args.viewerId) {
+      const followEnabled = await isFollowEnabled(ctx);
+      if (followEnabled) {
+        const viewer = await ctx.db.get(args.viewerId);
+        const users = await ctx.db.query("users").collect();
+        const userMap = new Map(users.map((u) => [u._id, u]));
+
+        const following = await ctx.db
+          .query("follows")
+          .withIndex("by_followerId", (q) => q.eq("followerId", args.viewerId!))
+          .collect();
+        const followingIds = new Set(following.map((f) => f.followingId));
+
+        noodles = noodles.filter((noodle) => {
+          const author = userMap.get(noodle.userId);
+          if (!author) return false;
+          if (author.isPrivate) {
+            return noodle.userId === args.viewerId || followingIds.has(noodle.userId);
+          }
+          return true;
+        });
+      }
+    }
+
+    // 現在の投稿のインデックスを見つける
+    const currentIndex = noodles.findIndex((n) => n._id === args.currentId);
+    if (currentIndex === -1) {
+      return { prev: null, next: null };
+    }
+
+    // 前の投稿（新しい投稿）
+    const prevPost = currentIndex > 0 ? noodles[currentIndex - 1] : null;
+    // 次の投稿（古い投稿）
+    const nextPost = currentIndex < noodles.length - 1 ? noodles[currentIndex + 1] : null;
+
+    return {
+      prev: prevPost ? { _id: prevPost._id, ramenName: prevPost.ramenName } : null,
+      next: nextPost ? { _id: nextPost._id, ramenName: nextPost.ramenName } : null,
+    };
+  },
+});
