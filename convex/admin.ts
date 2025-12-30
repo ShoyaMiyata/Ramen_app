@@ -795,8 +795,7 @@ export const updateNoodleVisibility = mutation({
   args: {
     adminUserId: v.id("users"),
     noodleId: v.id("noodles"),
-    isDraft: v.optional(v.boolean()),
-    groupIds: v.optional(v.array(v.id("groups"))),
+    visibility: v.string(), // "public" | "followers" | "private"
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.adminUserId);
@@ -806,15 +805,15 @@ export const updateNoodleVisibility = mutation({
       throw new Error("投稿が見つかりません");
     }
 
-    const updates: any = {};
-    if (args.isDraft !== undefined) {
-      updates.isDraft = args.isDraft;
-    }
-    if (args.groupIds !== undefined) {
-      updates.groupIds = args.groupIds;
+    // 公開範囲のバリデーション
+    const validVisibilities = ["public", "followers", "private"];
+    if (!validVisibilities.includes(args.visibility)) {
+      throw new Error("無効な公開範囲です");
     }
 
-    await ctx.db.patch(args.noodleId, updates);
+    await ctx.db.patch(args.noodleId, {
+      visibility: args.visibility,
+    });
 
     return { success: true };
   },
@@ -873,25 +872,24 @@ export const bulkUpdateNoodleVisibility = mutation({
   args: {
     adminUserId: v.id("users"),
     noodleIds: v.array(v.id("noodles")),
-    isDraft: v.optional(v.boolean()),
-    groupIds: v.optional(v.array(v.id("groups"))),
+    visibility: v.string(), // "public" | "followers" | "private"
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.adminUserId);
+
+    // 公開範囲のバリデーション
+    const validVisibilities = ["public", "followers", "private"];
+    if (!validVisibilities.includes(args.visibility)) {
+      throw new Error("無効な公開範囲です");
+    }
 
     let updatedCount = 0;
     for (const noodleId of args.noodleIds) {
       const noodle = await ctx.db.get(noodleId);
       if (noodle) {
-        const updates: any = {};
-        if (args.isDraft !== undefined) {
-          updates.isDraft = args.isDraft;
-        }
-        if (args.groupIds !== undefined) {
-          updates.groupIds = args.groupIds;
-        }
-
-        await ctx.db.patch(noodleId, updates);
+        await ctx.db.patch(noodleId, {
+          visibility: args.visibility,
+        });
         updatedCount++;
       }
     }

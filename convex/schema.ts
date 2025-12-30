@@ -56,6 +56,7 @@ export default defineSchema({
     groupIds: v.optional(v.array(v.id("groups"))), // グループ共有
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
     isDraft: v.optional(v.boolean()), // 下書きフラグ（未公開）
+    visibility: v.optional(v.string()), // 公開範囲: "public" | "followers" | "private"
   })
     .index("by_userId", ["userId"])
     .index("by_shopId", ["shopId"])
