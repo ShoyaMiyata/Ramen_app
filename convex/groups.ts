@@ -65,7 +65,7 @@ export const update = mutation({
     groupId: v.id("groups"),
     name: v.string(),
     description: v.string(),
-    coverImageId: v.optional(v.id("_storage")),
+    coverImageId: v.union(v.id("_storage"), v.null()),
     userId: v.id("users"), // 更新するユーザーID（権限チェック用）
   },
   handler: async (ctx, args) => {
@@ -92,8 +92,16 @@ export const update = mutation({
       throw new Error("説明は500文字以内で入力してください");
     }
 
-    // 古いカバー画像を削除（新しい画像が指定され、かつ古い画像と異なる場合）
-    if (args.coverImageId && group.coverImageId && args.coverImageId !== group.coverImageId) {
+    // カバー画像の処理
+    let newCoverImageId = args.coverImageId;
+
+    // 画像が明示的にnullに設定された場合（削除）
+    if (args.coverImageId === null && group.coverImageId) {
+      await ctx.storage.delete(group.coverImageId);
+      newCoverImageId = undefined;
+    }
+    // 新しい画像が指定され、かつ古い画像と異なる場合
+    else if (args.coverImageId && group.coverImageId && args.coverImageId !== group.coverImageId) {
       await ctx.storage.delete(group.coverImageId);
     }
 
@@ -101,7 +109,7 @@ export const update = mutation({
     await ctx.db.patch(args.groupId, {
       name: trimmedName,
       description: trimmedDescription,
-      coverImageId: args.coverImageId,
+      coverImageId: newCoverImageId,
     });
 
     return true;

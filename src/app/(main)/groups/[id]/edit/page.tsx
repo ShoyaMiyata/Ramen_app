@@ -36,6 +36,7 @@ export default function GroupEditPage({
   const [description, setDescription] = useState("");
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isImageRemoved, setIsImageRemoved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +66,7 @@ export default function GroupEditPage({
       }
 
       setCoverImage(file);
+      setIsImageRemoved(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -76,6 +78,7 @@ export default function GroupEditPage({
   const handleRemoveImage = () => {
     setCoverImage(null);
     setPreviewUrl(null);
+    setIsImageRemoved(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -89,10 +92,14 @@ export default function GroupEditPage({
     setError(null);
 
     try {
-      let coverImageId: Id<"_storage"> | undefined = group?.coverImageId;
+      let coverImageId: Id<"_storage"> | undefined | null = group?.coverImageId;
 
+      // 画像が削除された場合
+      if (isImageRemoved) {
+        coverImageId = null;
+      }
       // 新しい画像がアップロードされている場合
-      if (coverImage) {
+      else if (coverImage) {
         const uploadUrl = await generateUploadUrl();
         const result = await fetch(uploadUrl, {
           method: "POST",
