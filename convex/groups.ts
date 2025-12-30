@@ -93,12 +93,12 @@ export const update = mutation({
     }
 
     // カバー画像の処理
-    let newCoverImageId = args.coverImageId;
+    let newCoverImageId: Id<"_storage"> | undefined = args.coverImageId === null ? undefined : args.coverImageId;
 
     // 画像が明示的にnullに設定された場合（削除）
     if (args.coverImageId === null && group.coverImageId) {
       await ctx.storage.delete(group.coverImageId);
-      newCoverImageId = null;
+      newCoverImageId = undefined;
     }
     // 新しい画像が指定され、かつ古い画像と異なる場合
     else if (args.coverImageId && group.coverImageId && args.coverImageId !== group.coverImageId) {
