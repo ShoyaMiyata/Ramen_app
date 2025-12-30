@@ -785,3 +785,117 @@ export const revokeAllBadges = mutation({
     return { success: true, deletedCount: userBadges.length };
   },
 });
+
+// ======================
+// 投稿管理（公開範囲・アーカイブ）
+// ======================
+
+// 投稿の公開範囲を更新
+export const updateNoodleVisibility = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    noodleId: v.id("noodles"),
+    isDraft: v.optional(v.boolean()),
+    groupIds: v.optional(v.array(v.id("groups"))),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const noodle = await ctx.db.get(args.noodleId);
+    if (!noodle) {
+      throw new Error("投稿が見つかりません");
+    }
+
+    const updates: any = {};
+    if (args.isDraft !== undefined) {
+      updates.isDraft = args.isDraft;
+    }
+    if (args.groupIds !== undefined) {
+      updates.groupIds = args.groupIds;
+    }
+
+    await ctx.db.patch(args.noodleId, updates);
+
+    return { success: true };
+  },
+});
+
+// 投稿のアーカイブ状態を更新
+export const updateNoodleArchiveStatus = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    noodleId: v.id("noodles"),
+    isArchived: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const noodle = await ctx.db.get(args.noodleId);
+    if (!noodle) {
+      throw new Error("投稿が見つかりません");
+    }
+
+    await ctx.db.patch(args.noodleId, {
+      isArchived: args.isArchived,
+    });
+
+    return { success: true };
+  },
+});
+
+// 一括で投稿のアーカイブ状態を更新
+export const bulkUpdateNoodleArchiveStatus = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    noodleIds: v.array(v.id("noodles")),
+    isArchived: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    let updatedCount = 0;
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (noodle) {
+        await ctx.db.patch(noodleId, {
+          isArchived: args.isArchived,
+        });
+        updatedCount++;
+      }
+    }
+
+    return { success: true, updatedCount };
+  },
+});
+
+// 一括で投稿の公開範囲を更新
+export const bulkUpdateNoodleVisibility = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    noodleIds: v.array(v.id("noodles")),
+    isDraft: v.optional(v.boolean()),
+    groupIds: v.optional(v.array(v.id("groups"))),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    let updatedCount = 0;
+    for (const noodleId of args.noodleIds) {
+      const noodle = await ctx.db.get(noodleId);
+      if (noodle) {
+        const updates: any = {};
+        if (args.isDraft !== undefined) {
+          updates.isDraft = args.isDraft;
+        }
+        if (args.groupIds !== undefined) {
+          updates.groupIds = args.groupIds;
+        }
+
+        await ctx.db.patch(noodleId, updates);
+        updatedCount++;
+      }
+    }
+
+    return { success: true, updatedCount };
+  },
+});

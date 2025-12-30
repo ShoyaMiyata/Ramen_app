@@ -709,6 +709,26 @@ export default function AdminPage() {
           {/* Noodles Tab */}
           {activeTab === "noodles" && (
             <div className="space-y-2">
+              {/* 投稿管理ページへのリンク */}
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900">投稿管理</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      公開範囲とアーカイブ状態を管理できます
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => router.push("/admin/noodles")}
+                    style={{ backgroundColor: themeColor, color: "white" }}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />
+                    管理画面へ
+                  </Button>
+                </div>
+              </div>
+
               {/* 一括操作バー */}
               {noodles && noodles.length > 0 && (
                 <div className="flex items-center justify-between p-2 bg-gray-100 rounded-lg mb-3">
