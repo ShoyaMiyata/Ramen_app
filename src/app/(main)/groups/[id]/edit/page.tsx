@@ -50,11 +50,12 @@ export default function GroupEditPage({
       if (description === "") {
         setDescription(group.description);
       }
-      if (group.coverImageUrl && !previewUrl) {
+      // 画像が削除されていない場合のみ、初期画像を設定
+      if (group.coverImageUrl && !previewUrl && !isImageRemoved) {
         setPreviewUrl(group.coverImageUrl);
       }
     }
-  }, [group, name, description, previewUrl]);
+  }, [group, name, description, previewUrl, isImageRemoved]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
