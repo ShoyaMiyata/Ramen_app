@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
@@ -17,12 +17,13 @@ import { cn } from "@/lib/utils/cn";
 export default function GroupEditPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
   const { user, isLoaded } = useCurrentUser();
   const { themeColor } = useTheme();
-  const groupId = params.id as Id<"groups">;
+  const { id } = use(params);
+  const groupId = id as Id<"groups">;
 
   const group = useQuery(api.groups.get, {
     groupId,
