@@ -787,6 +787,39 @@ export const revokeAllBadges = mutation({
 });
 
 // ======================
+// ユーザーのデフォルト公開範囲設定
+// ======================
+
+// ユーザーのデフォルト公開範囲を更新
+export const updateUserDefaultVisibility = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserId: v.id("users"),
+    postVisibility: v.string(), // "public" | "followers_and_groups"
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser) {
+      throw new Error("ユーザーが見つかりません");
+    }
+
+    // 公開範囲のバリデーション
+    const validVisibilities = ["public", "followers_and_groups"];
+    if (!validVisibilities.includes(args.postVisibility)) {
+      throw new Error("無効な公開範囲です");
+    }
+
+    await ctx.db.patch(args.targetUserId, {
+      postVisibility: args.postVisibility,
+    });
+
+    return { success: true };
+  },
+});
+
+// ======================
 // 投稿管理（公開範囲・アーカイブ）
 // ======================
 

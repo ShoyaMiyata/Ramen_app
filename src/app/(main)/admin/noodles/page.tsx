@@ -6,7 +6,7 @@ import { api } from "../../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Archive, ArchiveX, Globe, Users, Lock, Check } from "lucide-react";
+import { ArrowLeft, Globe, Users, Lock, Check } from "lucide-react";
 import Link from "next/link";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -26,8 +26,6 @@ export default function AdminNoodlesPage() {
     user?._id ? { adminUserId: user._id } : "skip"
   );
 
-  const updateArchiveStatus = useMutation(api.admin.updateNoodleArchiveStatus);
-  const bulkUpdateArchiveStatus = useMutation(api.admin.bulkUpdateNoodleArchiveStatus);
   const updateVisibility = useMutation(api.admin.updateNoodleVisibility);
   const bulkUpdateVisibility = useMutation(api.admin.bulkUpdateNoodleVisibility);
 
@@ -67,60 +65,6 @@ export default function AdminNoodlesPage() {
     setSelectedIds(new Set());
   };
 
-  const handleBulkArchive = async () => {
-    if (selectedIds.size === 0) {
-      alert("投稿を選択してください");
-      return;
-    }
-
-    if (!confirm(`${selectedIds.size}件の投稿をアーカイブしますか？`)) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await bulkUpdateArchiveStatus({
-        adminUserId: user._id,
-        noodleIds: Array.from(selectedIds),
-        isArchived: true,
-      });
-      alert("アーカイブしました");
-      setSelectedIds(new Set());
-    } catch (error) {
-      alert("エラーが発生しました");
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleBulkUnarchive = async () => {
-    if (selectedIds.size === 0) {
-      alert("投稿を選択してください");
-      return;
-    }
-
-    if (!confirm(`${selectedIds.size}件の投稿のアーカイブを解除しますか？`)) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await bulkUpdateArchiveStatus({
-        adminUserId: user._id,
-        noodleIds: Array.from(selectedIds),
-        isArchived: false,
-      });
-      alert("アーカイブを解除しました");
-      setSelectedIds(new Set());
-    } catch (error) {
-      alert("エラーが発生しました");
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleBulkVisibilityChange = async (visibility: Visibility) => {
     if (selectedIds.size === 0) {
       alert("投稿を選択してください");
@@ -142,22 +86,6 @@ export default function AdminNoodlesPage() {
       alert(`公開範囲を変更しました`);
       setSelectedIds(new Set());
       setBulkVisibilityModalOpen(false);
-    } catch (error) {
-      alert("エラーが発生しました");
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleToggleArchive = async (noodleId: Id<"noodles">, isArchived: boolean) => {
-    setIsProcessing(true);
-    try {
-      await updateArchiveStatus({
-        adminUserId: user._id,
-        noodleId,
-        isArchived: !isArchived,
-      });
     } catch (error) {
       alert("エラーが発生しました");
       console.error(error);
@@ -220,24 +148,6 @@ export default function AdminNoodlesPage() {
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkArchive}
-              disabled={isProcessing}
-            >
-              <Archive className="w-4 h-4 mr-1" />
-              アーカイブ
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkUnarchive}
-              disabled={isProcessing}
-            >
-              <ArchiveX className="w-4 h-4 mr-1" />
-              アーカイブ解除
-            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -312,11 +222,6 @@ export default function AdminNoodlesPage() {
                     {noodle.user?.name || "不明"} @ {noodle.shop?.name || "不明"}
                   </p>
                   <div className="flex gap-2 mt-1">
-                    {noodle.isArchived && (
-                      <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
-                        アーカイブ
-                      </span>
-                    )}
                     <span className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
                       visibilityInfo.value === "public" ? "bg-green-100 text-green-600" :
                       visibilityInfo.value === "followers" ? "bg-blue-100 text-blue-600" :
@@ -329,31 +234,17 @@ export default function AdminNoodlesPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleToggleArchive(noodle._id, !!noodle.isArchived)}
-                    disabled={isProcessing}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title={noodle.isArchived ? "アーカイブ解除" : "アーカイブ"}
-                  >
-                    {noodle.isArchived ? (
-                      <ArchiveX className="w-5 h-5 text-gray-600" />
-                    ) : (
-                      <Archive className="w-5 h-5 text-gray-600" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedNoodleForVisibility(noodle._id);
-                      setVisibilityModalOpen(true);
-                    }}
-                    disabled={isProcessing}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="公開範囲を変更"
-                  >
-                    <VisibilityIcon className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    setSelectedNoodleForVisibility(noodle._id);
+                    setVisibilityModalOpen(true);
+                  }}
+                  disabled={isProcessing}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="公開範囲を変更"
+                >
+                  <VisibilityIcon className="w-5 h-5 text-gray-600" />
+                </button>
               </div>
             );
           })

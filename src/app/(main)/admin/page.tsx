@@ -29,6 +29,8 @@ import {
   Award,
   Plus,
   X,
+  Globe,
+  UserCheck,
 } from "lucide-react";
 import { HIDDEN_BADGES, ALL_BADGES, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
 import { Badge as BadgeUI } from "@/components/ui/badge";
@@ -81,6 +83,11 @@ export default function AdminPage() {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
+
+  // ユーザー公開範囲設定用state
+  const [visibilityModalOpen, setVisibilityModalOpen] = useState(false);
+  const [selectedUserForVisibility, setSelectedUserForVisibility] = useState<Id<"users"> | null>(null);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   // 設定更新用state
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
@@ -150,6 +157,7 @@ export default function AdminPage() {
   const grantBadge = useMutation(api.admin.grantBadge);
   const revokeBadge = useMutation(api.admin.revokeBadge);
   const revokeAllBadges = useMutation(api.admin.revokeAllBadges);
+  const updateUserDefaultVisibility = useMutation(api.admin.updateUserDefaultVisibility);
 
   // ローディング中
   if (isLoading) {
@@ -475,6 +483,27 @@ export default function AdminPage() {
     selectedUserBadges?.map((ub) => ub.badgeCode) || []
   );
 
+  // ユーザーの公開範囲変更処理
+  const handleUserVisibilityChange = async (postVisibility: "public" | "followers_and_groups") => {
+    if (!user?._id || !selectedUserForVisibility) return;
+
+    setIsUpdatingVisibility(true);
+    try {
+      await updateUserDefaultVisibility({
+        adminUserId: user._id,
+        targetUserId: selectedUserForVisibility,
+        postVisibility,
+      });
+      setVisibilityModalOpen(false);
+      setSelectedUserForVisibility(null);
+    } catch (error) {
+      console.error("Update user visibility failed:", error);
+      alert("公開範囲の更新に失敗しました");
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
+
   const tabs = [
     { id: "overview" as Tab, label: "概要", icon: BarChart3 },
     { id: "users" as Tab, label: "ユーザー", icon: Users },
@@ -653,6 +682,29 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {/* 投稿公開範囲設定ボタン */}
+                    {!u.deletedAt && !u.isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedUserForVisibility(u._id as Id<"users">);
+                          setVisibilityModalOpen(true);
+                        }}
+                        className={`border-gray-200 ${
+                          u.postVisibility === "followers_and_groups"
+                            ? "text-blue-600 hover:bg-blue-50"
+                            : "text-green-600 hover:bg-green-50"
+                        }`}
+                        title="投稿の公開範囲を設定"
+                      >
+                        {u.postVisibility === "followers_and_groups" ? (
+                          <UserCheck className="w-3 h-3" />
+                        ) : (
+                          <Globe className="w-3 h-3" />
+                        )}
+                      </Button>
+                    )}
                     {/* テスト閲覧ボタン */}
                     {!u.deletedAt && !u.isAdmin && (
                       <Button
@@ -1533,6 +1585,45 @@ export default function AdminPage() {
         badge={previewBadge}
         onClose={() => setPreviewBadge(null)}
       />
+
+      {/* User Visibility Modal */}
+      <Dialog.Root open={visibilityModalOpen} onOpenChange={setVisibilityModalOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-50 shadow-xl">
+            <Dialog.Title className="font-bold text-gray-900 mb-4">
+              デフォルト公開範囲を設定
+            </Dialog.Title>
+            <p className="text-sm text-gray-500 mb-4">
+              このユーザーが投稿を作成するときの初期公開範囲を設定します
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleUserVisibilityChange("public")}
+                disabled={isUpdatingVisibility}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <Globe className="w-5 h-5 text-green-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">タイムラインに表示する</div>
+                  <div className="text-xs text-gray-500">すべてのユーザーに公開</div>
+                </div>
+              </button>
+              <button
+                onClick={() => handleUserVisibilityChange("followers_and_groups")}
+                disabled={isUpdatingVisibility}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <UserCheck className="w-5 h-5 text-blue-600" />
+                <div className="flex-1 text-left">
+                  <div className="font-medium">グループとフォロワーのみ</div>
+                  <div className="text-xs text-gray-500">タイムラインには非表示</div>
+                </div>
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }
