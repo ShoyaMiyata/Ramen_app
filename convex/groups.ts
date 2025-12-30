@@ -98,7 +98,7 @@ export const update = mutation({
     // 画像が明示的にnullに設定された場合（削除）
     if (args.coverImageId === null && group.coverImageId) {
       await ctx.storage.delete(group.coverImageId);
-      newCoverImageId = undefined;
+      newCoverImageId = null;
     }
     // 新しい画像が指定され、かつ古い画像と異なる場合
     else if (args.coverImageId && group.coverImageId && args.coverImageId !== group.coverImageId) {
