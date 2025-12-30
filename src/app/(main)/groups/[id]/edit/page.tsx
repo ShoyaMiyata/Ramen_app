@@ -93,7 +93,7 @@ export default function GroupEditPage({
     setError(null);
 
     try {
-      let coverImageId: Id<"_storage"> | undefined | null = group?.coverImageId;
+      let coverImageId: Id<"_storage"> | null = group?.coverImageId || null;
 
       // 画像が削除された場合
       if (isImageRemoved) {
