@@ -22,8 +22,6 @@ import { PrefectureSelect } from "@/components/ui/prefecture-select";
 import { StationSelect } from "@/components/ui/station-select";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { Camera, X } from "lucide-react";
-import { AIAutoFill } from "./ai-auto-fill";
-import { getPrefectureByName } from "@/lib/constants/prefectures";
 
 interface NoodleFormProps {
   noodle?: Doc<"noodles"> & { shop?: Doc<"shops"> | null; imageUrl?: string | null };
@@ -387,45 +385,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* AI自動入力 */}
-        <AIAutoFill
-          onDataFetched={(data) => {
-            console.log("Form received data:", data);
-
-            // 店名を設定
-            if (data.shopName) {
-              console.log("Setting shopName:", data.shopName);
-              setShopName(data.shopName);
-            }
-
-            // 都道府県を設定（名前→コードに変換）
-            if (data.prefecture) {
-              const prefectureObj = getPrefectureByName(data.prefecture);
-              console.log("Prefecture name:", data.prefecture, "→ code:", prefectureObj?.code);
-              if (prefectureObj) {
-                setShopPrefecture(prefectureObj.code);
-                // 次のフレームで確認
-                setTimeout(() => {
-                  console.log("Prefecture state after update:", prefectureObj.code);
-                }, 0);
-              }
-            }
-
-            // 最寄り駅を設定（末尾の「駅」を削除）
-            if (data.station) {
-              const stationName = data.station.endsWith("駅")
-                ? data.station.slice(0, -1)
-                : data.station;
-              console.log("Setting station:", data.station, "→", stationName);
-              setShopStation(stationName);
-              // 次のフレームで確認
-              setTimeout(() => {
-                console.log("Station state after update:", stationName);
-              }, 0);
-            }
-          }}
-        />
-
         {/* 写真 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
