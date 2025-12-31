@@ -126,9 +126,10 @@ export const update = mutation({
 
     // codeの重複チェック
     if (args.code && args.code !== genre.code) {
+      const code = args.code; // 型の絞り込み
       const existing = await ctx.db
         .query("genres")
-        .withIndex("by_code", (q) => q.eq("code", args.code))
+        .withIndex("by_code", (q) => q.eq("code", code))
         .first();
       if (existing) throw new Error("このジャンルコードは既に存在します");
     }

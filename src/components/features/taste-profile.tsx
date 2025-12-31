@@ -642,8 +642,8 @@ function calculateMatchRate(profile1: any, profile2: any, genres: any[]): number
   if (!profile1 || !profile2 || !genres || genres.length === 0) return 0;
 
   const genreCodes = genres.map(g => g.code);
-  const map1 = new Map(profile1.genres.map((g: any) => [g.code, g.count]));
-  const map2 = new Map(profile2.genres.map((g: any) => [g.code, g.count]));
+  const map1 = new Map<string, number>(profile1.genres.map((g: any) => [g.code, g.count as number]));
+  const map2 = new Map<string, number>(profile2.genres.map((g: any) => [g.code, g.count as number]));
 
   let dotProduct = 0;
   let magnitude1 = 0;

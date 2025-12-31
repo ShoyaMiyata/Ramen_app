@@ -51,7 +51,7 @@ export default function GenreManagementPage() {
 
   // Convex queries
   const genres = useQuery(api.genres.listAll);
-  const genreRequests = useQuery(api.genreRequests.listAll);
+  const genreRequests = useQuery(api.genreRequests.listAll, {});
 
   // Convex mutations
   const createGenre = useMutation(api.genres.create);

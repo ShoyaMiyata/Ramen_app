@@ -42,9 +42,10 @@ export const listAll = query({
 
     let requests;
     if (args.status) {
+      const status = args.status; // 型の絞り込み
       requests = await ctx.db
         .query("genreRequests")
-        .withIndex("by_status", (q) => q.eq("status", args.status))
+        .withIndex("by_status", (q) => q.eq("status", status))
         .collect();
     } else {
       requests = await ctx.db.query("genreRequests").collect();
