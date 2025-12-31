@@ -434,24 +434,26 @@ export default function UserProfilePage({
         )}
 
         {/* Dolphins App Link */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <a
-            href="https://dolphins-egwz2lsfw-shoyas-projects-464db98e.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all border border-blue-200 hover:border-blue-300"
-          >
-            <img
-              src="/Dolphins-logo.png"
-              alt="Dolphins"
-              className="w-10 h-10 rounded-lg object-contain flex-shrink-0"
-            />
-            <div className="flex-1">
-              <p className="font-semibold text-gray-900">Dolphins公式アプリ</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-blue-500" />
-          </a>
-        </div>
+        {profileUser?.showDolphinsLink && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <a
+              href="https://dolphins-egwz2lsfw-shoyas-projects-464db98e.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all border border-blue-200 hover:border-blue-300"
+            >
+              <img
+                src="/Dolphins-logo.png"
+                alt="Dolphins"
+                className="w-10 h-10 rounded-lg object-contain flex-shrink-0"
+              />
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">Dolphins</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-blue-500" />
+            </a>
+          </div>
+        )}
 
         {/* Follow Button & Message Button */}
         {!isOwnProfile && currentUser && (

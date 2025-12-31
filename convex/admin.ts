@@ -821,6 +821,29 @@ export const updateUserDefaultVisibility = mutation({
   },
 });
 
+// Dolphinsアプリリンク表示設定を更新
+export const updateUserDolphinsLinkVisibility = mutation({
+  args: {
+    adminUserId: v.id("users"),
+    targetUserId: v.id("users"),
+    showDolphinsLink: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx, args.adminUserId);
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (!targetUser) {
+      throw new Error("ユーザーが見つかりません");
+    }
+
+    await ctx.db.patch(args.targetUserId, {
+      showDolphinsLink: args.showDolphinsLink,
+    });
+
+    return { success: true };
+  },
+});
+
 // ======================
 // 投稿管理（公開範囲・アーカイブ）
 // ======================

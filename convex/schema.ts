@@ -21,6 +21,7 @@ export default defineSchema({
     // ログイン情報
     lastLoginAt: v.optional(v.number()), // 最終ログイン日時
     loginCount: v.optional(v.number()), // ログイン回数
+    showDolphinsLink: v.optional(v.boolean()), // Dolphinsアプリリンク表示設定
     // Stripe決済情報
     plan: v.optional(v.string()), // "free" | "premium"
     stripeCustomerId: v.optional(v.string()), // Stripe Customer ID

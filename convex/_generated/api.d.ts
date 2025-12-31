@@ -9,7 +9,6 @@
  */
 
 import type * as admin from "../admin.js";
-import type * as aiActions from "../aiActions.js";
 import type * as appSettings from "../appSettings.js";
 import type * as badges from "../badges.js";
 import type * as chat from "../chat.js";
@@ -51,7 +50,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
-  aiActions: typeof aiActions;
   appSettings: typeof appSettings;
   badges: typeof badges;
   chat: typeof chat;

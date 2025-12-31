@@ -160,6 +160,7 @@ export default function AdminPage() {
   const revokeBadge = useMutation(api.admin.revokeBadge);
   const revokeAllBadges = useMutation(api.admin.revokeAllBadges);
   const updateUserDefaultVisibility = useMutation(api.admin.updateUserDefaultVisibility);
+  const updateUserDolphinsLinkVisibility = useMutation(api.admin.updateUserDolphinsLinkVisibility);
 
   // ローディング中
   if (isLoading) {
@@ -534,8 +535,8 @@ export default function AdminPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
-                  ? "border-b-2 text-gray-900"
-                  : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 text-gray-900"
+                : "text-gray-500 hover:text-gray-700"
                 }`}
               style={{
                 borderColor: activeTab === tab.id ? themeColor : "transparent",
@@ -711,6 +712,32 @@ export default function AdminPage() {
                     <div className="text-[10px] text-gray-400">
                       ログイン回数: {u.loginCount}回
                     </div>
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      Dolphinsリンク: {u.showDolphinsLink ? "表示" : "非表示"}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!user?._id) return;
+                        try {
+                          await updateUserDolphinsLinkVisibility({
+                            adminUserId: user._id,
+                            targetUserId: u._id as Id<"users">,
+                            showDolphinsLink: !u.showDolphinsLink,
+                          });
+                        } catch (error) {
+                          console.error("Failed to update Dolphins link visibility:", error);
+                        }
+                      }}
+                      className={cn(
+                        "text-[10px] px-2 py-1 rounded-full transition-colors",
+                        u.showDolphinsLink
+                          ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      )}
+                      title={u.showDolphinsLink ? "Dolphinsリンクを非表示にする" : "Dolphinsリンクを表示する"}
+                    >
+                      {u.showDolphinsLink ? "非表示" : "表示"}
+                    </button>
                   </div>
                   <div className="flex items-center gap-1">
                     {/* 投稿公開範囲設定ボタン */}
@@ -723,8 +750,8 @@ export default function AdminPage() {
                           setVisibilityModalOpen(true);
                         }}
                         className={`border-gray-200 ${u.postVisibility === "followers_and_groups"
-                            ? "text-blue-600 hover:bg-blue-50"
-                            : "text-green-600 hover:bg-green-50"
+                          ? "text-blue-600 hover:bg-blue-50"
+                          : "text-green-600 hover:bg-green-50"
                           }`}
                         title="投稿の公開範囲を設定"
                       >
