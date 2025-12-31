@@ -31,6 +31,8 @@ import {
   X,
   Globe,
   UserCheck,
+  Tags,
+  ChevronRight,
 } from "lucide-react";
 import { HIDDEN_BADGES, ALL_BADGES, type HiddenBadgeCode, type AllBadgeCode } from "@/lib/constants/badges";
 import { Badge as BadgeUI } from "@/components/ui/badge";
@@ -601,6 +603,30 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Quick Links */}
+              <div className="grid grid-cols-1 gap-3">
+                {/* ジャンル管理リンク */}
+                <button
+                  onClick={() => router.push("/admin/genres")}
+                  className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 hover:shadow-md transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center">
+                        <Tags className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900">ジャンル管理</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          ジャンルの追加・編集・削除、ユーザー申請の承認
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-purple-500" />
+                  </div>
+                </button>
               </div>
             </div>
           )}

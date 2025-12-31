@@ -106,7 +106,10 @@ export default function NoodleDetailPage({
     );
   }
 
+  // 投稿者本人または管理者は編集・削除可能
   const isOwner = user?._id === noodle.userId;
+  const isAdmin = user?.isAdmin === true;
+  const canEdit = isOwner || isAdmin;
 
   const handleLike = async () => {
     if (!user) return;
@@ -358,7 +361,7 @@ export default function NoodleDetailPage({
 
       {/* Actions */}
       <div className="flex gap-3">
-        {isOwner ? (
+        {canEdit ? (
           <>
             <Link href={`/noodles/${noodle._id}/edit`} className="flex-1">
               <Button variant="outline" className="w-full gap-2">

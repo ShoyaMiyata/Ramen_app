@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as aiActions from "../aiActions.js";
 import type * as appSettings from "../appSettings.js";
 import type * as badges from "../badges.js";
 import type * as chat from "../chat.js";
@@ -19,6 +20,8 @@ import type * as contacts from "../contacts.js";
 import type * as feedbacks from "../feedbacks.js";
 import type * as fixAllUserIds from "../fixAllUserIds.js";
 import type * as follows from "../follows.js";
+import type * as genreRequests from "../genreRequests.js";
+import type * as genres from "../genres.js";
 import type * as groupMembers from "../groupMembers.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
@@ -48,6 +51,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  aiActions: typeof aiActions;
   appSettings: typeof appSettings;
   badges: typeof badges;
   chat: typeof chat;
@@ -58,6 +62,8 @@ declare const fullApi: ApiFromModules<{
   feedbacks: typeof feedbacks;
   fixAllUserIds: typeof fixAllUserIds;
   follows: typeof follows;
+  genreRequests: typeof genreRequests;
+  genres: typeof genres;
   groupMembers: typeof groupMembers;
   groups: typeof groups;
   http: typeof http;

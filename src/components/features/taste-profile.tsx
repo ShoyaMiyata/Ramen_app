@@ -8,10 +8,6 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Users, X, Check, ChevronDown, Radar } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { GENRES } from "@/lib/constants/genres";
-
-// 全12ジャンルを使用
-const RADAR_GENRES = GENRES.map(g => g.code);
 
 // 比較用カラーパレット
 const COMPARE_COLORS = [
@@ -37,7 +33,11 @@ export function TasteProfile({ userId, showCompare = true }: TasteProfileProps) 
   // フォロー中のユーザー一覧を取得（比較用）
   const following = useQuery(api.follows.getFollowing, { userId });
 
-  if (tasteProfile === undefined) {
+  // ジャンル一覧を取得
+  const genres = useQuery(api.genres.list);
+  const RADAR_GENRES = genres?.map(g => g.code) || [];
+
+  if (tasteProfile === undefined || genres === undefined) {
     return (
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-4">
@@ -554,6 +554,7 @@ interface CompareRadarChartProps {
 
 function CompareRadarChart({ userId, compareUserIds, themeColor }: CompareRadarChartProps) {
   const profile = useQuery(api.noodles.getTasteProfile, { userId });
+  const genres = useQuery(api.genres.list);
 
   // 比較ユーザーのプロファイルを取得
   const compareProfile1 = useQuery(
@@ -585,7 +586,7 @@ function CompareRadarChart({ userId, compareUserIds, themeColor }: CompareRadarC
     compareProfile5,
   ].slice(0, compareUserIds.length);
 
-  const isLoading = profile === undefined || compareProfiles.some(p => p === undefined);
+  const isLoading = profile === undefined || genres === undefined || compareProfiles.some(p => p === undefined);
 
   if (isLoading) {
     return (
@@ -595,6 +596,7 @@ function CompareRadarChart({ userId, compareUserIds, themeColor }: CompareRadarC
     );
   }
 
+  const RADAR_GENRES = genres?.map(g => g.code) || [];
   const genreMap = new Map(profile?.genres.map(g => [g.code, g.count]) || []);
   const radarData = RADAR_GENRES.map(genre => ({
     label: genre,
@@ -635,7 +637,37 @@ interface CompareLegendProps {
   onClear: () => void;
 }
 
+// マッチ率計算（コサイン類似度）
+function calculateMatchRate(profile1: any, profile2: any, genres: any[]): number {
+  if (!profile1 || !profile2 || !genres || genres.length === 0) return 0;
+
+  const genreCodes = genres.map(g => g.code);
+  const map1 = new Map(profile1.genres.map((g: any) => [g.code, g.count]));
+  const map2 = new Map(profile2.genres.map((g: any) => [g.code, g.count]));
+
+  let dotProduct = 0;
+  let magnitude1 = 0;
+  let magnitude2 = 0;
+
+  genreCodes.forEach(code => {
+    const count1 = map1.get(code) || 0;
+    const count2 = map2.get(code) || 0;
+    dotProduct += count1 * count2;
+    magnitude1 += count1 * count1;
+    magnitude2 += count2 * count2;
+  });
+
+  if (magnitude1 === 0 || magnitude2 === 0) return 0;
+
+  const cosineSimilarity = dotProduct / (Math.sqrt(magnitude1) * Math.sqrt(magnitude2));
+  return Math.round(cosineSimilarity * 100);
+}
+
 function CompareLegend({ userId, compareUserIds, themeColor, onClear }: CompareLegendProps) {
+  // 自分のプロファイル
+  const myProfile = useQuery(api.noodles.getTasteProfile, { userId });
+  const genres = useQuery(api.genres.list);
+
   // 比較ユーザーの情報を取得
   const user1 = useQuery(api.users.getById, compareUserIds[0] ? { id: compareUserIds[0] } : "skip");
   const user2 = useQuery(api.users.getById, compareUserIds[1] ? { id: compareUserIds[1] } : "skip");
@@ -643,32 +675,66 @@ function CompareLegend({ userId, compareUserIds, themeColor, onClear }: CompareL
   const user4 = useQuery(api.users.getById, compareUserIds[3] ? { id: compareUserIds[3] } : "skip");
   const user5 = useQuery(api.users.getById, compareUserIds[4] ? { id: compareUserIds[4] } : "skip");
 
+  // 比較ユーザーのプロファイルを取得
+  const profile1 = useQuery(api.noodles.getTasteProfile, compareUserIds[0] ? { userId: compareUserIds[0] } : "skip");
+  const profile2 = useQuery(api.noodles.getTasteProfile, compareUserIds[1] ? { userId: compareUserIds[1] } : "skip");
+  const profile3 = useQuery(api.noodles.getTasteProfile, compareUserIds[2] ? { userId: compareUserIds[2] } : "skip");
+  const profile4 = useQuery(api.noodles.getTasteProfile, compareUserIds[3] ? { userId: compareUserIds[3] } : "skip");
+  const profile5 = useQuery(api.noodles.getTasteProfile, compareUserIds[4] ? { userId: compareUserIds[4] } : "skip");
+
   const users = [user1, user2, user3, user4, user5].slice(0, compareUserIds.length);
+  const profiles = [profile1, profile2, profile3, profile4, profile5].slice(0, compareUserIds.length);
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
-      <div className="flex items-center gap-1.5">
-        <div
-          className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: themeColor }}
-        />
-        <span className="text-[10px] text-gray-600">自分</span>
-      </div>
-      {users.map((user, idx) => (
-        <div key={compareUserIds[idx]} className="flex items-center gap-1.5">
+    <div className="space-y-3 mt-3">
+      {/* 凡例 */}
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <div className="flex items-center gap-1.5">
           <div
             className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: COMPARE_COLORS[idx] }}
+            style={{ backgroundColor: themeColor }}
           />
-          <span className="text-[10px] text-gray-600">{user?.name || "..."}</span>
+          <span className="text-[10px] text-gray-600">自分</span>
         </div>
-      ))}
-      <button
-        onClick={onClear}
-        className="text-[10px] text-gray-400 hover:text-gray-600 underline ml-2"
-      >
-        解除
-      </button>
+        {users.map((user, idx) => (
+          <div key={compareUserIds[idx]} className="flex items-center gap-1.5">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: COMPARE_COLORS[idx] }}
+            />
+            <span className="text-[10px] text-gray-600">{user?.name || "..."}</span>
+          </div>
+        ))}
+        <button
+          onClick={onClear}
+          className="text-[10px] text-gray-400 hover:text-gray-600 underline ml-2"
+        >
+          解除
+        </button>
+      </div>
+
+      {/* マッチ率 */}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {users.map((user, idx) => {
+          const matchRate = calculateMatchRate(myProfile, profiles[idx], genres || []);
+          return (
+            <div
+              key={compareUserIds[idx]}
+              className="flex items-center gap-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-full px-3 py-1.5"
+            >
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: COMPARE_COLORS[idx] }}
+              />
+              <span className="text-[10px] text-gray-500">{user?.name || "..."}:</span>
+              <span className="text-xs font-bold" style={{ color: COMPARE_COLORS[idx] }}>
+                {matchRate}%
+              </span>
+              <span className="text-[10px] text-gray-400">一致</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

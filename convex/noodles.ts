@@ -582,7 +582,13 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Record not found");
-    if (existing.userId !== args.userId) throw new Error("Unauthorized");
+
+    // 編集権限チェック：投稿者本人または管理者のみ編集可能
+    const editor = await ctx.db.get(args.userId);
+    if (!editor) throw new Error("User not found");
+    const isOwner = existing.userId === args.userId;
+    const isAdmin = editor.isAdmin === true;
+    if (!isOwner && !isAdmin) throw new Error("Unauthorized");
 
     // 画像の処理（R2対応）
     let newImageIds: typeof existing.imageIds = existing.imageIds;
@@ -674,7 +680,13 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Record not found");
-    if (existing.userId !== args.userId) throw new Error("Unauthorized");
+
+    // 削除権限チェック：投稿者本人または管理者のみ削除可能
+    const editor = await ctx.db.get(args.userId);
+    if (!editor) throw new Error("User not found");
+    const isOwner = existing.userId === args.userId;
+    const isAdmin = editor.isAdmin === true;
+    if (!isOwner && !isAdmin) throw new Error("Unauthorized");
 
     // Delete images if exist
     if (existing.imageIds) {

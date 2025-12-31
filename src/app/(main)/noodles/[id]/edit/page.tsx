@@ -35,7 +35,10 @@ export default function NoodleEditPage({
     );
   }
 
-  if (user?._id !== noodle.userId) {
+  // 投稿者本人または管理者のみ編集可能
+  const isOwner = user?._id === noodle.userId;
+  const isAdmin = user?.isAdmin === true;
+  if (!isOwner && !isAdmin) {
     router.push(`/noodles/${id}`);
     return <LoadingPage />;
   }

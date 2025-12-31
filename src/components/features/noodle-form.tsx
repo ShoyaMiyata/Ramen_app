@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/ui/star-rating";
 import { Loading } from "@/components/ui/loading";
-import { GENRES } from "@/lib/constants/genres";
 import { formatDateInput, parseDateInput, getTodayDateInput } from "@/lib/utils/date";
 import { compressImage } from "@/lib/utils/image";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -23,6 +22,8 @@ import { PrefectureSelect } from "@/components/ui/prefecture-select";
 import { StationSelect } from "@/components/ui/station-select";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { Camera, X } from "lucide-react";
+import { AIAutoFill } from "./ai-auto-fill";
+import { getPrefectureByName } from "@/lib/constants/prefectures";
 
 interface NoodleFormProps {
   noodle?: Doc<"noodles"> & { shop?: Doc<"shops"> | null; imageUrl?: string | null };
@@ -81,6 +82,7 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     api.noodles.getByUser,
     user?._id ? { userId: user._id } : "skip"
   );
+  const availableGenres = useQuery(api.genres.list);
   const getOrCreateShop = useMutation(api.shops.getOrCreate);
   const createNoodle = useMutation(api.noodles.create);
   const updateNoodle = useMutation(api.noodles.update);
@@ -385,6 +387,45 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* AI自動入力 */}
+        <AIAutoFill
+          onDataFetched={(data) => {
+            console.log("Form received data:", data);
+
+            // 店名を設定
+            if (data.shopName) {
+              console.log("Setting shopName:", data.shopName);
+              setShopName(data.shopName);
+            }
+
+            // 都道府県を設定（名前→コードに変換）
+            if (data.prefecture) {
+              const prefectureObj = getPrefectureByName(data.prefecture);
+              console.log("Prefecture name:", data.prefecture, "→ code:", prefectureObj?.code);
+              if (prefectureObj) {
+                setShopPrefecture(prefectureObj.code);
+                // 次のフレームで確認
+                setTimeout(() => {
+                  console.log("Prefecture state after update:", prefectureObj.code);
+                }, 0);
+              }
+            }
+
+            // 最寄り駅を設定（末尾の「駅」を削除）
+            if (data.station) {
+              const stationName = data.station.endsWith("駅")
+                ? data.station.slice(0, -1)
+                : data.station;
+              console.log("Setting station:", data.station, "→", stationName);
+              setShopStation(stationName);
+              // 次のフレームで確認
+              setTimeout(() => {
+                console.log("Station state after update:", stationName);
+              }, 0);
+            }
+          }}
+        />
+
         {/* 写真 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -545,21 +586,25 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
             ジャンル <span className="text-red-500">*</span>
           </label>
           <div className="flex flex-wrap gap-2">
-            {GENRES.map((genre) => (
-              <button
-                key={genre.code}
-                type="button"
-                onClick={() => toggleGenre(genre.code)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-                  genres.includes(genre.code)
-                    ? "bg-orange-500 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                {genre.label}
-              </button>
-            ))}
+            {!availableGenres ? (
+              <Loading size="sm" />
+            ) : (
+              availableGenres.map((genre) => (
+                <button
+                  key={genre.code}
+                  type="button"
+                  onClick={() => toggleGenre(genre.code)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                    genres.includes(genre.code)
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  )}
+                >
+                  {genre.label}
+                </button>
+              ))
+            )}
           </div>
         </div>
 

@@ -11,7 +11,6 @@ import { LoadingPage, Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
-import { GENRES } from "@/lib/constants/genres";
 import { PREFECTURES } from "@/lib/constants/prefectures";
 import { StationSelect } from "@/components/ui/station-select";
 import { Plus, Search, SlidersHorizontal, X, LayoutGrid, List, RefreshCw } from "lucide-react";
@@ -58,6 +57,7 @@ export default function NoodlesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullStartY = useRef<number>(0);
 
+  const availableGenres = useQuery(api.genres.list);
   const noodlesData = useQuery(api.noodles.list, {
     genres: selectedGenres.length > 0 ? selectedGenres : undefined,
     searchText: searchText || undefined,
@@ -369,22 +369,26 @@ export default function NoodlesPage() {
               ジャンル
             </label>
             <div className="flex flex-wrap gap-2">
-              {GENRES.map((genre) => (
-                <button
-                  key={genre.code}
-                  type="button"
-                  onClick={() => toggleGenre(genre.code)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
-                    selectedGenres.includes(genre.code)
-                      ? "text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  )}
-                  style={selectedGenres.includes(genre.code) ? { backgroundColor: themeColor } : undefined}
-                >
-                  {genre.label}
-                </button>
-              ))}
+              {!availableGenres ? (
+                <Loading size="sm" />
+              ) : (
+                availableGenres.map((genre) => (
+                  <button
+                    key={genre.code}
+                    type="button"
+                    onClick={() => toggleGenre(genre.code)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                      selectedGenres.includes(genre.code)
+                        ? "text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    )}
+                    style={selectedGenres.includes(genre.code) ? { backgroundColor: themeColor } : undefined}
+                  >
+                    {genre.label}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 

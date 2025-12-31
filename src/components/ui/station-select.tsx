@@ -33,6 +33,11 @@ export function StationSelect({
     prefecture: prefecture || undefined,
   });
 
+  // value propが変更されたらinputValueを更新
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   // 検索処理（静的マスタ + DB登録駅）
   useEffect(() => {
     // 静的マスタから検索

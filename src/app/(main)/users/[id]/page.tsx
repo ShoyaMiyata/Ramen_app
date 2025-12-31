@@ -24,7 +24,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useViewingUser } from "@/hooks/useViewingUser";
-import { GENRES } from "@/lib/constants/genres";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 type ViewMode = "list" | "gallery" | "likes" | "archive" | "drafts";

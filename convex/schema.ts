@@ -257,4 +257,32 @@ export default defineSchema({
     .index("by_group", ["groupId"])
     .index("by_user", ["userId"])
     .index("by_group_and_user", ["groupId", "userId"]),
+
+  // ジャンルマスタ
+  genres: defineTable({
+    code: v.string(), // ジャンルコード（一意）
+    label: v.string(), // 表示名
+    sortOrder: v.number(), // 表示順
+    isActive: v.boolean(), // 有効/無効
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_code", ["code"])
+    .index("by_sortOrder", ["sortOrder"])
+    .index("by_isActive", ["isActive"]),
+
+  // ジャンル追加申請
+  genreRequests: defineTable({
+    userId: v.id("users"), // 申請ユーザー
+    requestedGenre: v.string(), // 申請されたジャンル名
+    reason: v.optional(v.string()), // 申請理由
+    status: v.string(), // "pending" | "approved" | "rejected"
+    reviewedBy: v.optional(v.id("users")), // 承認/却下した管理者
+    reviewedAt: v.optional(v.number()), // 承認/却下日時
+    reviewNote: v.optional(v.string()), // 管理者メモ
+    finalGenreName: v.optional(v.string()), // 承認時の最終ジャンル名
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_createdAt", ["createdAt"]),
 });

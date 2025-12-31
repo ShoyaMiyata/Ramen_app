@@ -87,6 +87,10 @@ export function getPrefectureByCode(code: string) {
   return PREFECTURES.find((p) => p.code === code);
 }
 
+export function getPrefectureByName(name: string) {
+  return PREFECTURES.find((p) => p.name === name);
+}
+
 export function getPrefecturesByRegion(regionCode: RegionCode) {
   return PREFECTURES.filter((p) => p.region === regionCode);
 }
