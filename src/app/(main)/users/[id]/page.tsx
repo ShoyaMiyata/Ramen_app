@@ -433,6 +433,25 @@ export default function UserProfilePage({
           </div>
         )}
 
+        {/* Dolphins App Link */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <a
+            href="https://dolphins-egwz2lsfw-shoyas-projects-464db98e.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all border border-blue-200 hover:border-blue-300"
+          >
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-sm">D</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900">Dolphins公式アプリ</p>
+              <p className="text-xs text-gray-600">チーム管理・選手情報をチェック</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-blue-500" />
+          </a>
+        </div>
+
         {/* Follow Button & Message Button */}
         {!isOwnProfile && currentUser && (
           <div className="mt-4 flex gap-2">
@@ -967,66 +986,66 @@ export default function UserProfilePage({
             </div>
             <div className="space-y-4">
               {/* Profile Image Upload */}
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative">
-                    {previewImage || profileImageUrl || profileUser.imageUrl ? (
-                      <img
-                        src={previewImage || profileImageUrl || profileUser.imageUrl || ""}
-                        alt="プロフィール画像"
-                        className="w-24 h-24 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="w-10 h-10 text-gray-400" />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
-                      style={{ color: themeColor }}
-                    >
-                      <Camera className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelectedFile(file);
-                        const reader = new FileReader();
-                        reader.onload = (ev) => {
-                          setPreviewImage(ev.target?.result as string);
-                        };
-                        reader.readAsDataURL(file);
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {previewImage || profileImageUrl || profileUser.imageUrl ? (
+                    <img
+                      src={previewImage || profileImageUrl || profileUser.imageUrl || ""}
+                      alt="プロフィール画像"
+                      className="w-24 h-24 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                      <User className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-0 right-0 p-2 rounded-full bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                    style={{ color: themeColor }}
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setPreviewImage(ev.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+                {(profileImageUrl || profileUser.imageUrl || previewImage) && (
+                  <button
+                    onClick={async () => {
+                      if (previewImage) {
+                        setPreviewImage(null);
+                        setSelectedFile(null);
+                      } else if (userId) {
+                        setIsUploadingImage(true);
+                        try {
+                          await removeProfileImage({ userId });
+                        } finally {
+                          setIsUploadingImage(false);
+                        }
                       }
                     }}
-                  />
-                  {(profileImageUrl || profileUser.imageUrl || previewImage) && (
-                    <button
-                      onClick={async () => {
-                        if (previewImage) {
-                          setPreviewImage(null);
-                          setSelectedFile(null);
-                        } else if (userId) {
-                          setIsUploadingImage(true);
-                          try {
-                            await removeProfileImage({ userId });
-                          } finally {
-                            setIsUploadingImage(false);
-                          }
-                        }
-                      }}
-                      className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      画像を削除
-                    </button>
-                  )}
-                </div>
+                    className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    画像を削除
+                  </button>
+                )}
+              </div>
 
               {/* Name Input */}
               <div>
