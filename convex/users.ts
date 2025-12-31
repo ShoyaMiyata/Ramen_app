@@ -55,6 +55,29 @@ export const upsert = mutation({
   },
 });
 
+// ログイン情報を更新
+export const updateLoginInfo = mutation({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!user) return null;
+
+    const now = Date.now();
+    const currentCount = user.loginCount || 0;
+
+    await ctx.db.patch(user._id, {
+      lastLoginAt: now,
+      loginCount: currentCount + 1,
+    });
+
+    return user._id;
+  },
+});
+
 export const softDelete = mutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {

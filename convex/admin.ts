@@ -68,6 +68,8 @@ export const listUsers = query({
         return {
           ...user,
           postCount: noodles.length,
+          lastLoginAt: user.lastLoginAt,
+          loginCount: user.loginCount || 0,
         };
       })
     );

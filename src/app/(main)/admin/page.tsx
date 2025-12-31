@@ -533,11 +533,10 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
+              className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
                   ? "border-b-2 text-gray-900"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
               style={{
                 borderColor: activeTab === tab.id ? themeColor : "transparent",
               }}
@@ -668,9 +667,8 @@ export default function AdminPage() {
               {users?.map((u) => (
                 <div
                   key={u._id}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    u.deletedAt ? "bg-red-50" : selectedUsers.has(u._id) ? "bg-blue-50" : "bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-3 p-3 rounded-lg ${u.deletedAt ? "bg-red-50" : selectedUsers.has(u._id) ? "bg-blue-50" : "bg-gray-50"
+                    }`}
                 >
                   {/* チェックボックス */}
                   {!u.isAdmin && !u.deletedAt && (
@@ -688,9 +686,8 @@ export default function AdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`font-medium truncate ${
-                          u.deletedAt ? "text-gray-400 line-through" : ""
-                        }`}
+                        className={`font-medium truncate ${u.deletedAt ? "text-gray-400 line-through" : ""
+                          }`}
                       >
                         {u.name || "名前なし"}
                       </span>
@@ -706,6 +703,14 @@ export default function AdminPage() {
                     <div className="text-[10px] text-gray-400 mt-1">
                       投稿: {u.postCount}件
                     </div>
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      最終ログイン: {u.lastLoginAt
+                        ? new Date(u.lastLoginAt).toLocaleDateString("ja-JP")
+                        : "未ログイン"}
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      ログイン回数: {u.loginCount}回
+                    </div>
                   </div>
                   <div className="flex items-center gap-1">
                     {/* 投稿公開範囲設定ボタン */}
@@ -717,11 +722,10 @@ export default function AdminPage() {
                           setSelectedUserForVisibility(u._id as Id<"users">);
                           setVisibilityModalOpen(true);
                         }}
-                        className={`border-gray-200 ${
-                          u.postVisibility === "followers_and_groups"
+                        className={`border-gray-200 ${u.postVisibility === "followers_and_groups"
                             ? "text-blue-600 hover:bg-blue-50"
                             : "text-green-600 hover:bg-green-50"
-                        }`}
+                          }`}
                         title="投稿の公開範囲を設定"
                       >
                         {u.postVisibility === "followers_and_groups" ? (
@@ -841,9 +845,8 @@ export default function AdminPage() {
               {noodles?.map((n) => (
                 <div
                   key={n._id}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    selectedNoodles.has(n._id) ? "bg-blue-50" : "bg-gray-50"
-                  }`}
+                  className={`flex items-center gap-3 p-3 rounded-lg ${selectedNoodles.has(n._id) ? "bg-blue-50" : "bg-gray-50"
+                    }`}
                 >
                   {/* チェックボックス */}
                   <button
@@ -933,9 +936,8 @@ export default function AdminPage() {
               {feedbacks?.map((f) => (
                 <div
                   key={f._id}
-                  className={`p-3 rounded-lg space-y-2 ${
-                    selectedFeedbacks.has(f._id) ? "bg-blue-50" : "bg-gray-50"
-                  }`}
+                  className={`p-3 rounded-lg space-y-2 ${selectedFeedbacks.has(f._id) ? "bg-blue-50" : "bg-gray-50"
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     {/* チェックボックス */}
