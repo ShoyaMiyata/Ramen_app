@@ -8,12 +8,13 @@ import { useEffect, useRef } from "react";
 const SKIP_AUTH = process.env.NEXT_PUBLIC_SKIP_AUTH === "true";
 
 export function useCurrentUser() {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
   const upsertUser = useMutation(api.users.upsert);
   const updateLoginInfo = useMutation(api.users.updateLoginInfo);
   const createDevUser = useMutation(api.users.createDevUser);
   const hasUpserted = useRef(false);
   const hasUpdatedLoginInfo = useRef(false);
+  const wasSignedIn = useRef(false);
 
   // 開発モード: 最初のユーザーを取得
   const devUser = useQuery(api.users.getDevUser, SKIP_AUTH ? {} : "skip");
@@ -58,13 +59,20 @@ export function useCurrentUser() {
           imageUrl: clerkUser.imageUrl,
         });
       }
-      // ログイン情報の更新
-      else if (convexUser && !hasUpdatedLoginInfo.current) {
-        hasUpdatedLoginInfo.current = true;
-        updateLoginInfo({ clerkId: clerkUser.id });
-      }
     }
-  }, [clerkUser, convexUser, upsertUser, updateLoginInfo]);
+  }, [clerkUser, convexUser, upsertUser]);
+
+  // ログイン状態の変化を監視して、本当にログインしたときだけカウント
+  useEffect(() => {
+    if (!SKIP_AUTH && isSignedIn && convexUser && !wasSignedIn.current) {
+      // ログイン状態になったらカウントを更新
+      wasSignedIn.current = true;
+      updateLoginInfo({ clerkId: clerkUser.id });
+    } else if (!isSignedIn) {
+      // ログアウトしたらフラグリセット
+      wasSignedIn.current = false;
+    }
+  }, [isSignedIn, convexUser, clerkUser, updateLoginInfo]);
 
   // 開発モードの場合
   if (SKIP_AUTH) {
