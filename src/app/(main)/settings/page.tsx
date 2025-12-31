@@ -6,7 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LoadingPage } from "@/components/ui/loading";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare, Eye, Users as UsersIcon } from "lucide-react";
+import { Settings, ChevronLeft, Lock, UserPlus, Bell, Shield, MessageSquare, Eye, Users as UsersIcon, ExternalLink, Smartphone } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -260,6 +260,35 @@ export default function SettingsPage() {
         </div>
       )}
 
+
+      {/* App Information Section */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h2 className="font-medium text-gray-900 flex items-center gap-2">
+            <Smartphone className="w-4 h-4" style={{ color: themeColor }} />
+            アプリ情報
+          </h2>
+        </div>
+        <div className="divide-y divide-gray-100">
+          <a
+            href="https://dolphins-egwz2lsfw-shoyas-projects-464db98e.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xs">D</span>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Dolphins公式アプリ</p>
+                <p className="text-sm text-gray-500">チーム管理・選手情報をチェック</p>
+              </div>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400" />
+          </a>
+        </div>
+      </div>
 
       {/* Notifications Settings (placeholder) */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden opacity-50">
