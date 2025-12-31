@@ -441,12 +441,13 @@ export default function UserProfilePage({
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all border border-blue-200 hover:border-blue-300"
           >
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
+            <img
+              src="/Dolphins-logo.png"
+              alt="Dolphins"
+              className="w-10 h-10 rounded-lg object-contain flex-shrink-0"
+            />
             <div className="flex-1">
               <p className="font-semibold text-gray-900">Dolphins公式アプリ</p>
-              <p className="text-xs text-gray-600">チーム管理・選手情報をチェック</p>
             </div>
             <ChevronRight className="w-5 h-5 text-blue-500" />
           </a>
