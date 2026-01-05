@@ -437,7 +437,7 @@ export default function UserProfilePage({
         {profileUser?.showDolphinsLink && (
           <div className="mt-4 pt-4 border-t border-gray-100">
             <a
-              href="https://dolphins-4kwecp9b1-shoyas-projects-464db98e.vercel.app"
+              href="https://dolphins-seven.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-all border border-blue-200 hover:border-blue-300"
