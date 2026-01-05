@@ -78,7 +78,7 @@ export function NotificationList({ notifications, themeColor }: NotificationList
     switch (notification.type) {
       case "like":
       case "comment":
-        return notification.targetId ? `/noodles/${notification.targetId}` : null;
+        return notification.targetId ? `/noodles/${notification.targetId}` : "/noodles";
       case "follow":
       case "follow_request_approved":
         return notification.fromUser?._id ? `/users/${notification.fromUser._id}` : null;
