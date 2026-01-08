@@ -706,7 +706,13 @@ export default function AdminPage() {
                     </div>
                     <div className="text-[10px] text-gray-400 mt-1">
                       最終ログイン: {u.lastLoginAt
-                        ? new Date(u.lastLoginAt).toLocaleDateString("ja-JP")
+                        ? new Date(u.lastLoginAt).toLocaleString("ja-JP", {
+                          year: "numeric",
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
                         : "未ログイン"}
                     </div>
                     <div className="text-[10px] text-gray-400">
