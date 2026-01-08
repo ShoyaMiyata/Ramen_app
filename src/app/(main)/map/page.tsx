@@ -35,7 +35,11 @@ export default function MapPage() {
   // Group Selector State
   const [isGroupSelectorOpen, setIsGroupSelectorOpen] = useState(false);
   const [groupSearchText, setGroupSearchText] = useState("");
-  const [selectedGroup, setSelectedGroup] = useState<{ _id: string; name: string } | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<{
+    _id: string;
+    name: string;
+    coverImageUrl?: string | null;
+  } | null>(null);
 
   // Queries
   const myStats = useQuery(
