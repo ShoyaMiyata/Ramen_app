@@ -241,3 +241,146 @@ export const getUserBadges = query({
     return badges;
   },
 });
+
+// 全ユーザーの都道府県別訪問統計を取得
+export const getGlobalVisitStats = query({
+  args: {},
+  handler: async (ctx) => {
+    // 全投稿を取得（将来的には最適化が必要）
+    const noodles = await ctx.db.query("noodles").collect();
+
+    // 店舗IDを収集
+    const shopIds = [...new Set(noodles.map((n) => n.shopId))];
+
+    // 店舗情報をバッチ取得
+    const shops = await Promise.all(shopIds.map((id) => ctx.db.get(id)));
+    const shopMap = new Map(shopIds.map((id, i) => [id, shops[i]]));
+
+    // 都道府県別に訪問店舗をカウント（ユニーク店舗数）
+    const prefectureStats: Record<string, number> = {};
+
+    for (const shop of shops) {
+      if (!shop?.prefecture) continue;
+      prefectureStats[shop.prefecture] =
+        (prefectureStats[shop.prefecture] || 0) + 1;
+    }
+
+    // 結果を整形
+    const result: Record<
+      string,
+      {
+        visitCount: number;
+        tier: "bronze" | "silver" | "gold" | null;
+      }
+    > = {};
+
+    for (const [prefecture, count] of Object.entries(prefectureStats)) {
+      result[prefecture] = {
+        visitCount: count,
+        tier: getTierByVisitCount(count),
+      };
+    }
+
+    // 統計サマリー
+    const totalPrefectures = Object.keys(result).length;
+    const bronzeCount = Object.values(result).filter(
+      (r) => r.tier === "bronze"
+    ).length;
+    const silverCount = Object.values(result).filter(
+      (r) => r.tier === "silver"
+    ).length;
+    const goldCount = Object.values(result).filter(
+      (r) => r.tier === "gold"
+    ).length;
+
+    return {
+      prefectures: result,
+      summary: {
+        total: totalPrefectures,
+        bronze: bronzeCount,
+        silver: silverCount,
+        gold: goldCount,
+      },
+    };
+  },
+});
+
+// グループメンバーの都道府県別訪問統計を取得
+export const getGroupVisitStats = query({
+  args: { groupId: v.id("groups") },
+  handler: async (ctx, args) => {
+    // グループメンバーを取得
+    const members = await ctx.db
+      .query("groupMembers")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+
+    const memberIds = members.map((m) => m.userId);
+
+    // メンバーの投稿を取得
+    // Note: メンバー数が多い場合は最適化が必要
+    const noodlesPromises = memberIds.map((userId) =>
+      ctx.db
+        .query("noodles")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .collect()
+    );
+    const noodlesResults = await Promise.all(noodlesPromises);
+    const noodles = noodlesResults.flat();
+
+    // 店舗IDを収集
+    const shopIds = [...new Set(noodles.map((n) => n.shopId))];
+
+    // 店舗情報をバッチ取得
+    const shops = await Promise.all(shopIds.map((id) => ctx.db.get(id)));
+    const shopMap = new Map(shopIds.map((id, i) => [id, shops[i]]));
+
+    // 都道府県別に訪問店舗をカウント
+    // ここでは「グループ全体でのユニーク店舗数」をカウントする
+    const prefectureStats: Record<string, number> = {};
+
+    for (const shop of shops) {
+      if (!shop?.prefecture) continue;
+      prefectureStats[shop.prefecture] =
+        (prefectureStats[shop.prefecture] || 0) + 1;
+    }
+
+    // 結果を整形
+    const result: Record<
+      string,
+      {
+        visitCount: number;
+        tier: "bronze" | "silver" | "gold" | null;
+      }
+    > = {};
+
+    for (const [prefecture, count] of Object.entries(prefectureStats)) {
+      result[prefecture] = {
+        visitCount: count,
+        tier: getTierByVisitCount(count),
+      };
+    }
+
+    // 統計サマリー
+    const totalPrefectures = Object.keys(result).length;
+    const bronzeCount = Object.values(result).filter(
+      (r) => r.tier === "bronze"
+    ).length;
+    const silverCount = Object.values(result).filter(
+      (r) => r.tier === "silver"
+    ).length;
+    const goldCount = Object.values(result).filter(
+      (r) => r.tier === "gold"
+    ).length;
+
+    return {
+      prefectures: result,
+      summary: {
+        total: totalPrefectures,
+        bronze: bronzeCount,
+        silver: silverCount,
+        gold: goldCount,
+      },
+    };
+  },
+});

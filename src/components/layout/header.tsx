@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -18,6 +18,7 @@ export function Header() {
   const { rank } = useUserStats(user?._id);
   const { themeColor } = useTheme();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const unreadCount = useQuery(
     api.notifications.getUnreadCount,
@@ -62,14 +63,102 @@ export function Header() {
         <div className="flex items-center gap-2">
           {user && (
             <>
-              <div
-                className="px-2 py-1 rounded-full text-xs font-medium text-white"
-                style={{
-                  background: rank.gradient || rank.color,
-                }}
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-1"
               >
-                {rank.name}
-              </div>
+                <Menu className="w-6 h-6 text-gray-600" />
+              </button>
+
+              {/* ハンバーガーメニューオーバーレイ */}
+              {isMenuOpen && (
+                <div
+                  className="fixed inset-0 z-[60] bg-black/50 transition-opacity"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <div
+                    className="absolute top-0 left-0 bottom-0 w-64 bg-white shadow-xl flex flex-col transform transition-transform duration-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                      <h2 className="font-bold text-lg text-gray-900">メニュー</h2>
+                      <button onClick={() => setIsMenuOpen(false)} className="p-1 hover:bg-gray-100 rounded-full">
+                        <X className="w-6 h-6 text-gray-500" />
+                      </button>
+                    </div>
+
+                    <div className="p-4 overflow-y-auto flex-1">
+                      {/* ランク表示 */}
+                      <div className="mb-6 p-4 bg-gray-50 rounded-xl flex flex-col items-center">
+                        <div className="font-medium text-xs text-gray-500 mb-2">現在のランク</div>
+                        <div
+                          className="px-4 py-1.5 rounded-full text-sm font-bold text-white shadow-sm"
+                          style={{
+                            background: rank.gradient || rank.color,
+                          }}
+                        >
+                          {rank.name}
+                        </div>
+                      </div>
+
+                      {/* メニュー項目 */}
+                      <nav className="space-y-1">
+                        <Link
+                          href="/insights"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl text-gray-700 font-medium transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <BarChart3 className="w-5 h-5 text-gray-500" />
+                          <span>インサイト</span>
+                        </Link>
+
+                        <div className="my-2 border-t border-gray-100" />
+
+                        <Link
+                          href="/landing"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl text-gray-700 font-medium transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Info className="w-5 h-5 text-gray-500" />
+                          <span>Nooodleについて</span>
+                        </Link>
+
+                        <Link
+                          href="/settings"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl text-gray-700 font-medium transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Settings className="w-5 h-5 text-gray-500" />
+                          <span>設定</span>
+                        </Link>
+
+                        <Link
+                          href="/mentenance"
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl text-gray-700 font-medium transition-colors"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <Wrench className="w-5 h-5 text-gray-500" />
+                          <span>麺テナンス</span>
+                        </Link>
+
+                        {realUser?.isAdmin && (
+                          <>
+                            <div className="my-2 border-t border-gray-100" />
+                            <Link
+                              href="/admin"
+                              className="flex items-center gap-3 p-3 hover:bg-purple-50 rounded-xl text-purple-700 font-medium transition-colors"
+                              onClick={() => setIsMenuOpen(false)}
+                            >
+                              <Shield className="w-5 h-5 text-purple-500" />
+                              <span>管理</span>
+                            </Link>
+                          </>
+                        )}
+                      </nav>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* 通知ベル */}
               <Popover.Root open={isNotificationOpen} onOpenChange={handleOpenChange}>
@@ -298,7 +387,7 @@ export function BottomNav() {
   const navItems = [
     { href: myProfileHref, icon: Home, label: "マイページ", isProfile: true },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
-    { href: "/insights", icon: BarChart3, label: "インサイト" },
+    { href: "/map", icon: MapIcon, label: "マップ" },
     { href: "/search", icon: Search, label: "検索" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];

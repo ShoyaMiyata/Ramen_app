@@ -917,46 +917,7 @@ export default function UserProfilePage({
         </>
       )}
 
-      {/* Footer Links (自分のみ表示) */}
-      {isOwnProfile && (
-        <div className="flex items-center justify-center gap-4 py-3 text-sm text-gray-400">
-          <Link
-            href="/landing"
-            className="flex items-center gap-1 hover:text-ramen-600 hover:font-medium transition-colors"
-          >
-            <Info className="w-3 h-3" />
-            <span>Nooodleについて</span>
-          </Link>
-          <span>|</span>
-          <Link
-            href="/settings"
-            className="flex items-center gap-1 hover:text-gray-600 transition-colors"
-          >
-            <Settings className="w-3 h-3" />
-            <span>設定</span>
-          </Link>
-          <span>|</span>
-          <Link
-            href="/mentenance"
-            className="flex items-center gap-1 hover:text-gray-600 transition-colors"
-          >
-            <Wrench className="w-3 h-3" />
-            <span>麺テナンス</span>
-          </Link>
-          {realUser?.isAdmin && (
-            <>
-              <span>|</span>
-              <Link
-                href="/admin"
-                className="flex items-center gap-1 hover:text-gray-600 transition-colors text-purple-600"
-              >
-                <Shield className="w-3 h-3" />
-                <span>管理</span>
-              </Link>
-            </>
-          )}
-        </div>
-      )}
+
 
       {/* Badge List Modal */}
       <BadgeListModal
