@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { jaJP } from "@clerk/localizations";
 import { ConvexClientProvider } from "@/lib/convex";
+import { LoginTracker } from "@/components/auth/LoginTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,7 +54,10 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <ConvexClientProvider>{children}</ConvexClientProvider>
+          <ConvexClientProvider>
+            <LoginTracker />
+            {children}
+          </ConvexClientProvider>
         </body>
       </html>
     </ClerkProvider>
