@@ -146,6 +146,13 @@ html.dark .bg-white {
   background-color: #000000 !important;
 }
 
+html.dark [role="dialog"],
+html.dark [role="dialog"] .bg-white,
+html.dark [data-radix-popper-content-wrapper] .bg-white,
+html.dark .fixed .bg-white {
+  background-color: #262626 !important;
+}
+
 html.dark .from-white {
   --tw-gradient-from: #000000 !important;
 }
