@@ -422,7 +422,7 @@ export const getGalleryByUser = query({
       .collect();
 
     // 画像あり（r2ImageUrl、imageIds または imageId）のみ
-    const withImages = noodles.filter((n) => n.r2ImageUrl || (n.imageIds && n.imageIds.length > 0) || n.imageId);
+    const withImages = noodles.filter((n) => (n.r2ImageUrls && n.r2ImageUrls.length > 0) || n.r2ImageUrl || (n.imageIds && n.imageIds.length > 0) || n.imageId);
 
     const shops = await ctx.db.query("shops").collect();
     const shopMap = new Map(shops.map((s) => [s._id, s]));

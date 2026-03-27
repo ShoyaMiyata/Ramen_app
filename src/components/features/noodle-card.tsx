@@ -19,6 +19,7 @@ interface NoodleCardProps {
     user?: Doc<"users"> | null;
     shop?: Doc<"shops"> | null;
     imageUrl?: string | null;
+    imageUrls?: string[];
   };
   showUser?: boolean;
   currentUserId?: Id<"users">;
@@ -52,6 +53,11 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
   const [showParticles, setShowParticles] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const lastTapRef = useRef<number>(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const touchStartX = useRef(0);
+  const touchDeltaX = useRef(0);
+
+  const allImages = noodle.imageUrls && noodle.imageUrls.length > 0 ? noodle.imageUrls : noodle.imageUrl ? [noodle.imageUrl] : [];
 
   const isLiked = useQuery(
     api.likes.isLiked,
@@ -118,17 +124,68 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
     handleDoubleTap(e);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDeltaX.current = 0;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (Math.abs(touchDeltaX.current) > 50) {
+      if (touchDeltaX.current < 0 && currentImageIndex < allImages.length - 1) {
+        setCurrentImageIndex(prev => prev + 1);
+      } else if (touchDeltaX.current > 0 && currentImageIndex > 0) {
+        setCurrentImageIndex(prev => prev - 1);
+      }
+    }
+    touchDeltaX.current = 0;
+  };
+
   return (
     <div>
       <Link href={`/noodles/${noodle._id}`}>
-        {noodle.imageUrl && (
-          <div className="relative left-1/2 -translate-x-1/2 w-screen" onClick={handleCardClick}>
-            <ImageWithPlaceholder
-              src={noodle.imageUrl}
-              alt={noodle.ramenName}
-              aspectRatio="square"
-              className="w-full"
-            />
+        {allImages.length > 0 && (
+          <div
+            className="relative left-1/2 -translate-x-1/2 w-screen"
+            onClick={handleCardClick}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="overflow-hidden aspect-square">
+              <div
+                className="flex transition-transform duration-300 ease-out h-full"
+                style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+              >
+                {allImages.map((url, idx) => (
+                  <div key={idx} className="w-full flex-shrink-0 h-full">
+                    <ImageWithPlaceholder
+                      src={url}
+                      alt={`${noodle.ramenName} ${idx + 1}`}
+                      aspectRatio="square"
+                      className="w-full h-full"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {allImages.length > 1 && (
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+                {allImages.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full transition-colors",
+                      idx === currentImageIndex ? "bg-white" : "bg-white/40"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
 
             {showUser && noodle.user && (
               <div

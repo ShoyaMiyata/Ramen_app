@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -35,9 +35,31 @@ export default function NoodleDetailPage({
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [allComments, setAllComments] = useState<any[]>([]);
   const [showLikeUsersModal, setShowLikeUsersModal] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+
+  const touchStartX = useRef(0);
+  const touchDeltaX = useRef(0);
+
+  const handleImageTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchDeltaX.current = 0;
+  };
+
+  const handleImageTouchMove = (e: React.TouchEvent) => {
+    touchDeltaX.current = e.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleImageTouchEnd = () => {
+    if (noodle && noodle.imageUrls && Math.abs(touchDeltaX.current) > 50) {
+      if (touchDeltaX.current < 0 && currentImageIndex < noodle.imageUrls.length - 1) {
+        setCurrentImageIndex(prev => prev + 1);
+      } else if (touchDeltaX.current > 0 && currentImageIndex > 0) {
+        setCurrentImageIndex(prev => prev - 1);
+      }
+    }
+    touchDeltaX.current = 0;
+  };
 
   const noodleId = id as Id<"noodles">;
 
@@ -156,25 +178,45 @@ export default function NoodleDetailPage({
   return (
     <div className="-mx-4 -mt-4">
       {noodle.imageUrls && noodle.imageUrls.length > 0 && (
-        <div className="relative">
-          <button
-            onClick={() => { setCurrentImageIndex(0); setShowImageModal(true); }}
-            className="w-full relative aspect-square"
-          >
-            <Image
-              src={noodle.imageUrls[0]}
-              alt={noodle.ramenName}
-              fill
-              sizes="100vw"
-              className="object-cover"
-              priority
-            />
-            {noodle.imageUrls.length > 1 && (
-              <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
-                1/{noodle.imageUrls.length}
-              </div>
-            )}
-          </button>
+        <div
+          className="relative"
+          onTouchStart={handleImageTouchStart}
+          onTouchMove={handleImageTouchMove}
+          onTouchEnd={handleImageTouchEnd}
+        >
+          <div className="overflow-hidden aspect-square">
+            <div
+              className="flex transition-transform duration-300 ease-out h-full"
+              style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+            >
+              {noodle.imageUrls.map((url, idx) => (
+                <div key={idx} className="w-full flex-shrink-0 h-full relative">
+                  <Image
+                    src={url}
+                    alt={`${noodle.ramenName} ${idx + 1}`}
+                    fill
+                    sizes="100vw"
+                    className="object-cover"
+                    priority={idx === 0}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {noodle.imageUrls.length > 1 && (
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+              {noodle.imageUrls.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full transition-colors",
+                    idx === currentImageIndex ? "bg-white" : "bg-white/40"
+                  )}
+                />
+              ))}
+            </div>
+          )}
 
           <div
             className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3"
@@ -239,21 +281,6 @@ export default function NoodleDetailPage({
                 </span>
               </div>
             </Link>
-          )}
-
-          {noodle.imageUrls.length > 1 && (
-            <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-1.5 px-4">
-              {noodle.imageUrls.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => { setCurrentImageIndex(idx); setShowImageModal(true); }}
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full transition-colors",
-                    idx === 0 ? "bg-white" : "bg-white/40"
-                  )}
-                />
-              ))}
-            </div>
           )}
         </div>
       )}
@@ -506,60 +533,6 @@ export default function NoodleDetailPage({
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showImageModal && noodle.imageUrls && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-50 flex flex-col"
-            onClick={() => setShowImageModal(false)}
-          >
-            <div className="flex items-center justify-between p-4">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowImageModal(false); }}
-                className="p-2 text-white hover:bg-white/10 rounded-lg"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <span className="text-white text-sm">
-                {currentImageIndex + 1} / {noodle.imageUrls.length}
-              </span>
-              <div className="w-10" />
-            </div>
-
-            <div className="flex-1 relative flex items-center justify-center px-4">
-              <motion.img
-                key={currentImageIndex}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                src={noodle.imageUrls[currentImageIndex]}
-                alt={`${noodle.ramenName} ${currentImageIndex + 1}`}
-                className="max-h-full max-w-full object-contain"
-                onClick={(e) => e.stopPropagation()}
-              />
-
-              {currentImageIndex > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(currentImageIndex - 1); }}
-                  className="absolute left-2 p-2 text-white hover:bg-white/10 rounded-full"
-                >
-                  <ArrowLeft className="w-8 h-8" />
-                </button>
-              )}
-
-              {currentImageIndex < noodle.imageUrls.length - 1 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(currentImageIndex + 1); }}
-                  className="absolute right-2 p-2 text-white hover:bg-white/10 rounded-full"
-                >
-                  <ArrowLeft className="w-8 h-8 rotate-180" />
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
