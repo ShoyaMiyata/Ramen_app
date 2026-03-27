@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { NoodleCard } from "@/components/features/noodle-card";
 import { PREFECTURES } from "@/lib/constants/prefectures";
 import { StationSelect } from "@/components/ui/station-select";
-import { Plus, Search, SlidersHorizontal, X, LayoutGrid, List, RefreshCw } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X, LayoutGrid, List, RefreshCw, Heart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
@@ -289,7 +289,7 @@ export default function NoodlesPage() {
               onClick={() => setViewMode("list")}
               className={cn(
                 "p-1.5 rounded transition-colors",
-                viewMode === "list" ? "bg-white shadow-sm" : "text-gray-500"
+                viewMode === "list" ? "bg-white shadow-sm" : "text-gray-400"
               )}
             >
               <List className="w-4 h-4" />
@@ -298,7 +298,7 @@ export default function NoodlesPage() {
               onClick={() => setViewMode("gallery")}
               className={cn(
                 "p-1.5 rounded transition-colors",
-                viewMode === "gallery" ? "bg-white shadow-sm" : "text-gray-500"
+                viewMode === "gallery" ? "bg-white shadow-sm" : "text-gray-400"
               )}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -504,7 +504,7 @@ export default function NoodlesPage() {
         <Loading className="py-8" />
       ) : allItems.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center">
-          <p className="text-gray-500">
+          <p className="text-gray-400">
             {hasFilters
               ? "条件に一致する投稿がありません"
               : "まだ投稿がありません"}
@@ -548,15 +548,25 @@ export default function NoodlesPage() {
                 <Link
                   key={noodle._id}
                   href={`/noodles/${noodle._id}`}
-                  className="aspect-square relative overflow-hidden bg-gray-100 hover:opacity-90 transition-opacity"
+                  className="aspect-square relative overflow-hidden bg-gray-100 group"
                 >
                   <Image
                     src={noodle.imageUrls[0]}
                     alt={noodle.ramenName}
                     fill
                     sizes="33vw"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 flex items-center justify-center gap-4 opacity-0 group-hover:opacity-100">
+                    <div className="flex items-center gap-1 text-white font-semibold text-sm">
+                      <Heart className="w-4 h-4 fill-white" />
+                      <span>{noodle.likeCount ?? 0}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-white font-semibold text-sm">
+                      <MessageCircle className="w-4 h-4 fill-white" />
+                      <span>{noodle.commentCount ?? 0}</span>
+                    </div>
+                  </div>
                 </Link>
               ))}
           </div>
@@ -626,13 +636,11 @@ export default function NoodlesPage() {
                     left: 0,
                     width: "100%",
                     transform: `translateY(${virtualItem.start}px)`,
-                    paddingBottom: "12px",
-                    // パフォーマンス最適化
-                    contain: "layout style paint",
-                    contentVisibility: "auto",
+                    contain: "layout style",
                   }}
                 >
                   <NoodleCard noodle={noodle} currentUserId={user?._id} />
+                  <div className="h-2" />
                 </div>
               );
             })}

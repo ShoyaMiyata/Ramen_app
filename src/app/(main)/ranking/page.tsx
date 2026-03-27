@@ -46,7 +46,6 @@ export default function RankingPage() {
         <h1 className="font-bold text-xl text-gray-900">ランキング</h1>
       </div>
 
-      {/* Period Selector */}
       <div className="flex gap-2">
         {[
           { value: "weekly" as const, label: "週間" },
@@ -69,7 +68,6 @@ export default function RankingPage() {
         ))}
       </div>
 
-      {/* Ranking Type Tabs */}
       <Tabs.Root
         value={rankingType}
         onValueChange={(v) => setRankingType(v as RankingType)}
@@ -126,7 +124,6 @@ export default function RankingPage() {
         </Tabs.List>
       </Tabs.Root>
 
-      {/* Ranking Content */}
       {rankingType === "shops" && (
         <UserRankingList
           ranking={shopRanking}
@@ -165,6 +162,125 @@ interface UserRankingListProps {
   isMenfluencer?: boolean;
 }
 
+function UserPodium({
+  top3,
+  valueKey,
+  label,
+  showRank,
+  isMenfluencer,
+}: {
+  top3: any[];
+  valueKey: string;
+  label: string;
+  showRank?: boolean;
+  isMenfluencer?: boolean;
+}) {
+  const maxVal = top3[0]?.[valueKey] || 1;
+  const calcHeight = (val: number) => {
+    const minH = 60;
+    const maxH = 180;
+    const ratio = maxVal > 0 ? val / maxVal : 0;
+    return Math.max(minH, Math.round(ratio * maxH));
+  };
+
+  const podiumConfig = [
+    { index: 1, color: "#C0C0C0", badge: "🥈", order: "order-1" },
+    { index: 0, color: "#FFD700", badge: "🥇", order: "order-2" },
+    { index: 2, color: "#CD7F32", badge: "🥉", order: "order-3" },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl p-6 pb-0 mb-4">
+      <div className="flex items-end justify-center gap-3">
+        {podiumConfig.map((config) => {
+          const item = top3[config.index];
+          if (!item) return null;
+
+          const val = item[valueKey] || 0;
+          const height = calcHeight(val);
+          const shopCount = "shopCount" in item ? item.shopCount : 0;
+          const rank = showRank ? getRankByShopCount(shopCount) : null;
+
+          return (
+            <Link
+              key={item.user?._id || config.index}
+              href={`/users/${item.user?._id}`}
+              className={cn("flex flex-col items-center flex-1 max-w-[130px]", config.order)}
+            >
+              <div className="relative mb-1">
+                {item.user?.imageUrl ? (
+                  <img
+                    src={item.user.imageUrl}
+                    alt={item.user.name}
+                    className={cn(
+                      "rounded-full border-3 object-cover",
+                      config.index === 0 ? "w-16 h-16" : "w-12 h-12"
+                    )}
+                    style={{ borderColor: config.color }}
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "rounded-full flex items-center justify-center text-white font-bold",
+                      config.index === 0 ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
+                    )}
+                    style={{ backgroundColor: config.color }}
+                  >
+                    {item.rank}
+                  </div>
+                )}
+                {config.index === 0 && (
+                  <Crown
+                    className="w-6 h-6 text-yellow-500 absolute -top-4 left-1/2 -translate-x-1/2"
+                    fill="#FFD700"
+                  />
+                )}
+              </div>
+
+              <p className="text-xs font-medium text-gray-900 truncate w-full text-center">
+                {item.user?.name || "ユーザー"}
+              </p>
+
+              {isMenfluencer && item.rank === 1 ? (
+                <div className="flex items-center gap-0.5">
+                  <Sparkles className="w-3 h-3 text-purple-500" />
+                  <span className="text-[10px] font-medium text-purple-500">麺バサダー</span>
+                </div>
+              ) : isMenfluencer && item.rank >= 2 && item.rank <= 5 ? (
+                <div className="flex items-center gap-0.5">
+                  <Sparkles className="w-3 h-3 text-pink-400" />
+                  <span className="text-[10px] font-medium text-pink-400">麺フルエンサー</span>
+                </div>
+              ) : showRank && rank ? (
+                <div className="flex items-center gap-0.5">
+                  <RankIcon rank={rank} size="sm" animate={false} />
+                  <span className="text-[10px] font-medium" style={{ color: rank.color }}>
+                    {rank.name}
+                  </span>
+                </div>
+              ) : (
+                <div className="h-4" />
+              )}
+
+              <p className="text-sm font-bold text-gray-900">{val}</p>
+              <p className="text-[10px] text-gray-400 mb-2">{label}</p>
+
+              <div
+                className="w-full rounded-t-lg transition-all duration-500"
+                style={{ backgroundColor: config.color, height: `${height}px` }}
+              >
+                <div className="flex items-center justify-center pt-3">
+                  <span className="text-white font-bold text-lg">{item.rank}</span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: UserRankingListProps) {
   if (ranking === undefined) {
     return <Loading className="py-8" />;
@@ -180,33 +296,32 @@ function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: 
     );
   }
 
+  const top3 = ranking.slice(0, 3);
+  const rest = ranking.slice(3);
+
   return (
     <div className="space-y-2">
-      {ranking.map((item, index) => {
+      {top3.length > 0 && (
+        <UserPodium
+          top3={top3}
+          valueKey={valueKey}
+          label={label}
+          showRank={showRank}
+          isMenfluencer={isMenfluencer}
+        />
+      )}
+
+      {rest.map((item) => {
         const shopCount = "shopCount" in item ? item.shopCount : 0;
         const rank = showRank ? getRankByShopCount(shopCount) : null;
 
         return (
           <Link
-            key={item.user?._id || index}
+            key={item.user?._id || item.rank}
             href={`/users/${item.user?._id}`}
-            className={cn(
-              "bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors",
-              item.rank <= 3 && "ring-2",
-              item.rank === 1 && "ring-yellow-400",
-              item.rank === 2 && "ring-gray-300",
-              item.rank === 3 && "ring-amber-600"
-            )}
+            className="bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors"
           >
-            <div
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0",
-                item.rank === 1 && "bg-yellow-400 text-white",
-                item.rank === 2 && "bg-gray-300 text-gray-700",
-                item.rank === 3 && "bg-amber-600 text-white",
-                item.rank >= 4 && "bg-gray-100 text-gray-500"
-              )}
-            >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0 bg-gray-100 text-gray-500">
               {item.rank}
             </div>
 
@@ -220,35 +335,18 @@ function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: 
                   />
                 )}
                 <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="font-medium text-gray-900 truncate">
-                      {item.user?.name || "ユーザー"}
-                    </p>
-                    {isMenfluencer && index === 0 && (
-                      <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                    )}
-                  </div>
-                  {isMenfluencer && item.rank === 1 ? (
-                    <div className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-purple-500" />
-                      <span className="text-xs font-medium text-purple-500">
-                        麺バサダー
-                      </span>
-                    </div>
-                  ) : isMenfluencer && item.rank >= 2 && item.rank <= 5 ? (
+                  <p className="font-medium text-gray-900 truncate">
+                    {item.user?.name || "ユーザー"}
+                  </p>
+                  {isMenfluencer && item.rank >= 2 && item.rank <= 5 ? (
                     <div className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-pink-400" />
-                      <span className="text-xs font-medium text-pink-400">
-                        麺フルエンサー
-                      </span>
+                      <span className="text-xs font-medium text-pink-400">麺フルエンサー</span>
                     </div>
                   ) : showRank && rank ? (
                     <div className="flex items-center gap-1">
                       <RankIcon rank={rank} size="sm" animate={false} />
-                      <span
-                        className="text-xs font-medium"
-                        style={{ color: rank.color }}
-                      >
+                      <span className="text-xs font-medium" style={{ color: rank.color }}>
                         {rank.name}
                       </span>
                     </div>
@@ -264,6 +362,94 @@ function UserRankingList({ ranking, valueKey, label, showRank, isMenfluencer }: 
           </Link>
         );
       })}
+    </div>
+  );
+}
+
+function PostPodium({ top3 }: { top3: any[] }) {
+  const maxVal = top3[0]?.likeCount || 1;
+  const calcHeight = (val: number) => {
+    const minH = 60;
+    const maxH = 180;
+    const ratio = maxVal > 0 ? val / maxVal : 0;
+    return Math.max(minH, Math.round(ratio * maxH));
+  };
+
+  const podiumConfig = [
+    { index: 1, color: "#C0C0C0", order: "order-1" },
+    { index: 0, color: "#FFD700", order: "order-2" },
+    { index: 2, color: "#CD7F32", order: "order-3" },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl p-6 pb-0 mb-4">
+      <div className="flex items-end justify-center gap-3">
+        {podiumConfig.map((config) => {
+          const item = top3[config.index];
+          if (!item) return null;
+
+          return (
+            <Link
+              key={item.noodle?._id || config.index}
+              href={`/noodles/${item.noodle?._id}`}
+              className={cn("flex flex-col items-center flex-1 max-w-[130px]", config.order)}
+            >
+              <div className="relative mb-1">
+                {item.user?.imageUrl ? (
+                  <img
+                    src={item.user.imageUrl}
+                    alt={item.user.name}
+                    className={cn(
+                      "rounded-full border-3 object-cover",
+                      config.index === 0 ? "w-16 h-16" : "w-12 h-12"
+                    )}
+                    style={{ borderColor: config.color }}
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "rounded-full flex items-center justify-center text-white font-bold",
+                      config.index === 0 ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
+                    )}
+                    style={{ backgroundColor: config.color }}
+                  >
+                    {item.rank}
+                  </div>
+                )}
+                {config.index === 0 && (
+                  <Crown
+                    className="w-6 h-6 text-yellow-500 absolute -top-4 left-1/2 -translate-x-1/2"
+                    fill="#FFD700"
+                  />
+                )}
+              </div>
+
+              <p className="text-xs font-medium text-gray-900 truncate w-full text-center">
+                {item.shop?.name || "不明な店舗"}
+              </p>
+              <p className="text-[10px] text-gray-500 truncate w-full text-center">
+                {item.noodle?.ramenName}
+              </p>
+
+              <div className="flex items-center gap-1 text-red-500 mt-1">
+                <Heart className="w-3.5 h-3.5 fill-current" />
+                <span className="text-sm font-bold">{item.likeCount}</span>
+              </div>
+
+              <div className="h-1" />
+
+              <div
+                className="w-full rounded-t-lg transition-all duration-500"
+                style={{ backgroundColor: config.color, height: `${calcHeight(item.likeCount || 0)}px` }}
+              >
+                <div className="flex items-center justify-center pt-3">
+                  <span className="text-white font-bold text-lg">{item.rank}</span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -287,29 +473,20 @@ function PostRankingList({ ranking }: PostRankingListProps) {
     );
   }
 
+  const top3 = ranking.slice(0, 3);
+  const rest = ranking.slice(3);
+
   return (
     <div className="space-y-2">
-      {ranking.map((item, index) => (
+      {top3.length > 0 && <PostPodium top3={top3} />}
+
+      {rest.map((item, index) => (
         <Link
           key={item.noodle?._id || index}
           href={`/noodles/${item.noodle?._id}`}
-          className={cn(
-            "bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors",
-            item.rank <= 3 && "ring-2",
-            item.rank === 1 && "ring-yellow-400",
-            item.rank === 2 && "ring-gray-300",
-            item.rank === 3 && "ring-amber-600"
-          )}
+          className="bg-white rounded-xl p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors"
         >
-          <div
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0",
-              item.rank === 1 && "bg-yellow-400 text-white",
-              item.rank === 2 && "bg-gray-300 text-gray-700",
-              item.rank === 3 && "bg-amber-600 text-white",
-              item.rank >= 4 && "bg-gray-100 text-gray-500"
-            )}
-          >
+          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 bg-gray-100 text-gray-500">
             {item.rank}
           </div>
 

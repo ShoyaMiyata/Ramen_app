@@ -24,7 +24,13 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 import { Camera, X } from "lucide-react";
 
 interface NoodleFormProps {
-  noodle?: Doc<"noodles"> & { shop?: Doc<"shops"> | null; imageUrl?: string | null };
+  noodle?: Doc<"noodles"> & {
+    shop?: Doc<"shops"> | null;
+    imageUrl?: string | null;
+    imageUrls?: string[];
+    r2ImageUrls?: string[];
+    r2ImageKeys?: string[];
+  };
 }
 
 export function NoodleForm({ noodle }: NoodleFormProps) {
@@ -54,13 +60,23 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [isArchived, setIsArchived] = useState(noodle?.isArchived || false);
   const [isDraft, setIsDraft] = useState(noodle?.isDraft || false);
 
-  // 単一画像
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    noodle?.r2ImageUrl || noodle?.imageUrl || null
-  );
-  const [existingImageId] = useState<Id<"_storage"> | null>(noodle?.imageId || null);
-  const [imageRemoved, setImageRemoved] = useState(false);
+  const [images, setImages] = useState<Array<{ file?: File; preview: string; r2Url?: string; r2Key?: string }>>(() => {
+    if (noodle?.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+      return noodle.r2ImageUrls.map((url, i) => ({
+        preview: url,
+        r2Url: url,
+        r2Key: noodle.r2ImageKeys?.[i],
+      }));
+    }
+    if (noodle?.r2ImageUrl) {
+      return [{ preview: noodle.r2ImageUrl, r2Url: noodle.r2ImageUrl, r2Key: noodle.r2ImageKey }];
+    }
+    if (noodle?.imageUrl) {
+      return [{ preview: noodle.imageUrl }];
+    }
+    return [];
+  });
+  const [removedR2Keys, setRemovedR2Keys] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newBadge, setNewBadge] = useState<(typeof ALL_BADGES)[AllBadgeCode] | null>(null);
@@ -94,10 +110,10 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
   const [showCropper, setShowCropper] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
-  // 画像選択 - トリミング画面を表示
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (images.length >= 5) return;
 
     console.log("画像選択:", {
       name: file.name,
@@ -105,7 +121,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       size: `${(file.size / 1024 / 1024).toFixed(2)}MB`
     });
 
-    // 画像をトリミング用にプレビュー
     const reader = new FileReader();
     reader.onload = (ev) => {
       setImageToCrop(ev.target?.result as string);
@@ -113,20 +128,17 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     };
     reader.readAsDataURL(file);
 
-    // input をリセット
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  // トリミング完了
   const handleCropComplete = async (croppedBlob: Blob) => {
     setShowCropper(false);
     setImageToCrop(null);
     setIsCompressing(true);
 
     try {
-      // Blobをファイルに変換
       const croppedFile = new File([croppedBlob], "cropped-image.jpg", {
         type: "image/jpeg",
       });
@@ -135,7 +147,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         size: `${(croppedFile.size / 1024 / 1024).toFixed(2)}MB`
       });
 
-      // 圧縮処理
       const compressedFile = await compressImage(croppedFile, {
         maxWidth: 1200,
         maxHeight: 1200,
@@ -148,15 +159,13 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         ratio: `${((compressedFile.size / croppedFile.size) * 100).toFixed(1)}%`
       });
 
-      // プレビュー表示
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImagePreview(ev.target?.result as string);
-      };
-      reader.readAsDataURL(compressedFile);
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+        reader.readAsDataURL(compressedFile);
+      });
 
-      setImageFile(compressedFile);
-      setImageRemoved(false);
+      setImages(prev => [...prev, { file: compressedFile, preview: dataUrl }]);
     } catch (error) {
       console.error("画像処理エラー:", error);
     } finally {
@@ -164,31 +173,17 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
     }
   };
 
-  // トリミングキャンセル
   const handleCropCancel = () => {
     setShowCropper(false);
     setImageToCrop(null);
   };
 
-  // 画像削除
-  const handleRemoveImage = async () => {
-    // R2から画像を削除（既存の画像がある場合）
-    if (noodle?.r2ImageKey) {
-      try {
-        await fetch("/api/upload", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: noodle.r2ImageKey }),
-        });
-      } catch (error) {
-        console.error("Failed to delete R2 image:", error);
-        // エラーが発生しても続行
-      }
+  const handleRemoveImage = (index: number) => {
+    const img = images[index];
+    if (img.r2Key) {
+      setRemovedR2Keys(prev => [...prev, img.r2Key!]);
     }
-
-    setImageFile(null);
-    setImagePreview(null);
-    setImageRemoved(true);
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const toggleGenre = (genre: string) => {
@@ -207,59 +202,40 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
     setIsSubmitting(true);
     try {
-      // 画像アップロード（R2使用）
-      let imageUrl: string | undefined;
-      let imageKey: string | undefined;
+      let r2ImageUrls: string[] = [];
+      let r2ImageKeys: string[] = [];
 
-      if (imageFile) {
-        // 既存のR2画像がある場合は削除
-        if (noodle?.r2ImageKey) {
-          try {
-            await fetch("/api/upload", {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ key: noodle.r2ImageKey }),
-            });
-          } catch (error) {
-            console.error("Failed to delete old R2 image:", error);
-            // エラーが発生しても続行
-          }
-        }
-
-        // Cloudflare R2に新しい画像をアップロード
-        console.log("画像アップロード開始:", {
-          name: imageFile.name,
-          type: imageFile.type,
-          size: `${(imageFile.size / 1024 / 1024).toFixed(2)}MB`
-        });
-
-        const formData = new FormData();
-        formData.append("file", imageFile);
-
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({ error: "不明なエラー" }));
-          const errorMsg = `画像のアップロードに失敗しました: ${errorData.error}`;
-          console.error("アップロードエラー:", errorMsg, {
-            status: uploadResponse.status,
-            statusText: uploadResponse.statusText
+      for (const key of removedR2Keys) {
+        try {
+          await fetch("/api/upload", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key }),
           });
-          throw new Error(errorMsg);
+        } catch (error) {
+          console.error("Failed to delete R2 image:", error);
         }
-
-        const { url, key } = await uploadResponse.json();
-        console.log("画像アップロード成功:", { url, key });
-        imageUrl = url;
-        imageKey = key;
-      } else if (noodle?.r2ImageUrl && !imageRemoved) {
-        // 既存の画像をそのまま使用
-        imageUrl = noodle.r2ImageUrl;
-        imageKey = noodle.r2ImageKey;
       }
+
+      for (const img of images) {
+        if (img.file) {
+          const formData = new FormData();
+          formData.append("file", img.file);
+          const uploadResponse = await fetch("/api/upload", { method: "POST", body: formData });
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({ error: "不明なエラー" }));
+            throw new Error(`画像のアップロードに失敗しました: ${errorData.error}`);
+          }
+          const { url, key } = await uploadResponse.json();
+          r2ImageUrls.push(url);
+          r2ImageKeys.push(key);
+        } else if (img.r2Url) {
+          r2ImageUrls.push(img.r2Url);
+          if (img.r2Key) r2ImageKeys.push(img.r2Key);
+        }
+      }
+
+      const removeImage = images.length === 0 && !!(noodle?.r2ImageUrl || noodle?.r2ImageUrls);
 
       const shopId = await getOrCreateShop({
         name: shopName,
@@ -279,9 +255,9 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          r2ImageUrl: imageUrl,
-          r2ImageKey: imageKey,
-          removeImage: imageRemoved,
+          r2ImageUrls,
+          r2ImageKeys,
+          removeImage,
           isArchived: isArchived || undefined,
           isDraft: isDraft || undefined,
         });
@@ -295,15 +271,14 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          r2ImageUrl: imageUrl,
-          r2ImageKey: imageKey,
+          r2ImageUrls,
+          r2ImageKeys,
           isArchived: isArchived || undefined,
           isDraft: isDraft || undefined,
         });
 
         const noodleId = result.noodleId;
 
-        // ランクアップ判定
         const isNewShop = !userNoodles?.items.some((n: any) => n.shopId === shopId);
         if (isNewShop && prevShopCountRef.current !== null) {
           const newShopCount = prevShopCountRef.current + 1;
@@ -316,16 +291,13 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           }
         }
 
-        // バッジチェック
         const badgeResult = await checkBadges({ userId: user._id });
 
-        // 隠しバッジのマイルストーン達成チェック（5個、10個、20個、または全制覇）
         const { hiddenBadgeInfo } = badgeResult;
         const milestones = [5, 10, 20, hiddenBadgeInfo.totalAvailable];
         const prevEarned = hiddenBadgeInfo.totalEarned - hiddenBadgeInfo.newHiddenBadges.length;
         const currentEarned = hiddenBadgeInfo.totalEarned;
 
-        // マイルストーンを超えたかチェック
         const reachedMilestone = milestones.find(
           (m) => prevEarned < m && currentEarned >= m
         );
@@ -339,7 +311,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           return;
         }
 
-        // 新しいバッジがある場合は表示
         if (badgeResult.newBadges.length > 0) {
           const badge = ALL_BADGES[badgeResult.newBadges[0] as AllBadgeCode];
           if (badge) {
@@ -374,7 +345,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
   return (
     <>
-      {/* 画像トリミングモーダル */}
       {showCropper && imageToCrop && (
         <ImageCropper
           image={imageToCrop}
@@ -388,50 +358,42 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
         {/* 写真 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            写真
+            写真（最大5枚）
           </label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
-          {/* 画像プレビュー */}
-          {imagePreview && (
-            <div className="relative aspect-video mb-2 rounded-lg overflow-hidden">
-              <img
-                src={imagePreview}
-                alt="プレビュー"
-                className="w-full h-full object-cover"
-              />
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {images.map((img, index) => (
+              <div key={index} className="relative flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden">
+                <img src={img.preview} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                {index === 0 && (
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/50 text-white px-1.5 py-0.5 rounded">メイン</span>
+                )}
+              </div>
+            ))}
+            {images.length < 5 && !isCompressing && (
               <button
                 type="button"
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white hover:bg-black/70"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <Camera className="w-5 h-5" />
+                <span className="text-[10px]">{images.length}/5</span>
               </button>
-            </div>
-          )}
-
-          {/* 追加ボタン */}
-          {isCompressing ? (
-            <div className="w-full h-32 border-2 border-dashed border-orange-300 rounded-lg flex flex-col items-center justify-center gap-2 text-orange-400">
-              <Loading size="sm" />
-              <span className="text-sm">画像を圧縮中...</span>
-            </div>
-          ) : !imagePreview && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-orange-400 hover:text-orange-400 transition-colors"
-            >
-              <Camera className="w-6 h-6" />
-              <span className="text-sm">タップして写真を追加</span>
-            </button>
-          )}
+            )}
+            {isCompressing && (
+              <div className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-orange-300 rounded-lg flex items-center justify-center">
+                <Loading size="sm" />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Shop Name */}
@@ -629,7 +591,6 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
 
         {/* Submit Buttons */}
         <div className="flex gap-3">
-          {/* 下書きボタン: 新規投稿または元々下書きだった投稿のみ表示 */}
           {(!noodle || noodle.isDraft) && (
             <Button
               type="button"

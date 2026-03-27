@@ -9,14 +9,14 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink, Moon, Sun } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
 export function Header() {
   const { user, realUser } = useViewingUser();
   const { rank } = useUserStats(user?._id);
-  const { themeColor } = useTheme();
+  const { themeColor, toggleColorMode, isDark } = useTheme();
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -49,7 +49,6 @@ export function Header() {
     return `${days}日前`;
   };
 
-  // ログイン済みユーザーの場合は自分のマイページへ、未ログインの場合は /
   const homeHref = realUser?._id ? `/users/${realUser._id}` : "/";
 
   return (
@@ -57,7 +56,7 @@ export function Header() {
       <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
         <Link href={homeHref} className="flex items-center gap-2">
           <Soup className="w-6 h-6" style={{ color: themeColor }} />
-          <span className="font-bold text-lg">Nooodle</span>
+          <span className="font-bold text-lg text-gray-900">Nooodle</span>
         </Link>
 
         <div className="flex items-center gap-2">
@@ -70,7 +69,6 @@ export function Header() {
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
 
-              {/* ハンバーガーメニューオーバーレイ */}
               {isMenuOpen && (
                 <div
                   className="fixed inset-0 z-[60] bg-black/50 transition-opacity"
@@ -88,7 +86,6 @@ export function Header() {
                     </div>
 
                     <div className="p-4 overflow-y-auto flex-1">
-                      {/* ランク表示 */}
                       <div className="mb-6 p-4 bg-gray-50 rounded-xl flex flex-col items-center">
                         <div className="font-medium text-xs text-gray-500 mb-2">現在のランク</div>
                         <div
@@ -101,7 +98,6 @@ export function Header() {
                         </div>
                       </div>
 
-                      {/* メニュー項目 */}
                       <nav className="space-y-1">
                         <Link
                           href="/insights"
@@ -122,6 +118,33 @@ export function Header() {
                           <Info className="w-5 h-5 text-gray-500" />
                           <span>Nooodleについて</span>
                         </Link>
+
+                        <button
+                          onClick={toggleColorMode}
+                          className="flex items-center justify-between w-full p-3 hover:bg-gray-50 rounded-xl text-gray-700 font-medium transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {isDark ? (
+                              <Moon className="w-5 h-5 text-gray-500" />
+                            ) : (
+                              <Sun className="w-5 h-5 text-gray-500" />
+                            )}
+                            <span>{isDark ? "ダークモード" : "ライトモード"}</span>
+                          </div>
+                          <div
+                            className={cn(
+                              "w-10 h-6 rounded-full p-0.5 transition-colors",
+                              isDark ? "bg-gray-600" : "bg-gray-300"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
+                                isDark ? "translate-x-4" : "translate-x-0"
+                              )}
+                            />
+                          </div>
+                        </button>
 
                         <Link
                           href="/settings"
@@ -175,7 +198,6 @@ export function Header() {
                 </div>
               )}
 
-              {/* 通知ベル */}
               <Popover.Root open={isNotificationOpen} onOpenChange={handleOpenChange}>
                 <Popover.Trigger asChild>
                   <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -208,7 +230,6 @@ export function Header() {
 
                     <div className="max-h-72 overflow-y-auto">
                       {notifications === undefined ? (
-                        // ローディング状態（スケルトン）
                         <div className="space-y-0">
                           {[...Array(3)].map((_, i) => (
                             <div key={i} className="flex items-center gap-3 p-3 border-b border-gray-50 animate-pulse">
@@ -222,7 +243,6 @@ export function Header() {
                         </div>
                       ) : notifications.length > 0 ? (
                         notifications.map((notification) => {
-                          // 管理者通知はリンクなし
                           const isAdminAnnouncement = notification.type === "admin_announcement";
                           const href = isAdminAnnouncement
                             ? "#"
@@ -276,7 +296,7 @@ export function Header() {
                                     <p className="text-sm font-medium text-purple-700">
                                       {notification.title}
                                     </p>
-                                    <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                                       {notification.message}
                                     </p>
                                   </>
@@ -327,7 +347,7 @@ export function Header() {
                                     )}
                                   </p>
                                 )}
-                                <p className="text-xs text-gray-400 mt-0.5">
+                                <p className="text-xs text-gray-500 mt-0.5">
                                   {formatTime(notification.createdAt)}
                                 </p>
                               </div>
@@ -346,7 +366,7 @@ export function Header() {
                               onClick={handleClick}
                               className={cn(
                                 "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0 cursor-default",
-                                !notification.isRead && "bg-purple-50/50"
+                                !notification.isRead && "bg-purple-50"
                               )}
                             >
                               {content}
@@ -358,7 +378,7 @@ export function Header() {
                               onClick={handleClick}
                               className={cn(
                                 "flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0",
-                                !notification.isRead && "bg-orange-50/50"
+                                !notification.isRead && "bg-orange-50"
                               )}
                             >
                               {content}
@@ -369,7 +389,7 @@ export function Header() {
                         <div className="p-8 text-center">
                           <Bell className="w-10 h-10 text-gray-200 mx-auto mb-2" />
                           <p className="text-sm text-gray-400">まだ通知はありません</p>
-                          <p className="text-xs text-gray-300 mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             フォローやコメントがあると通知されます
                           </p>
                         </div>
@@ -411,7 +431,6 @@ export function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
       <div className="max-w-md mx-auto flex items-center justify-around h-16">
         {navItems.map((item) => {
-          // プロフィールページの場合は / または /users/[id] がアクティブ
           const isActive = item.isProfile
             ? pathname === "/" || pathname === myProfileHref
             : pathname === item.href;

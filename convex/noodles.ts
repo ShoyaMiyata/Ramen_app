@@ -211,7 +211,10 @@ export const list = query({
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrls = noodle.r2ImageUrls;
+          imageUrl = imageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
           imageUrls = [noodle.r2ImageUrl];
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {
@@ -257,7 +260,10 @@ export const getById = query({
     let imageUrl: string | null = null;
     let imageUrls: string[] = [];
 
-    if (noodle.r2ImageUrl) {
+    if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+      imageUrls = noodle.r2ImageUrls;
+      imageUrl = imageUrls[0];
+    } else if (noodle.r2ImageUrl) {
       imageUrl = noodle.r2ImageUrl;
       imageUrls = [noodle.r2ImageUrl];
     } else if (noodle.imageIds && noodle.imageIds.length > 0) {
@@ -370,7 +376,10 @@ export const getByUser = query({
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrls = noodle.r2ImageUrls;
+          imageUrl = imageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
           imageUrls = [noodle.r2ImageUrl];
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {
@@ -424,7 +433,10 @@ export const getGalleryByUser = query({
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrls = noodle.r2ImageUrls;
+          imageUrl = imageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
           imageUrls = [noodle.r2ImageUrl];
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {
@@ -464,17 +476,17 @@ export const create = mutation({
     imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（非推奨）
     r2ImageUrl: v.optional(v.string()), // Cloudflare R2画像URL
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー（削除用）
+    r2ImageUrls: v.optional(v.array(v.string())),
+    r2ImageKeys: v.optional(v.array(v.string())),
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
     isDraft: v.optional(v.boolean()), // 下書きフラグ（未公開）
   },
   handler: async (ctx, args) => {
-    // プラン制限チェック
     const limitCheck = await canCreateNoodle(ctx.db, args.userId);
     if (!limitCheck.allowed) {
       throw new Error(limitCheck.reason || "投稿できません");
     }
 
-    // 投稿を作成
     const noodleId = await ctx.db.insert("noodles", {
       userId: args.userId,
       shopId: args.shopId,
@@ -483,12 +495,14 @@ export const create = mutation({
       visitDate: args.visitDate,
       comment: args.comment,
       evaluation: args.evaluation,
-      imageId: args.imageId, // 後方互換
-      imageIds: args.imageIds, // 後方互換
-      r2ImageUrl: args.r2ImageUrl, // R2画像URL
-      r2ImageKey: args.r2ImageKey, // R2削除用キー
-      isArchived: args.isArchived, // アーカイブフラグ
-      isDraft: args.isDraft, // 下書きフラグ
+      imageId: args.imageId,
+      imageIds: args.imageIds,
+      r2ImageUrl: args.r2ImageUrl,
+      r2ImageKey: args.r2ImageKey,
+      r2ImageUrls: args.r2ImageUrls,
+      r2ImageKeys: args.r2ImageKeys,
+      isArchived: args.isArchived,
+      isDraft: args.isDraft,
       createdAt: Date.now(),
     });
 
@@ -575,30 +589,30 @@ export const update = mutation({
     imageIds: v.optional(v.array(v.id("_storage"))), // 複数画像（非推奨）
     r2ImageUrl: v.optional(v.string()), // R2画像URL
     r2ImageKey: v.optional(v.string()), // R2オブジェクトキー
+    r2ImageUrls: v.optional(v.array(v.string())),
+    r2ImageKeys: v.optional(v.array(v.string())),
     removeImage: v.optional(v.boolean()),
-    isArchived: v.optional(v.boolean()), // アーカイブフラグ
-    isDraft: v.optional(v.boolean()), // 下書きフラグ
+    isArchived: v.optional(v.boolean()),
+    isDraft: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Record not found");
 
-    // 編集権限チェック：投稿者本人または管理者のみ編集可能
     const editor = await ctx.db.get(args.userId);
     if (!editor) throw new Error("User not found");
     const isOwner = existing.userId === args.userId;
     const isAdmin = editor.isAdmin === true;
     if (!isOwner && !isAdmin) throw new Error("Unauthorized");
 
-    // 画像の処理（R2対応）
     let newImageIds: typeof existing.imageIds = existing.imageIds;
     let newImageId: typeof existing.imageId = existing.imageId;
     let newR2ImageUrl: string | undefined = existing.r2ImageUrl;
     let newR2ImageKey: string | undefined = existing.r2ImageKey;
+    let newR2ImageUrls: string[] | undefined = existing.r2ImageUrls;
+    let newR2ImageKeys: string[] | undefined = existing.r2ImageKeys;
 
     if (args.removeImage) {
-      // 画像全削除の場合
-      // Convex Storage（後方互換）
       if (existing.imageIds) {
         for (const id of existing.imageIds) {
           await ctx.storage.delete(id);
@@ -609,17 +623,30 @@ export const update = mutation({
       }
       newImageIds = undefined;
       newImageId = undefined;
-
-      // R2画像は削除しない（API経由で削除する必要がある）
-      // フロントエンドで /api/upload DELETE を呼び出す
       newR2ImageUrl = undefined;
       newR2ImageKey = undefined;
+      newR2ImageUrls = undefined;
+      newR2ImageKeys = undefined;
+    } else if (args.r2ImageUrls !== undefined) {
+      newR2ImageUrls = args.r2ImageUrls.length > 0 ? args.r2ImageUrls : undefined;
+      newR2ImageKeys = args.r2ImageKeys && args.r2ImageKeys.length > 0 ? args.r2ImageKeys : undefined;
+      newR2ImageUrl = undefined;
+      newR2ImageKey = undefined;
+      if (existing.imageIds) {
+        for (const id of existing.imageIds) {
+          await ctx.storage.delete(id);
+        }
+      }
+      if (existing.imageId) {
+        await ctx.storage.delete(existing.imageId);
+      }
+      newImageIds = undefined;
+      newImageId = undefined;
     } else if (args.r2ImageUrl !== undefined) {
-      // 新しいR2画像が指定された場合
       newR2ImageUrl = args.r2ImageUrl;
       newR2ImageKey = args.r2ImageKey;
-
-      // Convex Storageの古い画像は削除（後方互換）
+      newR2ImageUrls = undefined;
+      newR2ImageKeys = undefined;
       if (existing.imageIds) {
         for (const id of existing.imageIds) {
           await ctx.storage.delete(id);
@@ -664,8 +691,10 @@ export const update = mutation({
       imageIds: newImageIds,
       r2ImageUrl: newR2ImageUrl,
       r2ImageKey: newR2ImageKey,
-      isArchived: args.isArchived, // アーカイブフラグを更新
-      isDraft: args.isDraft, // 下書きフラグを更新
+      r2ImageUrls: newR2ImageUrls,
+      r2ImageKeys: newR2ImageKeys,
+      isArchived: args.isArchived,
+      isDraft: args.isDraft,
     });
 
     return args.id;
@@ -741,8 +770,9 @@ export const getArchivedByUser = query({
       archivedNoodles.map(async (noodle) => {
         let imageUrl: string | null = null;
 
-        // R2画像を優先
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrl = noodle.r2ImageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {
           imageUrl = (await ctx.storage.getUrl(noodle.imageIds[0])) || null;
@@ -802,8 +832,9 @@ export const getDraftsByUser = query({
       draftNoodles.map(async (noodle) => {
         let imageUrl: string | null = null;
 
-        // R2画像を優先
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrl = noodle.r2ImageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {
           imageUrl = (await ctx.storage.getUrl(noodle.imageIds[0])) || null;
@@ -1160,7 +1191,10 @@ export const getByGroup = query({
         let imageUrl: string | null = null;
         let imageUrls: string[] = [];
 
-        if (noodle.r2ImageUrl) {
+        if (noodle.r2ImageUrls && noodle.r2ImageUrls.length > 0) {
+          imageUrls = noodle.r2ImageUrls;
+          imageUrl = imageUrls[0];
+        } else if (noodle.r2ImageUrl) {
           imageUrl = noodle.r2ImageUrl;
           imageUrls = [noodle.r2ImageUrl];
         } else if (noodle.imageIds && noodle.imageIds.length > 0) {

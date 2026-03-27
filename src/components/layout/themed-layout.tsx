@@ -28,7 +28,7 @@ export function ThemedLayout({ children }: { children: React.ReactNode }) {
 
   if (!isLoaded || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <LoadingPage />
       </div>
     );
@@ -37,7 +37,7 @@ export function ThemedLayout({ children }: { children: React.ReactNode }) {
   // オンボーディング未完了の場合はローディング表示（リダイレクト中）
   if (isSignedIn && realUser && !realUser.onboardingComplete) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <LoadingPage />
       </div>
     );
@@ -48,7 +48,7 @@ export function ThemedLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider rank={currentRank} selectedThemeLevel={selectedThemeLevel}>
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen pb-20">
         <Header />
         <TestModeBanner />
         <main className="max-w-md mx-auto px-4 py-4">{children}</main>

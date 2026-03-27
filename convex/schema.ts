@@ -57,6 +57,8 @@ export default defineSchema({
     // Cloudflare R2画像情報
     r2ImageUrl: v.optional(v.string()), // R2に保存された画像のURL
     r2ImageKey: v.optional(v.string()), // R2のオブジェクトキー（削除時に使用）
+    r2ImageUrls: v.optional(v.array(v.string())),
+    r2ImageKeys: v.optional(v.array(v.string())),
     groupIds: v.optional(v.array(v.id("groups"))), // グループ共有
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
     isDraft: v.optional(v.boolean()), // 下書きフラグ（未公開）

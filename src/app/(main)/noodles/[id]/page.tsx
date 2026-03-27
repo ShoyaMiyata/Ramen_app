@@ -14,10 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
 import { getPrefectureName } from "@/lib/utils/prefecture";
-import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils/cn";
 
 export default function NoodleDetailPage({
   params,
@@ -36,15 +37,11 @@ export default function NoodleDetailPage({
   const [showLikeUsersModal, setShowLikeUsersModal] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
 
   const noodleId = id as Id<"noodles">;
 
-  const noodle = useQuery(api.noodles.getById, {
-    id: noodleId,
-  });
-
-  // 前後の投稿を取得
+  const noodle = useQuery(api.noodles.getById, { id: noodleId });
   const adjacentPosts = useQuery(api.noodles.getAdjacentPosts, {
     currentId: noodleId,
     viewerId: user?._id,
@@ -55,7 +52,6 @@ export default function NoodleDetailPage({
   const createComment = useMutation(api.comments.create);
   const removeComment = useMutation(api.comments.remove);
 
-  // コメントへのいいね
   const commentIds = commentsData?.items.map(c => c._id) ?? [];
   const commentLikeCounts = useQuery(
     api.commentLikes.getCountBatch,
@@ -67,7 +63,6 @@ export default function NoodleDetailPage({
   );
   const toggleCommentLike = useMutation(api.commentLikes.toggle);
 
-  // コメントデータを状態にセット
   useEffect(() => {
     if (commentsData?.items) {
       setAllComments(commentsData.items);
@@ -76,13 +71,9 @@ export default function NoodleDetailPage({
 
   const isLiked = useQuery(
     api.likes.isLiked,
-    user && noodle
-      ? { userId: user._id, noodleId: noodle._id }
-      : "skip"
+    user && noodle ? { userId: user._id, noodleId: noodle._id } : "skip"
   );
-
   const likeCount = useQuery(api.likes.getCount, { noodleId });
-
   const likeUsers = useQuery(
     api.likes.getLikeUsers,
     showLikeUsersModal ? { noodleId } : "skip"
@@ -91,28 +82,25 @@ export default function NoodleDetailPage({
   const toggleLike = useMutation(api.likes.toggle);
   const removeNoodle = useMutation(api.noodles.remove);
 
-  if (!isLoaded || noodle === undefined) {
-    return <LoadingPage />;
-  }
+  if (!isLoaded || noodle === undefined) return <LoadingPage />;
 
   if (!noodle) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500 mb-4">記録が見つかりません</p>
-        <Link href="/noodles">
-          <Button variant="outline">一覧に戻る</Button>
-        </Link>
+        <Link href="/noodles"><Button variant="outline">一覧に戻る</Button></Link>
       </div>
     );
   }
 
-  // 投稿者本人または管理者は編集・削除可能
   const isOwner = user?._id === noodle.userId;
   const isAdmin = user?.isAdmin === true;
   const canEdit = isOwner || isAdmin;
 
   const handleLike = async () => {
     if (!user) return;
+    setIsLikeAnimating(true);
+    setTimeout(() => setIsLikeAnimating(false), 400);
     await toggleLike({ userId: user._id, noodleId: noodle._id });
   };
 
@@ -132,11 +120,7 @@ export default function NoodleDetailPage({
     if (!user || !commentText.trim()) return;
     setIsSubmittingComment(true);
     try {
-      await createComment({
-        noodleId,
-        userId: user._id,
-        content: commentText.trim(),
-      });
+      await createComment({ noodleId, userId: user._id, content: commentText.trim() });
       setCommentText("");
     } catch (error) {
       console.error("Failed to post comment:", error);
@@ -147,20 +131,14 @@ export default function NoodleDetailPage({
 
   const handleDeleteComment = async (commentId: Id<"comments">) => {
     if (!user) return;
-    try {
-      await removeComment({ commentId, userId: user._id });
-    } catch (error) {
-      console.error("Failed to delete comment:", error);
-    }
+    try { await removeComment({ commentId, userId: user._id }); }
+    catch (error) { console.error("Failed to delete comment:", error); }
   };
 
   const handleCommentLike = async (commentId: Id<"comments">) => {
     if (!user) return;
-    try {
-      await toggleCommentLike({ userId: user._id, commentId });
-    } catch (error) {
-      console.error("Failed to toggle comment like:", error);
-    }
+    try { await toggleCommentLike({ userId: user._id, commentId }); }
+    catch (error) { console.error("Failed to toggle comment like:", error); }
   };
 
   const formatTimeAgo = (timestamp: number) => {
@@ -168,7 +146,6 @@ export default function NoodleDetailPage({
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-
     if (minutes < 1) return "たった今";
     if (minutes < 60) return `${minutes}分前`;
     if (hours < 24) return `${hours}時間前`;
@@ -176,260 +153,305 @@ export default function NoodleDetailPage({
     return formatDate(timestamp);
   };
 
-
   return (
-    <div className="space-y-4 relative">
-      {/* Navigation Bar */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/noodles"
-          className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">投稿一覧</span>
-        </Link>
-
-        {/* Navigation Buttons */}
-        {adjacentPosts && (adjacentPosts.prev || adjacentPosts.next) && (
-          <div className="flex items-center gap-2">
-            {adjacentPosts.prev ? (
-              <Link
-                href={`/noodles/${adjacentPosts.prev._id}`}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Link>
-            ) : (
-              <div className="w-10" />
-            )}
-            {adjacentPosts.next ? (
-              <Link
-                href={`/noodles/${adjacentPosts.next._id}`}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            ) : (
-              <div className="w-10" />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Main Content */}
-      <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
-        {/* Images */}
-        {noodle.imageUrls && noodle.imageUrls.length > 0 && (
-          <div className="space-y-2">
-            {/* メイン画像 */}
-            <button
-              onClick={() => {
-                setCurrentImageIndex(0);
-                setShowImageModal(true);
-              }}
-              className="w-full rounded-xl overflow-hidden shadow-sm relative aspect-video hover:opacity-90 transition-opacity"
-            >
-              <Image
-                src={noodle.imageUrls[0]}
-                alt={noodle.ramenName}
-                fill
-                sizes="(max-width: 768px) 100vw, 640px"
-                className="object-cover"
-                priority
-              />
-              {noodle.imageUrls.length > 1 && (
-                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                  1/{noodle.imageUrls.length}
-                </div>
-              )}
-            </button>
-
-            {/* サムネイル（2枚目以降がある場合） */}
+    <div className="-mx-4 -mt-4">
+      {noodle.imageUrls && noodle.imageUrls.length > 0 && (
+        <div className="relative">
+          <button
+            onClick={() => { setCurrentImageIndex(0); setShowImageModal(true); }}
+            className="w-full relative aspect-square"
+          >
+            <Image
+              src={noodle.imageUrls[0]}
+              alt={noodle.ramenName}
+              fill
+              sizes="100vw"
+              className="object-cover"
+              priority
+            />
             {noodle.imageUrls.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {noodle.imageUrls.slice(1, 5).map((imageUrl, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setCurrentImageIndex(index + 1);
-                      setShowImageModal(true);
-                    }}
-                    className="rounded-lg overflow-hidden shadow-sm relative aspect-square hover:opacity-90 transition-opacity"
-                  >
-                    <Image
-                      src={imageUrl}
-                      alt={`${noodle.ramenName} ${index + 2}`}
-                      fill
-                      sizes="(max-width: 768px) 25vw, 160px"
-                      className="object-cover"
-                    />
-                    {index === 3 && noodle.imageUrls.length > 5 && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="text-white text-sm font-bold">
-                          +{noodle.imageUrls.length - 5}
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                ))}
+              <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">
+                1/{noodle.imageUrls.length}
               </div>
             )}
+          </button>
+
+          <div
+            className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3"
+            style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%)" }}
+          >
+            <Link
+              href="/noodles"
+              className="p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="flex-1" />
+            {adjacentPosts?.prev && (
+              <Link
+                href={`/noodles/${adjacentPosts.prev._id}`}
+                className="p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Link>
+            )}
+            {adjacentPosts?.next && (
+              <Link
+                href={`/noodles/${adjacentPosts.next._id}`}
+                className="p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Link>
+            )}
+            {canEdit && (
+              <Link
+                href={`/noodles/${noodle._id}/edit`}
+                className="p-1.5 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors"
+              >
+                <Edit className="w-5 h-5" />
+              </Link>
+            )}
           </div>
+
+          {noodle.user && (
+            <Link
+              href={`/users/${noodle.userId}`}
+              className="absolute bottom-0 left-0 right-0 z-10 flex items-center gap-3 px-4 py-3"
+              style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)" }}
+            >
+              {noodle.user.imageUrl ? (
+                <img
+                  src={noodle.user.imageUrl}
+                  alt={noodle.user.name || ""}
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <User className="w-4 h-4 text-white/80" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-white drop-shadow-sm block truncate">
+                  {noodle.user.name || "ユーザー"}
+                </span>
+                <span className="text-xs text-white/70 drop-shadow-sm">
+                  {formatDate(noodle._creationTime)}
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {noodle.imageUrls.length > 1 && (
+            <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-1.5 px-4">
+              {noodle.imageUrls.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { setCurrentImageIndex(idx); setShowImageModal(true); }}
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full transition-colors",
+                    idx === 0 ? "bg-white" : "bg-white/40"
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="px-4 pt-3 pb-2">
+        <div className="flex items-center gap-4 mb-2">
+          {!isOwner ? (
+            <button onClick={handleLike} className="relative flex items-center justify-center">
+              <motion.div
+                animate={isLikeAnimating ? { scale: [1, 1.3, 0.9, 1.1, 1] } : {}}
+                transition={{ duration: 0.4 }}
+              >
+                <Heart
+                  className={cn(
+                    "w-7 h-7 transition-colors",
+                    isLiked ? "fill-red-500 text-red-500" : "text-gray-900 hover:text-gray-600"
+                  )}
+                />
+              </motion.div>
+            </button>
+          ) : (
+            <Heart className="w-7 h-7 text-gray-900" />
+          )}
+          <MessageCircle className="w-7 h-7 text-gray-900" />
+          <div className="ml-auto">
+            <StarRating value={noodle.evaluation} readonly size="md" />
+          </div>
+        </div>
+
+        {likeCount !== undefined && likeCount > 0 && (
+          <button
+            onClick={() => setShowLikeUsersModal(true)}
+            className="text-sm font-semibold text-gray-900 mb-1 block"
+          >
+            {likeCount.toLocaleString()}件のいいね
+          </button>
         )}
 
-        {/* Header */}
-        <div>
+        <div className="mb-1">
           {noodle.shopId ? (
             <Link
               href={`/shops/${noodle.shopId}?from=noodle&noodleId=${noodle._id}`}
-              className="font-bold text-xl text-gray-900 hover:text-orange-500 transition-colors inline-block"
+              className="font-bold text-gray-900 hover:text-orange-500 transition-colors"
             >
               {noodle.shop?.name || "不明な店舗"}
             </Link>
           ) : (
-            <h1 className="font-bold text-xl text-gray-900">
-              {noodle.shop?.name || "不明な店舗"}
-            </h1>
+            <span className="font-bold text-gray-900">{noodle.shop?.name || "不明な店舗"}</span>
           )}
-          <p className="text-gray-600">{noodle.ramenName}</p>
+          <span className="text-gray-600 ml-2">{noodle.ramenName}</span>
         </div>
 
-        {/* Rating */}
-        <div className="flex items-center gap-2">
-          <StarRating value={noodle.evaluation} readonly size="md" />
-          {noodle.evaluation === null ||
-            (noodle.evaluation === undefined && (
-              <span className="text-sm text-gray-400">未評価</span>
-            ))}
-        </div>
-
-        {/* Genres */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1 mb-2">
           {noodle.genres.map((genre) => (
-            <Badge key={genre} rarity="common">
+            <Badge key={genre} rarity="common" className="text-[10px]">
               {genre}
             </Badge>
           ))}
         </div>
 
-        {/* Visit Date & Prefecture & Station */}
-        <div className="text-sm text-gray-500 space-y-1">
-          {noodle.visitDate && (
-            <p>訪問日: {formatDate(noodle.visitDate)}</p>
+        {noodle.comment && (
+          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-2">
+            {noodle.user && <span className="font-semibold text-gray-900 mr-1">{noodle.user.name}</span>}
+            {noodle.comment}
+          </p>
+        )}
+
+        <div className="text-xs text-gray-500 space-x-2 mb-2">
+          {noodle.visitDate && <span>訪問 {formatDate(noodle.visitDate)}</span>}
+          {noodle.shop?.prefecture && <span>· {getPrefectureName(noodle.shop.prefecture)}</span>}
+          {noodle.shop?.station && <span>· {noodle.shop.station}</span>}
+        </div>
+
+        {canEdit && (
+          <Dialog.Root open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <Dialog.Trigger asChild>
+              <button className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                この投稿を削除
+              </button>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm">
+                <Dialog.Title className="font-bold text-lg text-gray-900 mb-2">記録を削除</Dialog.Title>
+                <Dialog.Description className="text-gray-500 text-sm mb-4">
+                  この記録を削除してもよろしいですか？この操作は取り消せません。
+                </Dialog.Description>
+                <div className="flex gap-3 justify-end">
+                  <Dialog.Close asChild>
+                    <Button variant="outline" size="sm">キャンセル</Button>
+                  </Dialog.Close>
+                  <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting}>
+                    {isDeleting ? <Loading size="sm" /> : "削除する"}
+                  </Button>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+        )}
+      </div>
+
+      <div className="border-t border-gray-100 mx-4" />
+
+      <div className="px-4 py-3">
+        {commentCount !== undefined && commentCount > 0 && (
+          <p className="text-sm text-gray-500 mb-3">
+            コメント{commentCount}件
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {commentsData === undefined ? (
+            <div className="py-4 text-center"><Loading size="sm" /></div>
+          ) : allComments.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-2">まだコメントはありません</p>
+          ) : (
+            allComments.map((comment) => (
+              <div key={comment._id} className="flex gap-2.5 group">
+                <Link href={`/users/${comment.userId}`} className="flex-shrink-0">
+                  {comment.user?.imageUrl ? (
+                    <img src={comment.user.imageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+                  )}
+                </Link>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700">
+                    <Link href={`/users/${comment.userId}`} className="font-semibold text-gray-900 mr-1 hover:underline">
+                      {comment.user?.name || "ユーザー"}
+                    </Link>
+                    {comment.content}
+                  </p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-xs text-gray-400">{formatTimeAgo(comment.createdAt)}</span>
+                    {user && (
+                      <button
+                        onClick={() => handleCommentLike(comment._id)}
+                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                      >
+                        <Heart className={cn("w-3 h-3", commentLikeStates?.[comment._id] && "fill-orange-500 text-orange-500")} />
+                        {commentLikeCounts?.[comment._id] !== undefined && commentLikeCounts[comment._id] > 0 && (
+                          <span>{commentLikeCounts[comment._id]}</span>
+                        )}
+                      </button>
+                    )}
+                    {user?._id === comment.userId && (
+                      <button
+                        onClick={() => handleDeleteComment(comment._id)}
+                        className="text-xs text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        削除
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
           )}
-          {noodle.shop?.prefecture && (
-            <p>{getPrefectureName(noodle.shop.prefecture)}</p>
-          )}
-          {noodle.shop?.station && (
-            <p>最寄駅: {noodle.shop.station}</p>
+          {commentsData?.hasMore && (
+            <button
+              onClick={() => {}}
+              className="text-sm text-center w-full py-1"
+              style={{ color: themeColor }}
+            >
+              さらに表示
+            </button>
           )}
         </div>
 
-        {/* Comment */}
-        {noodle.comment && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{noodle.comment}</p>
-          </div>
-        )}
-
-        {/* User Info */}
-        <Link
-          href={`/users/${noodle.userId}`}
-          className="flex items-center gap-3 pt-4 mt-2 border-t border-gray-100 hover:bg-gray-50 -mx-4 -mb-4 px-4 pb-4 rounded-lg transition-colors"
-        >
-          {noodle.user?.imageUrl ? (
-            <img
-              src={noodle.user.imageUrl}
-              alt={noodle.user.name || ""}
-              className="w-8 h-8 rounded-full"
+        {user && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+            {user.imageUrl ? (
+              <img src={user.imageUrl} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
+            )}
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="コメントを追加..."
+              className="flex-1 text-sm bg-transparent border-none outline-none placeholder-gray-400"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleCommentSubmit(); }
+              }}
             />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <User className="w-4 h-4 text-gray-400" />
-            </div>
-          )}
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              {noodle.user?.name || "ユーザー"}
-            </p>
-            <p className="text-xs text-gray-400">
-              投稿日: {formatDate(noodle._creationTime)}
-            </p>
+            <button
+              onClick={handleCommentSubmit}
+              disabled={!commentText.trim() || isSubmittingComment}
+              className="text-sm font-semibold disabled:opacity-30 transition-opacity"
+              style={{ color: themeColor }}
+            >
+              投稿
+            </button>
           </div>
-        </Link>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-3">
-        {canEdit ? (
-          <>
-            <Link href={`/noodles/${noodle._id}/edit`} className="flex-1">
-              <Button variant="outline" className="w-full gap-2">
-                <Edit className="w-4 h-4" />
-                編集
-              </Button>
-            </Link>
-            <Dialog.Root open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-              <Dialog.Trigger asChild>
-                <Button variant="destructive" className="gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  削除
-                </Button>
-              </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-                <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm">
-                  <Dialog.Title className="font-bold text-lg text-gray-900 mb-2">
-                    記録を削除
-                  </Dialog.Title>
-                  <Dialog.Description className="text-gray-500 text-sm mb-4">
-                    この記録を削除してもよろしいですか？この操作は取り消せません。
-                  </Dialog.Description>
-                  <div className="flex gap-3 justify-end">
-                    <Dialog.Close asChild>
-                      <Button variant="outline" size="sm">
-                        キャンセル
-                      </Button>
-                    </Dialog.Close>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? <Loading size="sm" /> : "削除する"}
-                    </Button>
-                  </div>
-                </Dialog.Content>
-              </Dialog.Portal>
-            </Dialog.Root>
-          </>
-        ) : (
-          <Button
-            variant={isLiked ? "default" : "outline"}
-            className="flex-1 gap-2"
-            onClick={handleLike}
-          >
-            <Heart
-              className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`}
-            />
-            {isLiked ? "いいね済み" : "いいね"}
-          </Button>
         )}
       </div>
 
-      {/* Like Count - クリックでいいねしたユーザー一覧表示 */}
-      {likeCount !== undefined && likeCount > 0 && (
-        <button
-          onClick={() => setShowLikeUsersModal(true)}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-        >
-          <Heart className="w-4 h-4" style={{ color: themeColor }} />
-          <span>{likeCount}人がいいね</span>
-        </button>
-      )}
-
-      {/* Like Users Modal */}
       <AnimatePresence>
         {showLikeUsersModal && (
           <motion.div
@@ -447,23 +469,16 @@ export default function NoodleDetailPage({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="font-bold text-lg">いいねした人</h2>
-                <button
-                  onClick={() => setShowLikeUsersModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg"
-                >
+                <h2 className="font-bold text-lg text-gray-900">いいねした人</h2>
+                <button onClick={() => setShowLikeUsersModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
               <div className="flex-1 overflow-auto p-4">
                 {likeUsers === undefined ? (
-                  <div className="flex justify-center py-8">
-                    <Loading size="sm" />
-                  </div>
+                  <div className="flex justify-center py-8"><Loading size="sm" /></div>
                 ) : likeUsers.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    まだいいねがありません
-                  </p>
+                  <p className="text-center text-gray-500 py-8">まだいいねがありません</p>
                 ) : (
                   <div className="space-y-3">
                     {likeUsers.map((likeUser) => (
@@ -474,19 +489,13 @@ export default function NoodleDetailPage({
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
                       >
                         {likeUser.imageUrl ? (
-                          <img
-                            src={likeUser.imageUrl}
-                            alt={likeUser.name || ""}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
+                          <img src={likeUser.imageUrl} alt={likeUser.name || ""} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                             <User className="w-5 h-5 text-gray-400" />
                           </div>
                         )}
-                        <span className="font-medium text-gray-900">
-                          {likeUser.name || "ユーザー"}
-                        </span>
+                        <span className="font-medium text-gray-900">{likeUser.name || "ユーザー"}</span>
                       </Link>
                     ))}
                   </div>
@@ -497,137 +506,6 @@ export default function NoodleDetailPage({
         )}
       </AnimatePresence>
 
-      {/* Comments Section */}
-      <div className="bg-white rounded-xl p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <MessageCircle className="w-5 h-5" style={{ color: themeColor }} />
-          <h2 className="font-bold text-gray-900">
-            コメント {commentCount !== undefined && commentCount > 0 && `(${commentCount})`}
-          </h2>
-        </div>
-
-        {/* Comment Input */}
-        {user && (
-          <div className="flex gap-2 mb-4">
-            {user.imageUrl ? (
-              <img
-                src={user.imageUrl}
-                alt=""
-                className="w-8 h-8 rounded-full flex-shrink-0"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
-            )}
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="コメントを入力..."
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleCommentSubmit();
-                  }
-                }}
-              />
-              <button
-                onClick={handleCommentSubmit}
-                disabled={!commentText.trim() || isSubmittingComment}
-                className="p-2 rounded-lg transition-colors disabled:opacity-50"
-                style={{ backgroundColor: themeColor, color: "white" }}
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Comments List */}
-        <div className="space-y-3">
-          {commentsData === undefined ? (
-            <div className="py-4 text-center">
-              <Loading size="sm" />
-            </div>
-          ) : allComments.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
-              まだコメントはありません
-            </p>
-          ) : (
-            allComments.map((comment) => (
-              <div key={comment._id} className="flex gap-2 group">
-                <Link href={`/users/${comment.userId}`}>
-                  {comment.user?.imageUrl ? (
-                    <img
-                      src={comment.user.imageUrl}
-                      alt=""
-                      className="w-8 h-8 rounded-full flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
-                  )}
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <div className="bg-gray-50 rounded-lg px-3 py-2">
-                    <Link
-                      href={`/users/${comment.userId}`}
-                      className="text-sm font-medium text-gray-900 hover:underline"
-                    >
-                      {comment.user?.name || "ユーザー"}
-                    </Link>
-                    <p className="text-sm text-gray-700 break-words">
-                      {comment.content}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 mt-1 px-1">
-                    <span className="text-xs text-gray-400">
-                      {formatTimeAgo(comment.createdAt)}
-                    </span>
-                    {user && (
-                      <button
-                        onClick={() => handleCommentLike(comment._id)}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
-                      >
-                        <Heart
-                          className={`w-3.5 h-3.5 ${
-                            commentLikeStates?.[comment._id]
-                              ? "fill-orange-500 text-orange-500"
-                              : ""
-                          }`}
-                        />
-                        {commentLikeCounts?.[comment._id] !== undefined && commentLikeCounts[comment._id] > 0 && (
-                          <span>{commentLikeCounts[comment._id]}</span>
-                        )}
-                      </button>
-                    )}
-                    {user?._id === comment.userId && (
-                      <button
-                        onClick={() => handleDeleteComment(comment._id)}
-                        className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        削除
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-          {/* Load More Button */}
-          {commentsData?.hasMore && (
-            <button
-              onClick={() => {/* TODO: Load more comments */ }}
-              className="text-sm text-center w-full py-2 hover:text-gray-600"
-              style={{ color: themeColor }}
-            >
-              さらに表示
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Image Modal */}
       <AnimatePresence>
         {showImageModal && noodle.imageUrls && (
           <motion.div
@@ -639,10 +517,7 @@ export default function NoodleDetailPage({
           >
             <div className="flex items-center justify-between p-4">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowImageModal(false);
-                }}
+                onClick={(e) => { e.stopPropagation(); setShowImageModal(false); }}
                 className="p-2 text-white hover:bg-white/10 rounded-lg"
               >
                 <X className="w-6 h-6" />
@@ -666,10 +541,7 @@ export default function NoodleDetailPage({
 
               {currentImageIndex > 0 && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(currentImageIndex - 1);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(currentImageIndex - 1); }}
                   className="absolute left-2 p-2 text-white hover:bg-white/10 rounded-full"
                 >
                   <ArrowLeft className="w-8 h-8" />
@@ -678,10 +550,7 @@ export default function NoodleDetailPage({
 
               {currentImageIndex < noodle.imageUrls.length - 1 && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(currentImageIndex + 1);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(currentImageIndex + 1); }}
                   className="absolute right-2 p-2 text-white hover:bg-white/10 rounded-full"
                 >
                   <ArrowLeft className="w-8 h-8 rotate-180" />

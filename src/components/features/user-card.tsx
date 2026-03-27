@@ -7,7 +7,8 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { getRankByShopCount } from "@/lib/constants/ranks";
 import { useState } from "react";
-import { Lock, Clock } from "lucide-react";
+import { Lock, Clock, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface UserCardProps {
   user: Doc<"users">;
@@ -21,6 +22,7 @@ export function UserCard({
   showFollowButton = true,
 }: UserCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFollowSuccess, setShowFollowSuccess] = useState(false);
 
   const noodles = useQuery(api.noodles.getByUser, { userId: user._id });
   const followCounts = useQuery(api.follows.getCounts, { userId: user._id });
@@ -57,6 +59,8 @@ export function UserCard({
         await unfollow({ followerId: currentUserId, followingId: user._id });
       } else {
         await follow({ followerId: currentUserId, followingId: user._id });
+        setShowFollowSuccess(true);
+        setTimeout(() => setShowFollowSuccess(false), 1500);
       }
     } finally {
       setIsSubmitting(false);
@@ -107,23 +111,59 @@ export function UserCard({
         </Link>
 
         {showFollowButton && currentUserId && currentUserId !== user._id && (
-          <Button
-            variant={isFollowing || isRequestPending ? "outline" : "default"}
-            size="sm"
-            onClick={handleFollowToggle}
-            disabled={isSubmitting || isFollowing === undefined}
-          >
-            {isFollowing ? (
-              "フォロー中"
-            ) : isRequestPending ? (
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                申請中
-              </span>
-            ) : (
-              "フォロー"
-            )}
-          </Button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Button
+              variant={isFollowing || isRequestPending ? "outline" : "default"}
+              size="sm"
+              onClick={handleFollowToggle}
+              disabled={isSubmitting || isFollowing === undefined}
+              className="relative overflow-hidden"
+            >
+              <AnimatePresence mode="wait">
+                {showFollowSuccess ? (
+                  <motion.span
+                    key="success"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    className="flex items-center gap-1"
+                  >
+                    <Check className="w-4 h-4" />
+                  </motion.span>
+                ) : isFollowing ? (
+                  <motion.span
+                    key="following"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    フォロー中
+                  </motion.span>
+                ) : isRequestPending ? (
+                  <motion.span
+                    key="pending"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-1"
+                  >
+                    <Clock className="w-3 h-3" />
+                    申請中
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="follow"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    フォロー
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Button>
+          </motion.div>
         )}
       </div>
     </div>
