@@ -362,8 +362,8 @@ export default function NoodleDetailPage({
               </button>
             </Dialog.Trigger>
             <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm">
+              <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[100]" />
+              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-[101]">
                 <Dialog.Title className="font-bold text-lg text-gray-900 mb-2">記録を削除</Dialog.Title>
                 <Dialog.Description className="text-gray-500 text-sm mb-4">
                   この記録を削除してもよろしいですか？この操作は取り消せません。

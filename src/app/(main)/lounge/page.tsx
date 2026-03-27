@@ -71,7 +71,7 @@ export default function LoungePage() {
         </Link>
       </div>
 
-      <p className="text-sm text-gray-500">ラーメン以外の食事も自由に記録できる場所</p>
+      <p className="text-sm text-gray-500">なんでも自由に記録できる場所</p>
 
       {noodlesData === undefined && allItems.length === 0 ? (
         <Loading className="py-8" />
@@ -79,12 +79,12 @@ export default function LoungePage() {
         <div className="bg-white rounded-xl p-8 text-center">
           <Coffee className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 mb-1">まだ投稿がありません</p>
-          <p className="text-sm text-gray-400">ラーメン以外のグルメを記録してみましょう</p>
+          <p className="text-sm text-gray-400">なんでも自由に記録してみましょう</p>
         </div>
       ) : (
         <div className="space-y-2">
           {allItems.map((noodle) => (
-            <NoodleCard key={noodle._id} noodle={noodle} currentUserId={user?._id} />
+            <NoodleCard key={noodle._id} noodle={noodle} currentUserId={user?._id} hideGenres />
           ))}
           {noodlesData?.hasMore && (
             <button
