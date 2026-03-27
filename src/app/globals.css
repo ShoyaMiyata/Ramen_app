@@ -144,7 +144,14 @@ body {
 /* Dark mode overrides - remap Tailwind light-mode classes */
 html.dark .bg-white {
   background-color: #000000 !important;
-  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .from-white {
+  --tw-gradient-from: #000000 !important;
+}
+
+html.dark .to-gray-50 {
+  --tw-gradient-to: #0a0a0a !important;
 }
 
 html.dark .bg-gray-50 {
