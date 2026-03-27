@@ -35,6 +35,7 @@ export const list = query({
     dateFrom: v.optional(v.number()), // 訪問日開始（Unix timestamp）
     dateTo: v.optional(v.number()), // 訪問日終了（Unix timestamp）
     station: v.optional(v.string()), // 駅名フィルタ
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
@@ -44,6 +45,12 @@ export const list = query({
 
     // アーカイブされた投稿と下書きを除外（タイムラインには表示しない）
     noodles = noodles.filter((noodle) => !noodle.isArchived && !noodle.isDraft);
+
+    if (args.room) {
+      noodles = noodles.filter((noodle) => noodle.room === args.room);
+    } else {
+      noodles = noodles.filter((noodle) => !noodle.room || noodle.room === "ramen");
+    }
 
     // ユーザー情報を取得（後でエンリッチメントにも使用）
     const users = await ctx.db.query("users").collect();
@@ -299,6 +306,7 @@ export const getByUser = query({
     maxRating: v.optional(v.number()), // 最高評価フィルタ（1-5）
     dateFrom: v.optional(v.number()), // 訪問日開始（Unix timestamp）
     dateTo: v.optional(v.number()), // 訪問日終了（Unix timestamp）
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
@@ -309,6 +317,12 @@ export const getByUser = query({
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
+
+    if (args.room) {
+      allNoodles = allNoodles.filter((noodle) => noodle.room === args.room);
+    } else {
+      allNoodles = allNoodles.filter((noodle) => !noodle.room || noodle.room === "ramen");
+    }
 
     // Filter by genres
     if (args.genres && args.genres.length > 0) {
@@ -413,13 +427,19 @@ export const getByUser = query({
 
 // ギャラリー用：写真付きの記録のみ取得
 export const getGalleryByUser = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), room: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const noodles = await ctx.db
+    let noodles = await ctx.db
       .query("noodles")
       .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
+
+    if (args.room) {
+      noodles = noodles.filter((noodle) => noodle.room === args.room);
+    } else {
+      noodles = noodles.filter((noodle) => !noodle.room || noodle.room === "ramen");
+    }
 
     // 画像あり（r2ImageUrl、imageIds または imageId）のみ
     const withImages = noodles.filter((n) => (n.r2ImageUrls && n.r2ImageUrls.length > 0) || n.r2ImageUrl || (n.imageIds && n.imageIds.length > 0) || n.imageId);
@@ -480,6 +500,7 @@ export const create = mutation({
     r2ImageKeys: v.optional(v.array(v.string())),
     isArchived: v.optional(v.boolean()), // アーカイブフラグ（タイムラインに非表示）
     isDraft: v.optional(v.boolean()), // 下書きフラグ（未公開）
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const limitCheck = await canCreateNoodle(ctx.db, args.userId);
@@ -503,6 +524,7 @@ export const create = mutation({
       r2ImageKeys: args.r2ImageKeys,
       isArchived: args.isArchived,
       isDraft: args.isDraft,
+      room: args.room,
       createdAt: Date.now(),
     });
 
@@ -594,6 +616,7 @@ export const update = mutation({
     removeImage: v.optional(v.boolean()),
     isArchived: v.optional(v.boolean()),
     isDraft: v.optional(v.boolean()),
+    room: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
@@ -695,6 +718,7 @@ export const update = mutation({
       r2ImageKeys: newR2ImageKeys,
       isArchived: args.isArchived,
       isDraft: args.isDraft,
+      room: args.room,
     });
 
     return args.id;
