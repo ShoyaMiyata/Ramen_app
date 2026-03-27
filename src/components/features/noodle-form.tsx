@@ -205,33 +205,39 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
       let r2ImageUrls: string[] = [];
       let r2ImageKeys: string[] = [];
 
-      for (const key of removedR2Keys) {
-        try {
-          await fetch("/api/upload", {
+      await Promise.all(
+        removedR2Keys.map((key) =>
+          fetch("/api/upload", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ key }),
-          });
-        } catch (error) {
-          console.error("Failed to delete R2 image:", error);
-        }
-      }
+          }).catch((error) => console.error("Failed to delete R2 image:", error))
+        )
+      );
 
-      for (const img of images) {
-        if (img.file) {
-          const formData = new FormData();
-          formData.append("file", img.file);
-          const uploadResponse = await fetch("/api/upload", { method: "POST", body: formData });
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json().catch(() => ({ error: "不明なエラー" }));
-            throw new Error(`画像のアップロードに失敗しました: ${errorData.error}`);
+      const uploadResults = await Promise.all(
+        images.map(async (img) => {
+          if (img.file) {
+            const formData = new FormData();
+            formData.append("file", img.file);
+            const uploadResponse = await fetch("/api/upload", { method: "POST", body: formData });
+            if (!uploadResponse.ok) {
+              const errorData = await uploadResponse.json().catch(() => ({ error: "不明なエラー" }));
+              throw new Error(`画像のアップロードに失敗しました: ${errorData.error}`);
+            }
+            const { url, key } = await uploadResponse.json();
+            return { url, key };
+          } else if (img.r2Url) {
+            return { url: img.r2Url, key: img.r2Key || "" };
           }
-          const { url, key } = await uploadResponse.json();
-          r2ImageUrls.push(url);
-          r2ImageKeys.push(key);
-        } else if (img.r2Url) {
-          r2ImageUrls.push(img.r2Url);
-          if (img.r2Key) r2ImageKeys.push(img.r2Key);
+          return null;
+        })
+      );
+
+      for (const result of uploadResults) {
+        if (result) {
+          r2ImageUrls.push(result.url);
+          if (result.key) r2ImageKeys.push(result.key);
         }
       }
 
@@ -255,8 +261,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          r2ImageUrls,
-          r2ImageKeys,
+          r2ImageUrls: r2ImageUrls.length > 0 ? r2ImageUrls : undefined,
+          r2ImageKeys: r2ImageKeys.length > 0 ? r2ImageKeys : undefined,
           removeImage,
           isArchived: isArchived || undefined,
           isDraft: isDraft || undefined,
@@ -271,8 +277,8 @@ export function NoodleForm({ noodle }: NoodleFormProps) {
           visitDate: parseDateInput(visitDate),
           comment: comment || undefined,
           evaluation: evaluation ?? undefined,
-          r2ImageUrls,
-          r2ImageKeys,
+          r2ImageUrls: r2ImageUrls.length > 0 ? r2ImageUrls : undefined,
+          r2ImageKeys: r2ImageKeys.length > 0 ? r2ImageKeys : undefined,
           isArchived: isArchived || undefined,
           isDraft: isDraft || undefined,
         });
