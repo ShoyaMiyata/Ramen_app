@@ -32,22 +32,27 @@ interface NoodleFormProps {
     r2ImageKeys?: string[];
   };
   room?: string;
+  prefill?: {
+    shop?: Doc<"shops"> | null;
+    ramenName?: string;
+    fromBookmarkNoodleId?: Id<"noodles">;
+  };
 }
 
-export function NoodleForm({ noodle, room }: NoodleFormProps) {
+export function NoodleForm({ noodle, room, prefill }: NoodleFormProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [shopName, setShopName] = useState(noodle?.shop?.name || "");
-  const [shopAddress, setShopAddress] = useState(noodle?.shop?.address || "");
+  const [shopName, setShopName] = useState(noodle?.shop?.name || prefill?.shop?.name || "");
+  const [shopAddress, setShopAddress] = useState(noodle?.shop?.address || prefill?.shop?.address || "");
   const [shopPrefecture, setShopPrefecture] = useState<string | undefined>(
-    noodle?.shop?.prefecture || undefined
+    noodle?.shop?.prefecture || prefill?.shop?.prefecture || undefined
   );
-  const [shopStation, setShopStation] = useState(noodle?.shop?.station || "");
+  const [shopStation, setShopStation] = useState(noodle?.shop?.station || prefill?.shop?.station || "");
   const [shopSearch, setShopSearch] = useState("");
   const [showShopDropdown, setShowShopDropdown] = useState(false);
-  const [ramenName, setRamenName] = useState(noodle?.ramenName || "");
+  const [ramenName, setRamenName] = useState(noodle?.ramenName || prefill?.ramenName || "");
   const [ramenNameSearch, setRamenNameSearch] = useState("");
   const [showRamenNameDropdown, setShowRamenNameDropdown] = useState(false);
   const [genres, setGenres] = useState<string[]>(noodle?.genres || []);
@@ -102,6 +107,7 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
   const createNoodle = useMutation(api.noodles.create);
   const updateNoodle = useMutation(api.noodles.update);
   const checkBadges = useMutation(api.badges.checkAndAward);
+  const removeBookmarkByNoodle = useMutation(api.bookmarks.removeByNoodle);
 
   const currentShopCount = userNoodles
     ? new Set(userNoodles.items.map((n: any) => n.shopId)).size
@@ -286,6 +292,17 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
         });
 
         const noodleId = result.noodleId;
+
+        if (prefill?.fromBookmarkNoodleId && !isDraft) {
+          try {
+            await removeBookmarkByNoodle({
+              userId: user._id,
+              noodleId: prefill.fromBookmarkNoodleId,
+            });
+          } catch (e) {
+            console.error("Failed to remove bookmark:", e);
+          }
+        }
 
         const isNewShop = !userNoodles?.items.some((n: any) => n.shopId === shopId);
         if (isNewShop && prevShopCountRef.current !== null) {

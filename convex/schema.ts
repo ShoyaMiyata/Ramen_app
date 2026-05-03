@@ -78,6 +78,15 @@ export default defineSchema({
     .index("by_noodleId", ["noodleId"])
     .index("by_userId_noodleId", ["userId", "noodleId"]),
 
+  bookmarks: defineTable({
+    userId: v.id("users"),
+    noodleId: v.id("noodles"),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_noodleId", ["noodleId"])
+    .index("by_userId_noodleId", ["userId", "noodleId"]),
+
   userBadges: defineTable({
     userId: v.id("users"),
     badgeCode: v.string(),
