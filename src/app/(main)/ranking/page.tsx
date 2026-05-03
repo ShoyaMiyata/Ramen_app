@@ -183,10 +183,17 @@ function UserPodium({
     return Math.max(minH, Math.round(ratio * maxH));
   };
 
+  const rankColor = (rank: number) => {
+    if (rank === 1) return "#FFD700";
+    if (rank === 2) return "#C0C0C0";
+    if (rank === 3) return "#CD7F32";
+    return "#C0C0C0";
+  };
+
   const podiumConfig = [
-    { index: 1, color: "#C0C0C0", badge: "🥈", order: "order-1" },
-    { index: 0, color: "#FFD700", badge: "🥇", order: "order-2" },
-    { index: 2, color: "#CD7F32", badge: "🥉", order: "order-3" },
+    { index: 1, order: "order-1" },
+    { index: 0, order: "order-2" },
+    { index: 2, order: "order-3" },
   ];
 
   return (
@@ -200,6 +207,8 @@ function UserPodium({
           const height = calcHeight(val);
           const shopCount = "shopCount" in item ? item.shopCount : 0;
           const rank = showRank ? getRankByShopCount(shopCount) : null;
+          const color = rankColor(item.rank);
+          const isTop = item.rank === 1;
 
           return (
             <Link
@@ -214,22 +223,22 @@ function UserPodium({
                     alt={item.user.name}
                     className={cn(
                       "rounded-full border-3 object-cover",
-                      config.index === 0 ? "w-16 h-16" : "w-12 h-12"
+                      isTop ? "w-16 h-16" : "w-12 h-12"
                     )}
-                    style={{ borderColor: config.color }}
+                    style={{ borderColor: color }}
                   />
                 ) : (
                   <div
                     className={cn(
                       "rounded-full flex items-center justify-center text-white font-bold",
-                      config.index === 0 ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
+                      isTop ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
                     )}
-                    style={{ backgroundColor: config.color }}
+                    style={{ backgroundColor: color }}
                   >
                     {item.rank}
                   </div>
                 )}
-                {config.index === 0 && (
+                {item.rank === 1 && (
                   <Crown
                     className="w-6 h-6 text-yellow-500 absolute -top-4 left-1/2 -translate-x-1/2"
                     fill="#FFD700"
@@ -267,7 +276,7 @@ function UserPodium({
 
               <div
                 className="w-full rounded-t-lg transition-all duration-500"
-                style={{ backgroundColor: config.color, height: `${height}px` }}
+                style={{ backgroundColor: color, height: `${height}px` }}
               >
                 <div className="flex items-center justify-center pt-3">
                   <span className="text-white font-bold text-lg">{item.rank}</span>
@@ -375,10 +384,17 @@ function PostPodium({ top3 }: { top3: any[] }) {
     return Math.max(minH, Math.round(ratio * maxH));
   };
 
+  const rankColor = (rank: number) => {
+    if (rank === 1) return "#FFD700";
+    if (rank === 2) return "#C0C0C0";
+    if (rank === 3) return "#CD7F32";
+    return "#C0C0C0";
+  };
+
   const podiumConfig = [
-    { index: 1, color: "#C0C0C0", order: "order-1" },
-    { index: 0, color: "#FFD700", order: "order-2" },
-    { index: 2, color: "#CD7F32", order: "order-3" },
+    { index: 1, order: "order-1" },
+    { index: 0, order: "order-2" },
+    { index: 2, order: "order-3" },
   ];
 
   return (
@@ -387,6 +403,8 @@ function PostPodium({ top3 }: { top3: any[] }) {
         {podiumConfig.map((config) => {
           const item = top3[config.index];
           if (!item) return null;
+          const color = rankColor(item.rank);
+          const isTop = item.rank === 1;
 
           return (
             <Link
@@ -401,22 +419,22 @@ function PostPodium({ top3 }: { top3: any[] }) {
                     alt={item.user.name}
                     className={cn(
                       "rounded-full border-3 object-cover",
-                      config.index === 0 ? "w-16 h-16" : "w-12 h-12"
+                      isTop ? "w-16 h-16" : "w-12 h-12"
                     )}
-                    style={{ borderColor: config.color }}
+                    style={{ borderColor: color }}
                   />
                 ) : (
                   <div
                     className={cn(
                       "rounded-full flex items-center justify-center text-white font-bold",
-                      config.index === 0 ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
+                      isTop ? "w-16 h-16 text-xl" : "w-12 h-12 text-base"
                     )}
-                    style={{ backgroundColor: config.color }}
+                    style={{ backgroundColor: color }}
                   >
                     {item.rank}
                   </div>
                 )}
-                {config.index === 0 && (
+                {item.rank === 1 && (
                   <Crown
                     className="w-6 h-6 text-yellow-500 absolute -top-4 left-1/2 -translate-x-1/2"
                     fill="#FFD700"
@@ -440,7 +458,7 @@ function PostPodium({ top3 }: { top3: any[] }) {
 
               <div
                 className="w-full rounded-t-lg transition-all duration-500"
-                style={{ backgroundColor: config.color, height: `${calcHeight(item.likeCount || 0)}px` }}
+                style={{ backgroundColor: color, height: `${calcHeight(item.likeCount || 0)}px` }}
               >
                 <div className="flex items-center justify-center pt-3">
                   <span className="text-white font-bold text-lg">{item.rank}</span>

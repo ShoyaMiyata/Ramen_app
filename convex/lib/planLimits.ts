@@ -9,7 +9,7 @@ import { Id } from "../_generated/dataModel";
 export const PLAN_LIMITS = {
   free: {
     maxNoodlesPerMonth: 30,
-    maxLikes: 50,
+    maxLikes: Infinity,
   },
   premium: {
     maxNoodlesPerMonth: Infinity,

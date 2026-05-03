@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink, Moon, Sun, Coffee } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink, Moon, Sun } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -422,7 +422,6 @@ export function BottomNav() {
   const navItems = [
     { href: myProfileHref, icon: Home, label: "マイページ", isProfile: true },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
-    { href: "/lounge", icon: Coffee, label: "ラウンジ" },
     { href: "/search", icon: Search, label: "検索" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];
