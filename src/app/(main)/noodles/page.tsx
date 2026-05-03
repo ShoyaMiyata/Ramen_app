@@ -590,7 +590,7 @@ export default function NoodlesPage() {
         <div
           ref={parentRef}
           data-scroll-container="true"
-          className="overflow-auto relative"
+          className="overflow-auto relative -mx-4 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
           style={{ height: "calc(100vh - 260px)" }}
         >
           {/* Pull to Refresh Indicator */}

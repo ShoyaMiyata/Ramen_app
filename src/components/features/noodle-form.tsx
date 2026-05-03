@@ -31,10 +31,9 @@ interface NoodleFormProps {
     r2ImageUrls?: string[];
     r2ImageKeys?: string[];
   };
-  room?: string;
 }
 
-export function NoodleForm({ noodle, room }: NoodleFormProps) {
+export function NoodleForm({ noodle }: NoodleFormProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +196,7 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !shopName || !ramenName || (!room && genres.length === 0)) return;
+    if (!user || !shopName || !ramenName || genres.length === 0) return;
 
     prevShopCountRef.current = currentShopCount;
 
@@ -282,7 +281,6 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
           r2ImageKeys: r2ImageKeys.length > 0 ? r2ImageKeys : undefined,
           isArchived: isArchived || undefined,
           isDraft: isDraft || undefined,
-          room,
         });
 
         const noodleId = result.noodleId;
@@ -512,7 +510,7 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
         {/* Genres */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            ジャンル {!room && <span className="text-red-500">*</span>}
+            ジャンル <span className="text-red-500">*</span>
           </label>
           <div className="flex flex-wrap gap-2">
             {!availableGenres ? (
@@ -605,7 +603,7 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
               variant="outline"
               className="flex-1"
               disabled={
-                isSubmitting || !shopName || !ramenName || (!room && genres.length === 0)
+                isSubmitting || !shopName || !ramenName || genres.length === 0
               }
               onClick={() => {
                 setIsDraft(true);
@@ -626,7 +624,7 @@ export function NoodleForm({ noodle, room }: NoodleFormProps) {
             type="button"
             className="flex-1"
             disabled={
-              isSubmitting || !shopName || !ramenName || (!room && genres.length === 0)
+              isSubmitting || !shopName || !ramenName || genres.length === 0
             }
             onClick={() => {
               setIsDraft(false);
