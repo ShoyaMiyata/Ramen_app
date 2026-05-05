@@ -9,7 +9,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils/date";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
-import { Heart, MessageCircle, User } from "lucide-react";
+import { Heart, MessageCircle, User, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { ImageWithPlaceholder } from "@/components/ui/image-placeholder";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,6 +52,7 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const [showParticles, setShowParticles] = useState(false);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [isBookmarkAnimating, setIsBookmarkAnimating] = useState(false);
   const lastTapRef = useRef<number>(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const touchStartX = useRef(0);
@@ -66,7 +67,12 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
 
   const likeCount = useQuery(api.likes.getCount, { noodleId: noodle._id });
   const commentCount = useQuery(api.comments.getCount, { noodleId: noodle._id });
+  const isBookmarked = useQuery(
+    api.bookmarks.isBookmarked,
+    currentUserId ? { userId: currentUserId, noodleId: noodle._id } : "skip"
+  );
   const toggleLike = useMutation(api.likes.toggle);
+  const toggleBookmark = useMutation(api.bookmarks.toggle);
 
   const isOwner = currentUserId === noodle.userId;
 
@@ -85,23 +91,49 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
     await toggleLike({ userId: currentUserId, noodleId: noodle._id });
   };
 
-  const handleDoubleTap = useCallback(
-    async (e: React.MouseEvent) => {
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentUserId) return;
+    setIsBookmarkAnimating(true);
+    setTimeout(() => setIsBookmarkAnimating(false), 400);
+    try {
+      await toggleBookmark({ userId: currentUserId, noodleId: noodle._id });
+    } catch (err) {
+      console.error("[Bookmark] error", err);
+    }
+  };
+
+  const singleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleImageClick = useCallback(
+    (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       const now = Date.now();
-      if (now - lastTapRef.current < 300) {
+      const isDoubleTap = now - lastTapRef.current < 300;
+      lastTapRef.current = now;
+
+      if (isDoubleTap) {
+        if (singleTapTimeoutRef.current) {
+          clearTimeout(singleTapTimeoutRef.current);
+          singleTapTimeoutRef.current = null;
+        }
         if (!currentUserId || isOwner) return;
         setShowDoubleTapHeart(true);
         setTimeout(() => setShowDoubleTapHeart(false), 1000);
         if (!isLiked) {
           triggerLikeAnimation();
-          await toggleLike({ userId: currentUserId, noodleId: noodle._id });
+          toggleLike({ userId: currentUserId, noodleId: noodle._id });
         }
+        return;
       }
-      lastTapRef.current = now;
+
+      singleTapTimeoutRef.current = setTimeout(() => {
+        router.push(`/noodles/${noodle._id}`);
+      }, 280);
     },
-    [currentUserId, isOwner, isLiked, noodle._id, toggleLike, triggerLikeAnimation]
+    [currentUserId, isOwner, isLiked, noodle._id, toggleLike, triggerLikeAnimation, router]
   );
 
   const handleShopClick = (e: React.MouseEvent) => {
@@ -121,7 +153,7 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    handleDoubleTap(e);
+    handleImageClick(e);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -146,7 +178,6 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
 
   return (
     <div>
-      <Link href={`/noodles/${noodle._id}`}>
         {allImages.length > 0 && (
           <div
             className="relative w-full"
@@ -282,6 +313,30 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
               <MessageCircle className="w-6 h-6 text-gray-900 hover:text-gray-600 transition-colors" />
             </Link>
 
+            {currentUserId && (
+              <button
+                type="button"
+                onClick={handleBookmark}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label={isBookmarked ? "ブックマーク解除" : "ブックマーク"}
+                className="flex items-center p-1 -m-1 active:opacity-50"
+              >
+                <motion.div
+                  animate={isBookmarkAnimating ? { scale: [1, 1.3, 0.9, 1.1, 1] } : {}}
+                  transition={{ duration: 0.4 }}
+                >
+                  <Bookmark
+                    className={cn(
+                      "w-6 h-6 transition-colors",
+                      isBookmarked
+                        ? "fill-blue-500 text-blue-500"
+                        : "text-gray-900 hover:text-gray-600"
+                    )}
+                  />
+                </motion.div>
+              </button>
+            )}
+
             <div className="ml-auto">
               <StarRating value={noodle.evaluation} readonly size="sm" />
             </div>
@@ -299,9 +354,12 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
           )}
 
           <div className="mb-1">
-            <span className="font-bold text-gray-900 text-sm">
+            <Link
+              href={`/noodles/${noodle._id}`}
+              className="font-bold text-gray-900 text-sm hover:underline"
+            >
               {noodle.ramenName}
-            </span>
+            </Link>
           </div>
 
           {noodle.genres.length > 0 && (
@@ -339,7 +397,6 @@ export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCar
             </p>
           )}
         </div>
-      </Link>
     </div>
   );
 }

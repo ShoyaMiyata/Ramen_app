@@ -9,7 +9,7 @@ import { api } from "../../../convex/_generated/api";
 import { useViewingUser } from "@/hooks/useViewingUser";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink, Moon, Sun } from "lucide-react";
+import { Soup, Home, Heart, Trophy, Search, Bell, UserPlus, X, MessageCircle, MessageSquare, BarChart3, TrendingUp, Users, Menu, Map as MapIcon, Settings, Info, Wrench, Shield, ExternalLink, Moon, Sun, Bookmark } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils/cn";
 
@@ -422,13 +422,14 @@ export function BottomNav() {
   const navItems = [
     { href: myProfileHref, icon: Home, label: "マイページ", isProfile: true },
     { href: "/noodles", icon: Soup, label: "タイムライン", badge: newTimelinePostsCount },
+    { href: "/bookmarks", icon: Bookmark, label: "保存" },
     { href: "/search", icon: Search, label: "検索" },
     { href: "/ranking", icon: Trophy, label: "ランキング" },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="max-w-md mx-auto flex items-center justify-around h-16">
+      <div className="max-w-md mx-auto flex items-stretch h-16">
         {navItems.map((item) => {
           const isActive = item.isProfile
             ? pathname === "/" || pathname === myProfileHref
@@ -438,7 +439,7 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 transition-colors relative"
+              className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 transition-colors relative px-1"
               style={{
                 color: isActive ? themeColor : "#6B7280",
               }}
@@ -454,7 +455,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className="text-xs">{item.label}</span>
+              <span className="text-[10px] leading-none w-full text-center truncate">{item.label}</span>
             </Link>
           );
         })}

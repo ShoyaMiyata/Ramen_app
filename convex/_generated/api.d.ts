@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as appSettings from "../appSettings.js";
 import type * as badges from "../badges.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as chat from "../chat.js";
 import type * as cleanupUsers from "../cleanupUsers.js";
 import type * as commentLikes from "../commentLikes.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   appSettings: typeof appSettings;
   badges: typeof badges;
+  bookmarks: typeof bookmarks;
   chat: typeof chat;
   cleanupUsers: typeof cleanupUsers;
   commentLikes: typeof commentLikes;

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDate } from "@/lib/utils/date";
 import { getPrefectureName } from "@/lib/utils/prefecture";
-import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight, MoreHorizontal, Bookmark } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -109,6 +109,11 @@ export default function NoodleDetailPage({
 
   const toggleLike = useMutation(api.likes.toggle);
   const removeNoodle = useMutation(api.noodles.remove);
+  const isBookmarked = useQuery(
+    api.bookmarks.isBookmarked,
+    user && noodle ? { userId: user._id, noodleId: noodle._id } : "skip"
+  );
+  const toggleBookmark = useMutation(api.bookmarks.toggle);
 
   if (!isLoaded || noodle === undefined) return <LoadingPage />;
 
@@ -130,6 +135,11 @@ export default function NoodleDetailPage({
     setIsLikeAnimating(true);
     setTimeout(() => setIsLikeAnimating(false), 400);
     await toggleLike({ userId: user._id, noodleId: noodle._id });
+  };
+
+  const handleBookmark = async () => {
+    if (!user) return;
+    await toggleBookmark({ userId: user._id, noodleId: noodle._id });
   };
 
   const handleDelete = async () => {
@@ -341,6 +351,23 @@ export default function NoodleDetailPage({
             <Heart className="w-7 h-7 text-gray-900" />
           )}
           <MessageCircle className="w-7 h-7 text-gray-900" />
+          {user && (
+            <button
+              type="button"
+              onClick={handleBookmark}
+              aria-label={isBookmarked ? "ブックマーク解除" : "ブックマーク"}
+              className="flex items-center p-1 -m-1 active:opacity-50"
+            >
+              <Bookmark
+                className={cn(
+                  "w-7 h-7 transition-colors",
+                  isBookmarked
+                    ? "fill-blue-500 text-blue-500"
+                    : "text-gray-900 hover:text-gray-600"
+                )}
+              />
+            </button>
+          )}
           <div className="ml-auto">
             <StarRating value={noodle.evaluation} readonly size="md" />
           </div>
