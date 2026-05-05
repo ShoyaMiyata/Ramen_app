@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/utils/date";
 import { getPrefectureName } from "@/lib/utils/prefecture";
 import { ArrowLeft, Edit, Trash2, Heart, MessageCircle, Send, X, User, ChevronLeft, ChevronRight, MoreHorizontal, Bookmark } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useTheme } from "@/contexts/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
@@ -37,6 +38,10 @@ export default function NoodleDetailPage({
   const [showLikeUsersModal, setShowLikeUsersModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<Id<"comments"> | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<Id<"comments"> | null>(null);
 
   const touchStartX = useRef(0);
   const touchDeltaX = useRef(0);
@@ -72,6 +77,7 @@ export default function NoodleDetailPage({
   const commentsData = useQuery(api.comments.getByNoodle, { noodleId, limit: 20 });
   const commentCount = useQuery(api.comments.getCount, { noodleId });
   const createComment = useMutation(api.comments.create);
+  const updateComment = useMutation(api.comments.update);
   const removeComment = useMutation(api.comments.remove);
 
   const commentIds = commentsData?.items.map(c => c._id) ?? [];
@@ -161,10 +167,40 @@ export default function NoodleDetailPage({
     }
   };
 
-  const handleDeleteComment = async (commentId: Id<"comments">) => {
-    if (!user) return;
-    try { await removeComment({ commentId, userId: user._id }); }
-    catch (error) { console.error("Failed to delete comment:", error); }
+  const handleStartEdit = (commentId: Id<"comments">, currentContent: string) => {
+    setEditingCommentId(commentId);
+    setEditingContent(currentContent);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingContent("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!user || !editingCommentId) return;
+    const content = editingContent.trim();
+    if (content.length === 0 || content.length > 500) return;
+    setIsSavingEdit(true);
+    try {
+      await updateComment({ commentId: editingCommentId, userId: user._id, content });
+      setEditingCommentId(null);
+      setEditingContent("");
+    } catch (error) {
+      console.error("Failed to update comment:", error);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleConfirmDeleteComment = async () => {
+    if (!user || !deletingCommentId) return;
+    try {
+      await removeComment({ commentId: deletingCommentId, userId: user._id });
+      setDeletingCommentId(null);
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+    }
   };
 
   const handleCommentLike = async (commentId: Id<"comments">) => {
@@ -424,47 +460,131 @@ export default function NoodleDetailPage({
           ) : allComments.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-2">まだコメントはありません</p>
           ) : (
-            allComments.map((comment) => (
-              <div key={comment._id} className="flex gap-2.5 group">
-                <Link href={`/users/${comment.userId}`} className="flex-shrink-0">
-                  {comment.user?.imageUrl ? (
-                    <img src={comment.user.imageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
-                  )}
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700">
-                    <Link href={`/users/${comment.userId}`} className="font-semibold text-gray-900 mr-1 hover:underline">
-                      {comment.user?.name || "ユーザー"}
-                    </Link>
-                    {comment.content}
-                  </p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-400">{formatTimeAgo(comment.createdAt)}</span>
-                    {user && (
-                      <button
-                        onClick={() => handleCommentLike(comment._id)}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
-                      >
-                        <Heart className={cn("w-3 h-3", commentLikeStates?.[comment._id] && "fill-orange-500 text-orange-500")} />
-                        {commentLikeCounts?.[comment._id] !== undefined && commentLikeCounts[comment._id] > 0 && (
-                          <span>{commentLikeCounts[comment._id]}</span>
-                        )}
-                      </button>
+            allComments.map((comment) => {
+              const isCommentOwner = user?._id === comment.userId;
+              const canEditComment = isCommentOwner;
+              const canDeleteComment = isCommentOwner || isAdmin;
+              const showMenu = canEditComment || canDeleteComment;
+              const isEditing = editingCommentId === comment._id;
+              return (
+                <div key={comment._id} className="flex gap-2.5">
+                  <Link href={`/users/${comment.userId}`} className="flex-shrink-0">
+                    {comment.user?.imageUrl ? (
+                      <img src={comment.user.imageUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0" />
                     )}
-                    {user?._id === comment.userId && (
-                      <button
-                        onClick={() => handleDeleteComment(comment._id)}
-                        className="text-xs text-gray-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        削除
-                      </button>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    {isEditing ? (
+                      <div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <Link href={`/users/${comment.userId}`} className="text-sm font-semibold text-gray-900 hover:underline">
+                            {comment.user?.name || "ユーザー"}
+                          </Link>
+                        </div>
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          maxLength={500}
+                          rows={2}
+                          autoFocus
+                          className="w-full text-sm border border-gray-200 rounded-lg p-2 outline-none focus:border-gray-400 resize-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSaveEdit();
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              handleCancelEdit();
+                            }
+                          }}
+                        />
+                        <div className="flex items-center justify-end gap-2 mt-1">
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={isSavingEdit}
+                            className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-30"
+                          >
+                            キャンセル
+                          </button>
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={isSavingEdit || editingContent.trim().length === 0 || editingContent.trim().length > 500}
+                            className="text-xs font-semibold disabled:opacity-30"
+                            style={{ color: themeColor }}
+                          >
+                            {isSavingEdit ? "保存中..." : "保存"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2">
+                          <p className="text-sm text-gray-700 flex-1">
+                            <Link href={`/users/${comment.userId}`} className="font-semibold text-gray-900 mr-1 hover:underline">
+                              {comment.user?.name || "ユーザー"}
+                            </Link>
+                            {comment.content}
+                          </p>
+                          {showMenu && (
+                            <DropdownMenu.Root>
+                              <DropdownMenu.Trigger asChild>
+                                <button
+                                  aria-label="コメントメニュー"
+                                  className="flex-shrink-0 p-1 -m-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </button>
+                              </DropdownMenu.Trigger>
+                              <DropdownMenu.Portal>
+                                <DropdownMenu.Content
+                                  align="end"
+                                  sideOffset={4}
+                                  className="z-[60] min-w-[140px] bg-white rounded-lg shadow-lg border border-gray-100 py-1"
+                                >
+                                  {canEditComment && (
+                                    <DropdownMenu.Item
+                                      onSelect={() => handleStartEdit(comment._id, comment.content)}
+                                      className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer outline-none"
+                                    >
+                                      編集
+                                    </DropdownMenu.Item>
+                                  )}
+                                  {canDeleteComment && (
+                                    <DropdownMenu.Item
+                                      onSelect={() => setDeletingCommentId(comment._id)}
+                                      className="px-3 py-2 text-sm text-red-500 hover:bg-red-50 cursor-pointer outline-none"
+                                    >
+                                      削除
+                                    </DropdownMenu.Item>
+                                  )}
+                                </DropdownMenu.Content>
+                              </DropdownMenu.Portal>
+                            </DropdownMenu.Root>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-gray-400">{formatTimeAgo(comment.createdAt)}</span>
+                          {user && (
+                            <button
+                              onClick={() => handleCommentLike(comment._id)}
+                              className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+                            >
+                              <Heart className={cn("w-3 h-3", commentLikeStates?.[comment._id] && "fill-orange-500 text-orange-500")} />
+                              {commentLikeCounts?.[comment._id] !== undefined && commentLikeCounts[comment._id] > 0 && (
+                                <span>{commentLikeCounts[comment._id]}</span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
           {commentsData?.hasMore && (
             <button
@@ -505,6 +625,26 @@ export default function NoodleDetailPage({
           </div>
         )}
       </div>
+
+      <Dialog.Root open={deletingCommentId !== null} onOpenChange={(open) => { if (!open) setDeletingCommentId(null); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[100]" />
+          <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 w-[90%] max-w-sm z-[101]">
+            <Dialog.Title className="font-bold text-lg text-gray-900 mb-2">コメントを削除</Dialog.Title>
+            <Dialog.Description className="text-gray-500 text-sm mb-4">
+              このコメントを削除してもよろしいですか？この操作は取り消せません。
+            </Dialog.Description>
+            <div className="flex gap-3 justify-end">
+              <Dialog.Close asChild>
+                <Button variant="outline" size="sm">キャンセル</Button>
+              </Dialog.Close>
+              <Button variant="destructive" size="sm" onClick={handleConfirmDeleteComment}>
+                削除する
+              </Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       <AnimatePresence>
         {showLikeUsersModal && (

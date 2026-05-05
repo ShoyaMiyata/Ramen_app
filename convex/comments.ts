@@ -121,7 +121,35 @@ export const create = mutation({
   },
 });
 
-// コメントを削除（自分のコメントのみ削除可能）
+// コメントを編集（自分のコメントのみ）
+export const update = mutation({
+  args: {
+    commentId: v.id("comments"),
+    userId: v.id("users"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const comment = await ctx.db.get(args.commentId);
+    if (!comment) {
+      throw new Error("コメントが見つかりません");
+    }
+    if (comment.userId !== args.userId) {
+      throw new Error("自分のコメントのみ編集できます");
+    }
+
+    const content = args.content.trim();
+    if (content.length === 0) {
+      throw new Error("コメントを入力してください");
+    }
+    if (content.length > 500) {
+      throw new Error("コメントは500文字以内で入力してください");
+    }
+
+    await ctx.db.patch(args.commentId, { content });
+  },
+});
+
+// コメントを削除（本人または管理者）
 export const remove = mutation({
   args: {
     commentId: v.id("comments"),
@@ -132,8 +160,16 @@ export const remove = mutation({
     if (!comment) {
       throw new Error("コメントが見つかりません");
     }
-    if (comment.userId !== args.userId) {
-      throw new Error("自分のコメントのみ削除できます");
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("ユーザーが見つかりません");
+    }
+
+    const isOwner = comment.userId === args.userId;
+    const isAdmin = user.isAdmin === true;
+    if (!isOwner && !isAdmin) {
+      throw new Error("このコメントを削除する権限がありません");
     }
 
     await ctx.db.delete(args.commentId);

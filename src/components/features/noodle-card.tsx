@@ -23,7 +23,6 @@ interface NoodleCardProps {
   };
   showUser?: boolean;
   currentUserId?: Id<"users">;
-  hideGenres?: boolean;
 }
 
 function HeartParticle({ index }: { index: number }) {
@@ -48,7 +47,7 @@ function HeartParticle({ index }: { index: number }) {
   );
 }
 
-export function NoodleCard({ noodle, showUser = true, currentUserId, hideGenres }: NoodleCardProps) {
+export function NoodleCard({ noodle, showUser = true, currentUserId }: NoodleCardProps) {
   const router = useRouter();
   const [showDoubleTapHeart, setShowDoubleTapHeart] = useState(false);
   const [showParticles, setShowParticles] = useState(false);
@@ -363,7 +362,7 @@ export function NoodleCard({ noodle, showUser = true, currentUserId, hideGenres 
             </Link>
           </div>
 
-          {!hideGenres && noodle.genres.length > 0 && (
+          {noodle.genres.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-1">
               {noodle.genres.map((genre) => (
                 <Badge key={genre} rarity="common" className="text-[10px]">
